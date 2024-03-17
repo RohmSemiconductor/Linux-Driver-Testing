@@ -1,0 +1,233 @@
+2024-03-17 10:36:27+0200 [-] Loading buildbot.tac...
+2024-03-17 10:36:27+0200 [-] Loaded.
+2024-03-17 10:36:27+0200 [-] twistd 24.3.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/worker_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 10:36:27+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 10:36:27+0200 [-] Starting Worker -- version: 3.11.1
+2024-03-17 10:36:27+0200 [-] recording hostname in twistd.hostname
+2024-03-17 10:36:27+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f03a7b93f40>
+2024-03-17 10:36:27+0200 [Broker,client] message from master: attached
+2024-03-17 10:36:27+0200 [Broker,client] message from master: attached
+2024-03-17 10:36:27+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 10:36:27+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 10:46:27+0200 [-] sending app-level keepalive
+2024-03-17 10:46:27+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 10:47:23+0200 [-] Received SIGTERM, shutting down.
+2024-03-17 10:47:23+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f03a7b93f40>
+2024-03-17 10:47:23+0200 [-] Main loop terminated.
+2024-03-17 10:47:23+0200 [-] Server Shut Down.
+2024-03-17 10:47:24+0200 [-] Loading buildbot.tac...
+2024-03-17 10:47:24+0200 [-] Loaded.
+2024-03-17 10:47:24+0200 [-] twistd 24.3.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/worker_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 10:47:24+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 10:47:24+0200 [-] Starting Worker -- version: 3.11.1
+2024-03-17 10:47:24+0200 [-] recording hostname in twistd.hostname
+2024-03-17 10:47:24+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 10:47:24+0200 [Broker,client] message from master: attached
+2024-03-17 10:47:24+0200 [Broker,client] message from master: attached
+2024-03-17 10:47:24+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 10:47:24+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 11:15:22+0200 [-] sending app-level keepalive
+2024-03-17 11:15:22+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 11:25:22+0200 [-] sending app-level keepalive
+2024-03-17 11:25:22+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 11:35:22+0200 [-] sending app-level keepalive
+2024-03-17 11:35:22+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 11:45:22+0200 [-] sending app-level keepalive
+2024-03-17 11:45:22+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 11:46:10+0200 [-] Scheduling retry 1 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7ff0cdfd7970> in 2.1721019721410944 seconds.
+2024-03-17 11:46:10+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:12+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:12+0200 [Broker,client] message from master: attached
+2024-03-17 11:46:13+0200 [Broker,client] message from master: attached
+2024-03-17 11:46:13+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 11:46:13+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 11:46:21+0200 [-] Scheduling retry 1 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7ff0cdfd7970> in 1.8098855454066074 seconds.
+2024-03-17 11:46:21+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:23+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:23+0200 [-] Scheduling retry 2 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7ff0cdfd7970> in 2.7076125512182383 seconds.
+2024-03-17 11:46:23+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:26+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:26+0200 [-] Scheduling retry 3 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7ff0cdfd7970> in 3.6938325622434536 seconds.
+2024-03-17 11:46:26+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:29+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:29+0200 [-] Scheduling retry 4 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7ff0cdfd7970> in 5.354070710582924 seconds.
+2024-03-17 11:46:29+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:35+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:35+0200 [Broker,client] message from master: attached
+2024-03-17 11:46:35+0200 [Broker,client] message from master: attached
+2024-03-17 11:46:35+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 11:46:35+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 11:46:40+0200 [-] Scheduling retry 1 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7ff0cdfd7970> in 1.5197227156324558 seconds.
+2024-03-17 11:46:40+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:42+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:42+0200 [-] Scheduling retry 2 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7ff0cdfd7970> in 3.200345354782379 seconds.
+2024-03-17 11:46:42+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:45+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:46:45+0200 [Broker,client] message from master: attached
+2024-03-17 11:46:45+0200 [Broker,client] message from master: attached
+2024-03-17 11:46:45+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 11:46:45+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 11:47:32+0200 [-] Scheduling retry 1 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7ff0cdfd7970> in 1.6805921361697729 seconds.
+2024-03-17 11:47:32+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:47:33+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:47:33+0200 [Broker,client] message from master: attached
+2024-03-17 11:47:33+0200 [Broker,client] message from master: attached
+2024-03-17 11:47:33+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 11:47:33+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 11:50:28+0200 [-] Scheduling retry 1 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7ff0cdfd7970> in 1.9392889916494163 seconds.
+2024-03-17 11:50:28+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:50:30+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:50:30+0200 [Broker,client] message from master: attached
+2024-03-17 11:50:30+0200 [Broker,client] message from master: attached
+2024-03-17 11:50:30+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 11:50:30+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 11:51:03+0200 [-] Scheduling retry 1 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7ff0cdfd7970> in 1.9313882514075151 seconds.
+2024-03-17 11:51:03+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7ff0cedc31f0>
+2024-03-17 11:51:04+0200 [-] Received SIGTERM, shutting down.
+2024-03-17 11:51:04+0200 [-] Main loop terminated.
+2024-03-17 11:51:04+0200 [-] Server Shut Down.
+2024-03-17 11:51:05+0200 [-] Loading buildbot.tac...
+2024-03-17 11:51:05+0200 [-] Loaded.
+2024-03-17 11:51:05+0200 [-] twistd 24.3.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/worker_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 11:51:05+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 11:51:05+0200 [-] Starting Worker -- version: 3.11.1
+2024-03-17 11:51:05+0200 [-] recording hostname in twistd.hostname
+2024-03-17 11:51:05+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f5af857e220>
+2024-03-17 11:51:05+0200 [Broker,client] message from master: attached
+2024-03-17 11:51:05+0200 [Broker,client] message from master: attached
+2024-03-17 11:51:05+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 11:51:05+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 11:58:25+0200 [-] Scheduling retry 1 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f5af77929a0> in 1.7028604916606453 seconds.
+2024-03-17 11:58:25+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f5af857e220>
+2024-03-17 11:58:27+0200 [-] Received SIGTERM, shutting down.
+2024-03-17 11:58:27+0200 [-] Main loop terminated.
+2024-03-17 11:58:27+0200 [-] Server Shut Down.
+2024-03-17 11:58:27+0200 [-] Loading buildbot.tac...
+2024-03-17 11:58:27+0200 [-] Loaded.
+2024-03-17 11:58:27+0200 [-] twistd 24.3.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/worker_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 11:58:27+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 11:58:27+0200 [-] Starting Worker -- version: 3.11.1
+2024-03-17 11:58:27+0200 [-] recording hostname in twistd.hostname
+2024-03-17 11:58:27+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:58:27+0200 [-] Scheduling retry 1 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f3797857910> in 1.8041660779632647 seconds.
+2024-03-17 11:58:27+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:58:29+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:58:29+0200 [-] Scheduling retry 2 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f3797857910> in 2.713405310372502 seconds.
+2024-03-17 11:58:29+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:58:32+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:58:32+0200 [-] Scheduling retry 3 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f3797857910> in 3.388817974109033 seconds.
+2024-03-17 11:58:32+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:58:35+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:58:35+0200 [-] Scheduling retry 4 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f3797857910> in 5.513940710413588 seconds.
+2024-03-17 11:58:35+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:58:41+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:58:41+0200 [-] Scheduling retry 5 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f3797857910> in 7.633270119029742 seconds.
+2024-03-17 11:58:41+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:58:49+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:58:49+0200 [-] Scheduling retry 6 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f3797857910> in 12.345234628366113 seconds.
+2024-03-17 11:58:49+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:59:01+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:59:01+0200 [-] Scheduling retry 7 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f3797857910> in 17.101888451062443 seconds.
+2024-03-17 11:59:01+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:59:18+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:59:18+0200 [-] Scheduling retry 8 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f3797857910> in 26.30550118998072 seconds.
+2024-03-17 11:59:18+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:59:44+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 11:59:44+0200 [-] Scheduling retry 9 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f3797857910> in 38.9725135909939 seconds.
+2024-03-17 11:59:44+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 12:00:23+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 12:00:23+0200 [-] Scheduling retry 10 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f3797857910> in 57.674740266296794 seconds.
+2024-03-17 12:00:23+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 12:01:21+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 12:01:21+0200 [-] Scheduling retry 11 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f3797857910> in 60.12099347938791 seconds.
+2024-03-17 12:01:21+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f37986431c0>
+2024-03-17 12:01:32+0200 [-] Received SIGTERM, shutting down.
+2024-03-17 12:01:32+0200 [-] Main loop terminated.
+2024-03-17 12:01:32+0200 [-] Server Shut Down.
+2024-03-17 12:01:32+0200 [-] Loading buildbot.tac...
+2024-03-17 12:01:32+0200 [-] Loaded.
+2024-03-17 12:01:32+0200 [-] twistd 24.3.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/worker_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 12:01:32+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 12:01:32+0200 [-] Starting Worker -- version: 3.11.1
+2024-03-17 12:01:32+0200 [-] recording hostname in twistd.hostname
+2024-03-17 12:01:32+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f18fb77f160>
+2024-03-17 12:01:32+0200 [Broker,client] message from master: attached
+2024-03-17 12:01:32+0200 [Broker,client] message from master: attached
+2024-03-17 12:01:32+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 12:01:32+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 12:04:10+0200 [-] Scheduling retry 1 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f18fa9938e0> in 2.195775698561451 seconds.
+2024-03-17 12:04:10+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f18fb77f160>
+2024-03-17 12:04:12+0200 [-] Received SIGTERM, shutting down.
+2024-03-17 12:04:12+0200 [-] Main loop terminated.
+2024-03-17 12:04:12+0200 [-] Server Shut Down.
+2024-03-17 12:04:12+0200 [-] Loading buildbot.tac...
+2024-03-17 12:04:12+0200 [-] Loaded.
+2024-03-17 12:04:12+0200 [-] twistd 24.3.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/worker_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 12:04:12+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 12:04:12+0200 [-] Starting Worker -- version: 3.11.1
+2024-03-17 12:04:12+0200 [-] recording hostname in twistd.hostname
+2024-03-17 12:04:12+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:04:12+0200 [Broker,client] message from master: attached
+2024-03-17 12:04:12+0200 [Broker,client] message from master: attached
+2024-03-17 12:04:12+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 12:04:12+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 12:09:08+0200 [-] Scheduling retry 1 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f1305032940> in 1.6008414416440284 seconds.
+2024-03-17 12:09:08+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:09:10+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:09:10+0200 [-] Scheduling retry 2 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f1305032940> in 2.3811677354464242 seconds.
+2024-03-17 12:09:10+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:09:12+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:09:12+0200 [-] Scheduling retry 3 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f1305032940> in 3.376251512044622 seconds.
+2024-03-17 12:09:12+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:09:15+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:09:15+0200 [-] Scheduling retry 4 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f1305032940> in 5.258629164129094 seconds.
+2024-03-17 12:09:15+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:09:21+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:09:21+0200 [-] Scheduling retry 5 to connect <twisted.internet.endpoints.TCP4ClientEndpoint object at 0x7f1305032940> in 8.591743856742507 seconds.
+2024-03-17 12:09:21+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:09:29+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:09:29+0200 [Broker,client] message from master: attached
+2024-03-17 12:09:29+0200 [Broker,client] message from master: attached
+2024-03-17 12:09:29+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 12:09:29+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 12:09:29+0200 [-] Received SIGTERM, shutting down.
+2024-03-17 12:09:29+0200 [-] Stopping factory <buildbot_worker.pb.BotFactory object at 0x7f1305e1f1c0>
+2024-03-17 12:09:29+0200 [-] Main loop terminated.
+2024-03-17 12:09:29+0200 [-] Server Shut Down.
+2024-03-17 12:09:30+0200 [-] Loading buildbot.tac...
+2024-03-17 12:09:30+0200 [-] Loaded.
+2024-03-17 12:09:30+0200 [-] twistd 24.3.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/worker_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 12:09:30+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 12:09:30+0200 [-] Starting Worker -- version: 3.11.1
+2024-03-17 12:09:30+0200 [-] recording hostname in twistd.hostname
+2024-03-17 12:09:30+0200 [-] Starting factory <buildbot_worker.pb.BotFactory object at 0x7febff5031c0>
+2024-03-17 12:09:30+0200 [Broker,client] message from master: attached
+2024-03-17 12:09:30+0200 [Broker,client] message from master: attached
+2024-03-17 12:09:30+0200 [Broker,client] Connected to buildmaster; worker is ready
+2024-03-17 12:09:30+0200 [Broker,client] sending application-level keepalives every 600 seconds
+2024-03-17 12:19:30+0200 [-] sending app-level keepalive
+2024-03-17 12:19:30+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 12:29:30+0200 [-] sending app-level keepalive
+2024-03-17 12:29:30+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 12:39:30+0200 [-] sending app-level keepalive
+2024-03-17 12:39:30+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 12:49:30+0200 [-] sending app-level keepalive
+2024-03-17 12:49:30+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 12:59:30+0200 [-] sending app-level keepalive
+2024-03-17 12:59:30+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 13:09:30+0200 [Broker,client] message from master: keepalive
+2024-03-17 13:09:30+0200 [-] sending app-level keepalive
+2024-03-17 13:09:30+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 13:19:31+0200 [-] sending app-level keepalive
+2024-03-17 13:19:31+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 13:29:31+0200 [-] sending app-level keepalive
+2024-03-17 13:29:31+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 13:39:31+0200 [-] sending app-level keepalive
+2024-03-17 13:39:31+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 13:49:31+0200 [-] sending app-level keepalive
+2024-03-17 13:49:31+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 13:59:31+0200 [-] sending app-level keepalive
+2024-03-17 13:59:31+0200 [Broker,client] Master replied to keepalive, everything's fine
+2024-03-17 14:09:30+0200 [Broker,client] message from master: keepalive
+2024-03-17 14:09:31+0200 [-] sending app-level keepalive
+2024-03-17 14:09:31+0200 [Broker,client] Master replied to keepalive, everything's fine

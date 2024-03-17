@@ -1,0 +1,561 @@
+2024-03-17 10:03:52+0200 [-] Loading buildbot.tac...
+2024-03-17 10:03:53+0200 [-] Loaded.
+2024-03-17 10:03:53+0200 [-] twistd 23.10.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 10:03:53+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 10:03:53+0200 [-] Starting BuildMaster -- buildbot.version: 3.11.1
+2024-03-17 10:03:53+0200 [-] Loading configuration from '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/master.cfg'
+2024-03-17 10:03:53+0200 [-] Setting up database with URL 'sqlite:/state.sqlite'
+2024-03-17 10:03:53+0200 [-] setting database journal mode to 'wal'
+2024-03-17 10:03:53+0200 [-] adding 1 new change_sources, removing 0
+2024-03-17 10:03:53+0200 [-] gitpoller: using workdir '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/gitpoller-workdir'
+2024-03-17 10:03:53+0200 [-] adding 1 new builders, removing 0
+2024-03-17 10:03:53+0200 [-] adding 2 new schedulers, removing 0
+2024-03-17 10:03:53+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 10:03:53+0200 [-] initializing www plugin 'console_view'
+2024-03-17 10:03:53+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 10:03:53+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 10:03:53+0200 [-] initializing www plugin 'console_view'
+2024-03-17 10:03:53+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 10:03:53+0200 [-] BuildbotSite starting on 8010
+2024-03-17 10:03:53+0200 [-] Starting factory <buildbot.www.service.BuildbotSite object at 0x7f4e301bb220>
+2024-03-17 10:03:53+0200 [-] adding 1 new workers, removing 0
+2024-03-17 10:03:53+0200 [-] PBServerFactory starting on 9989
+2024-03-17 10:03:53+0200 [-] Starting factory <twisted.spread.pb.PBServerFactory object at 0x7f4e30162790>
+2024-03-17 10:03:53+0200 [-] BuildMaster is running
+2024-03-17 10:08:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 10:13:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 10:18:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 10:23:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 10:28:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 10:33:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 10:36:27+0200 [Broker,0,127.0.0.1] worker 'example-worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=37510)
+2024-03-17 10:36:27+0200 [Broker,0,127.0.0.1] Got workerinfo from 'example-worker'
+2024-03-17 10:36:27+0200 [-] bot attached
+2024-03-17 10:36:27+0200 [Broker,0,127.0.0.1] Worker example-worker attached to runtests
+2024-03-17 10:37:38+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=36218)
+2024-03-17 10:37:38+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=36230)
+2024-03-17 10:38:10+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=36238)
+2024-03-17 10:38:34+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=36220)
+2024-03-17 10:38:34+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=36228)
+2024-03-17 10:38:34+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=36232)
+2024-03-17 10:38:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 10:43:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 10:47:23+0200 [Broker,0,127.0.0.1] Worker.detached(example-worker)
+2024-03-17 10:47:23+0200 [Broker,0,127.0.0.1] releaseLocks(<Worker 'example-worker'>): []
+2024-03-17 10:47:23+0200 [-] Worker example-worker detached from runtests
+2024-03-17 10:47:24+0200 [Broker,1,127.0.0.1] worker 'example-worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=52606)
+2024-03-17 10:47:24+0200 [Broker,1,127.0.0.1] Got workerinfo from 'example-worker'
+2024-03-17 10:47:24+0200 [-] bot attached
+2024-03-17 10:47:24+0200 [Broker,1,127.0.0.1] Worker example-worker attached to runtests
+2024-03-17 10:48:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 10:53:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 10:56:11+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=43058)
+2024-03-17 11:14:25+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=45630)
+2024-03-17 11:14:25+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=43068)
+2024-03-17 11:14:25+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=43072)
+2024-03-17 11:14:25+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=43094)
+2024-03-17 11:14:25+0200 [-] <buildbot.changes.gitpoller.GitPoller object at 0x7f4e30c82f70>: while polling for changes
+	Traceback (most recent call last):
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/twisted/internet/defer.py", line 913, in errback
+	    self._startRunCallbacks(fail)
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/twisted/internet/defer.py", line 981, in _startRunCallbacks
+	    self._runCallbacks()
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/twisted/internet/defer.py", line 1075, in _runCallbacks
+	    current.result = callback(  # type: ignore[misc]
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/twisted/internet/defer.py", line 1946, in _gotResultInlineCallbacks
+	    _inlineCallbacks(r, gen, status, context)
+	--- <exception caught here> ---
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/twisted/internet/defer.py", line 1996, in _inlineCallbacks
+	    result = context.run(
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/twisted/python/failure.py", line 519, in throwExceptionIntoGenerator
+	    return g.throw(self.type, self.value, self.tb)
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/buildbot/changes/gitpoller.py", line 230, in poll
+	    remote_refs = yield self._getBranches()
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/twisted/internet/defer.py", line 1996, in _inlineCallbacks
+	    result = context.run(
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/twisted/python/failure.py", line 519, in throwExceptionIntoGenerator
+	    return g.throw(self.type, self.value, self.tb)
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/buildbot/changes/gitpoller.py", line 449, in _dovccmd
+	    stdout = yield self._dovccmdImpl(command, args, path, None)
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/twisted/internet/defer.py", line 2000, in _inlineCallbacks
+	    result = context.run(gen.send, result)
+	  File "/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/lib/python3.8/site-packages/buildbot/changes/gitpoller.py", line 479, in _dovccmdImpl
+	    raise GitError(f'command {full_args} in {path} on repourl {self.repourl} failed '
+	buildbot.changes.gitpoller.GitError: command ['ls-remote', '--refs', 'https://github.com/buildbot/hello-world.git'] in None on repourl https://github.com/buildbot/hello-world.git failed with exit code 128: fatal: unable to access 'https://github.com/buildbot/hello-world.git/': Could not resolve host: github.com
+	
+	
+2024-03-17 11:18:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 11:20:10+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=54702)
+2024-03-17 11:20:10+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=54688)
+2024-03-17 11:20:10+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=54672)
+2024-03-17 11:23:56+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 11:28:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 11:33:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 11:38:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 11:43:54+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 11:46:10+0200 [-] Initiating clean shutdown
+2024-03-17 11:46:10+0200 [-] No running jobs, starting shutdown immediately
+2024-03-17 11:46:10+0200 [-] doing housekeeping for master 1 t1nika00-Latitude-5580:/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master
+2024-03-17 11:46:10+0200 [-] (TCP Port 8010 Closed)
+2024-03-17 11:46:10+0200 [-] Stopping factory <buildbot.www.service.BuildbotSite object at 0x7f4e301bb220>
+2024-03-17 11:46:10+0200 [-] (TCP Port 9989 Closed)
+2024-03-17 11:46:10+0200 [-] Stopping factory <twisted.spread.pb.PBServerFactory object at 0x7f4e30162790>
+2024-03-17 11:46:10+0200 [-] disconnecting old worker example-worker now
+2024-03-17 11:46:10+0200 [-] waiting for worker to finish disconnecting
+2024-03-17 11:46:10+0200 [Broker,1,127.0.0.1] Worker.detached(example-worker)
+2024-03-17 11:46:10+0200 [Broker,1,127.0.0.1] releaseLocks(<Worker 'example-worker'>): []
+2024-03-17 11:46:10+0200 [-] Worker example-worker detached from runtests
+2024-03-17 11:46:10+0200 [-] BuildMaster is stopped
+2024-03-17 11:46:10+0200 [-] Main loop terminated.
+2024-03-17 11:46:10+0200 [-] Server Shut Down.
+2024-03-17 11:46:11+0200 [-] Loading buildbot.tac...
+2024-03-17 11:46:12+0200 [-] Loaded.
+2024-03-17 11:46:12+0200 [-] twistd 23.10.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 11:46:12+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 11:46:12+0200 [-] Starting BuildMaster -- buildbot.version: 3.11.1
+2024-03-17 11:46:12+0200 [-] Loading configuration from '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/master.cfg'
+2024-03-17 11:46:12+0200 [-] Setting up database with URL 'sqlite:/state.sqlite'
+2024-03-17 11:46:12+0200 [-] setting database journal mode to 'wal'
+2024-03-17 11:46:12+0200 [-] adding 1 new change_sources, removing 0
+2024-03-17 11:46:12+0200 [-] gitpoller: using workdir '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/gitpoller-workdir'
+2024-03-17 11:46:12+0200 [-] adding 1 new builders, removing 0
+2024-03-17 11:46:12+0200 [-] adding 2 new schedulers, removing 0
+2024-03-17 11:46:12+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:46:12+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:46:12+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:46:12+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:46:12+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:46:12+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:46:12+0200 [-] BuildbotSite starting on 8010
+2024-03-17 11:46:12+0200 [-] Starting factory <buildbot.www.service.BuildbotSite object at 0x7fb71080d040>
+2024-03-17 11:46:12+0200 [-] adding 1 new workers, removing 0
+2024-03-17 11:46:12+0200 [-] PBServerFactory starting on 9989
+2024-03-17 11:46:12+0200 [-] Starting factory <twisted.spread.pb.PBServerFactory object at 0x7fb71080dd30>
+2024-03-17 11:46:12+0200 [-] BuildMaster is running
+2024-03-17 11:46:12+0200 [Broker,0,127.0.0.1] worker 'example-worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=46820)
+2024-03-17 11:46:12+0200 [Broker,0,127.0.0.1] Got workerinfo from 'example-worker'
+2024-03-17 11:46:12+0200 [-] bot attached
+2024-03-17 11:46:13+0200 [Broker,0,127.0.0.1] Worker example-worker attached to runtests
+2024-03-17 11:46:21+0200 [-] Initiating clean shutdown
+2024-03-17 11:46:21+0200 [-] No running jobs, starting shutdown immediately
+2024-03-17 11:46:21+0200 [-] doing housekeeping for master 1 t1nika00-Latitude-5580:/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master
+2024-03-17 11:46:21+0200 [-] (TCP Port 8010 Closed)
+2024-03-17 11:46:21+0200 [-] Stopping factory <buildbot.www.service.BuildbotSite object at 0x7fb71080d040>
+2024-03-17 11:46:21+0200 [-] (TCP Port 9989 Closed)
+2024-03-17 11:46:21+0200 [-] Stopping factory <twisted.spread.pb.PBServerFactory object at 0x7fb71080dd30>
+2024-03-17 11:46:21+0200 [-] disconnecting old worker example-worker now
+2024-03-17 11:46:21+0200 [-] waiting for worker to finish disconnecting
+2024-03-17 11:46:21+0200 [Broker,0,127.0.0.1] Worker.detached(example-worker)
+2024-03-17 11:46:21+0200 [Broker,0,127.0.0.1] releaseLocks(<Worker 'example-worker'>): []
+2024-03-17 11:46:21+0200 [-] Worker example-worker detached from runtests
+2024-03-17 11:46:21+0200 [-] BuildMaster is stopped
+2024-03-17 11:46:21+0200 [-] Main loop terminated.
+2024-03-17 11:46:21+0200 [-] Server Shut Down.
+2024-03-17 11:46:30+0200 [-] Loading buildbot.tac...
+2024-03-17 11:46:31+0200 [-] Loaded.
+2024-03-17 11:46:31+0200 [-] twistd 23.10.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 11:46:31+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 11:46:31+0200 [-] Starting BuildMaster -- buildbot.version: 3.11.1
+2024-03-17 11:46:31+0200 [-] Loading configuration from '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/master.cfg'
+2024-03-17 11:46:31+0200 [-] Setting up database with URL 'sqlite:/state.sqlite'
+2024-03-17 11:46:31+0200 [-] setting database journal mode to 'wal'
+2024-03-17 11:46:31+0200 [-] adding 1 new change_sources, removing 0
+2024-03-17 11:46:31+0200 [-] gitpoller: using workdir '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/gitpoller-workdir'
+2024-03-17 11:46:31+0200 [-] adding 1 new builders, removing 0
+2024-03-17 11:46:31+0200 [-] adding 2 new schedulers, removing 0
+2024-03-17 11:46:31+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:46:31+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:46:31+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:46:31+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:46:31+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:46:31+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:46:31+0200 [-] BuildbotSite starting on 8010
+2024-03-17 11:46:31+0200 [-] Starting factory <buildbot.www.service.BuildbotSite object at 0x7f4ffe60faf0>
+2024-03-17 11:46:31+0200 [-] adding 1 new workers, removing 0
+2024-03-17 11:46:31+0200 [-] PBServerFactory starting on 9989
+2024-03-17 11:46:31+0200 [-] Starting factory <twisted.spread.pb.PBServerFactory object at 0x7f4ffe60f580>
+2024-03-17 11:46:31+0200 [-] BuildMaster is running
+2024-03-17 11:46:35+0200 [Broker,0,127.0.0.1] worker 'example-worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=33710)
+2024-03-17 11:46:35+0200 [Broker,0,127.0.0.1] Got workerinfo from 'example-worker'
+2024-03-17 11:46:35+0200 [-] bot attached
+2024-03-17 11:46:35+0200 [Broker,0,127.0.0.1] Worker example-worker attached to runtests
+2024-03-17 11:46:40+0200 [-] Initiating clean shutdown
+2024-03-17 11:46:40+0200 [-] No running jobs, starting shutdown immediately
+2024-03-17 11:46:40+0200 [-] doing housekeeping for master 1 t1nika00-Latitude-5580:/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master
+2024-03-17 11:46:40+0200 [-] (TCP Port 8010 Closed)
+2024-03-17 11:46:40+0200 [-] Stopping factory <buildbot.www.service.BuildbotSite object at 0x7f4ffe60faf0>
+2024-03-17 11:46:40+0200 [-] (TCP Port 9989 Closed)
+2024-03-17 11:46:40+0200 [-] Stopping factory <twisted.spread.pb.PBServerFactory object at 0x7f4ffe60f580>
+2024-03-17 11:46:40+0200 [-] disconnecting old worker example-worker now
+2024-03-17 11:46:40+0200 [-] waiting for worker to finish disconnecting
+2024-03-17 11:46:40+0200 [Broker,0,127.0.0.1] Worker.detached(example-worker)
+2024-03-17 11:46:40+0200 [Broker,0,127.0.0.1] releaseLocks(<Worker 'example-worker'>): []
+2024-03-17 11:46:40+0200 [-] Worker example-worker detached from runtests
+2024-03-17 11:46:40+0200 [-] BuildMaster is stopped
+2024-03-17 11:46:40+0200 [-] Main loop terminated.
+2024-03-17 11:46:40+0200 [-] Server Shut Down.
+2024-03-17 11:46:42+0200 [-] Loading buildbot.tac...
+2024-03-17 11:46:42+0200 [-] Loaded.
+2024-03-17 11:46:42+0200 [-] twistd 23.10.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 11:46:42+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 11:46:42+0200 [-] Starting BuildMaster -- buildbot.version: 3.11.1
+2024-03-17 11:46:42+0200 [-] Loading configuration from '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/master.cfg'
+2024-03-17 11:46:42+0200 [-] Setting up database with URL 'sqlite:/state.sqlite'
+2024-03-17 11:46:42+0200 [-] setting database journal mode to 'wal'
+2024-03-17 11:46:42+0200 [-] adding 1 new change_sources, removing 0
+2024-03-17 11:46:42+0200 [-] gitpoller: using workdir '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/gitpoller-workdir'
+2024-03-17 11:46:42+0200 [-] adding 1 new builders, removing 0
+2024-03-17 11:46:42+0200 [-] adding 2 new schedulers, removing 0
+2024-03-17 11:46:42+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:46:42+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:46:42+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:46:42+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:46:42+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:46:42+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:46:42+0200 [-] BuildbotSite starting on 8010
+2024-03-17 11:46:42+0200 [-] Starting factory <buildbot.www.service.BuildbotSite object at 0x7fce0857d8b0>
+2024-03-17 11:46:42+0200 [-] adding 1 new workers, removing 0
+2024-03-17 11:46:42+0200 [-] PBServerFactory starting on 9989
+2024-03-17 11:46:42+0200 [-] Starting factory <twisted.spread.pb.PBServerFactory object at 0x7fce0852c6a0>
+2024-03-17 11:46:42+0200 [-] BuildMaster is running
+2024-03-17 11:46:45+0200 [Broker,0,127.0.0.1] worker 'example-worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=44308)
+2024-03-17 11:46:45+0200 [Broker,0,127.0.0.1] Got workerinfo from 'example-worker'
+2024-03-17 11:46:45+0200 [-] bot attached
+2024-03-17 11:46:45+0200 [Broker,0,127.0.0.1] Worker example-worker attached to runtests
+2024-03-17 11:47:31+0200 [-] Initiating clean shutdown
+2024-03-17 11:47:31+0200 [-] No running jobs, starting shutdown immediately
+2024-03-17 11:47:31+0200 [-] doing housekeeping for master 1 t1nika00-Latitude-5580:/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master
+2024-03-17 11:47:32+0200 [-] (TCP Port 8010 Closed)
+2024-03-17 11:47:32+0200 [-] Stopping factory <buildbot.www.service.BuildbotSite object at 0x7fce0857d8b0>
+2024-03-17 11:47:32+0200 [-] (TCP Port 9989 Closed)
+2024-03-17 11:47:32+0200 [-] Stopping factory <twisted.spread.pb.PBServerFactory object at 0x7fce0852c6a0>
+2024-03-17 11:47:32+0200 [-] disconnecting old worker example-worker now
+2024-03-17 11:47:32+0200 [-] waiting for worker to finish disconnecting
+2024-03-17 11:47:32+0200 [Broker,0,127.0.0.1] Worker.detached(example-worker)
+2024-03-17 11:47:32+0200 [Broker,0,127.0.0.1] releaseLocks(<Worker 'example-worker'>): []
+2024-03-17 11:47:32+0200 [-] Worker example-worker detached from runtests
+2024-03-17 11:47:32+0200 [-] BuildMaster is stopped
+2024-03-17 11:47:32+0200 [-] Main loop terminated.
+2024-03-17 11:47:32+0200 [-] Server Shut Down.
+2024-03-17 11:47:33+0200 [-] Loading buildbot.tac...
+2024-03-17 11:47:33+0200 [-] Loaded.
+2024-03-17 11:47:33+0200 [-] twistd 23.10.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 11:47:33+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 11:47:33+0200 [-] Starting BuildMaster -- buildbot.version: 3.11.1
+2024-03-17 11:47:33+0200 [-] Loading configuration from '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/master.cfg'
+2024-03-17 11:47:33+0200 [-] Setting up database with URL 'sqlite:/state.sqlite'
+2024-03-17 11:47:33+0200 [-] setting database journal mode to 'wal'
+2024-03-17 11:47:33+0200 [-] adding 1 new change_sources, removing 0
+2024-03-17 11:47:33+0200 [-] gitpoller: using workdir '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/gitpoller-workdir'
+2024-03-17 11:47:33+0200 [-] adding 1 new builders, removing 0
+2024-03-17 11:47:33+0200 [-] adding 2 new schedulers, removing 0
+2024-03-17 11:47:33+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:47:33+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:47:33+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:47:33+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:47:33+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:47:33+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:47:33+0200 [-] BuildbotSite starting on 8010
+2024-03-17 11:47:33+0200 [-] Starting factory <buildbot.www.service.BuildbotSite object at 0x7f073f29a730>
+2024-03-17 11:47:33+0200 [-] adding 1 new workers, removing 0
+2024-03-17 11:47:33+0200 [-] PBServerFactory starting on 9989
+2024-03-17 11:47:33+0200 [-] Starting factory <twisted.spread.pb.PBServerFactory object at 0x7f073f1fe700>
+2024-03-17 11:47:33+0200 [-] BuildMaster is running
+2024-03-17 11:47:33+0200 [Broker,0,127.0.0.1] worker 'example-worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=54822)
+2024-03-17 11:47:33+0200 [Broker,0,127.0.0.1] Got workerinfo from 'example-worker'
+2024-03-17 11:47:33+0200 [-] bot attached
+2024-03-17 11:47:33+0200 [Broker,0,127.0.0.1] Worker example-worker attached to runtests
+2024-03-17 11:50:27+0200 [-] Initiating clean shutdown
+2024-03-17 11:50:27+0200 [-] No running jobs, starting shutdown immediately
+2024-03-17 11:50:28+0200 [-] doing housekeeping for master 1 t1nika00-Latitude-5580:/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master
+2024-03-17 11:50:28+0200 [-] (TCP Port 8010 Closed)
+2024-03-17 11:50:28+0200 [-] Stopping factory <buildbot.www.service.BuildbotSite object at 0x7f073f29a730>
+2024-03-17 11:50:28+0200 [-] (TCP Port 9989 Closed)
+2024-03-17 11:50:28+0200 [-] Stopping factory <twisted.spread.pb.PBServerFactory object at 0x7f073f1fe700>
+2024-03-17 11:50:28+0200 [-] disconnecting old worker example-worker now
+2024-03-17 11:50:28+0200 [-] waiting for worker to finish disconnecting
+2024-03-17 11:50:28+0200 [Broker,0,127.0.0.1] Worker.detached(example-worker)
+2024-03-17 11:50:28+0200 [Broker,0,127.0.0.1] releaseLocks(<Worker 'example-worker'>): []
+2024-03-17 11:50:28+0200 [-] Worker example-worker detached from runtests
+2024-03-17 11:50:28+0200 [-] BuildMaster is stopped
+2024-03-17 11:50:28+0200 [-] Main loop terminated.
+2024-03-17 11:50:28+0200 [-] Server Shut Down.
+2024-03-17 11:50:29+0200 [-] Loading buildbot.tac...
+2024-03-17 11:50:29+0200 [-] Loaded.
+2024-03-17 11:50:29+0200 [-] twistd 23.10.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 11:50:29+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 11:50:29+0200 [-] Starting BuildMaster -- buildbot.version: 3.11.1
+2024-03-17 11:50:29+0200 [-] Loading configuration from '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/master.cfg'
+2024-03-17 11:50:29+0200 [-] Setting up database with URL 'sqlite:/state.sqlite'
+2024-03-17 11:50:29+0200 [-] setting database journal mode to 'wal'
+2024-03-17 11:50:29+0200 [-] adding 1 new change_sources, removing 0
+2024-03-17 11:50:29+0200 [-] gitpoller: using workdir '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/gitpoller-workdir'
+2024-03-17 11:50:29+0200 [-] adding 1 new builders, removing 0
+2024-03-17 11:50:29+0200 [-] adding 2 new schedulers, removing 0
+2024-03-17 11:50:29+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:50:29+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:50:29+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:50:29+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:50:29+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:50:29+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:50:29+0200 [-] BuildbotSite starting on 8010
+2024-03-17 11:50:29+0200 [-] Starting factory <buildbot.www.service.BuildbotSite object at 0x7f51615532b0>
+2024-03-17 11:50:29+0200 [-] adding 1 new workers, removing 0
+2024-03-17 11:50:29+0200 [-] PBServerFactory starting on 9989
+2024-03-17 11:50:29+0200 [-] Starting factory <twisted.spread.pb.PBServerFactory object at 0x7f51615535e0>
+2024-03-17 11:50:29+0200 [-] BuildMaster is running
+2024-03-17 11:50:30+0200 [Broker,0,127.0.0.1] worker 'example-worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=41358)
+2024-03-17 11:50:30+0200 [Broker,0,127.0.0.1] Got workerinfo from 'example-worker'
+2024-03-17 11:50:30+0200 [-] bot attached
+2024-03-17 11:50:30+0200 [Broker,0,127.0.0.1] Worker example-worker attached to runtests
+2024-03-17 11:51:02+0200 [-] Initiating clean shutdown
+2024-03-17 11:51:02+0200 [-] No running jobs, starting shutdown immediately
+2024-03-17 11:51:02+0200 [-] doing housekeeping for master 1 t1nika00-Latitude-5580:/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master
+2024-03-17 11:51:03+0200 [-] (TCP Port 8010 Closed)
+2024-03-17 11:51:03+0200 [-] Stopping factory <buildbot.www.service.BuildbotSite object at 0x7f51615532b0>
+2024-03-17 11:51:03+0200 [-] (TCP Port 9989 Closed)
+2024-03-17 11:51:03+0200 [-] Stopping factory <twisted.spread.pb.PBServerFactory object at 0x7f51615535e0>
+2024-03-17 11:51:03+0200 [-] disconnecting old worker example-worker now
+2024-03-17 11:51:03+0200 [-] waiting for worker to finish disconnecting
+2024-03-17 11:51:03+0200 [Broker,0,127.0.0.1] Worker.detached(example-worker)
+2024-03-17 11:51:03+0200 [Broker,0,127.0.0.1] releaseLocks(<Worker 'example-worker'>): []
+2024-03-17 11:51:03+0200 [-] Worker example-worker detached from runtests
+2024-03-17 11:51:03+0200 [-] BuildMaster is stopped
+2024-03-17 11:51:03+0200 [-] Main loop terminated.
+2024-03-17 11:51:03+0200 [-] Server Shut Down.
+2024-03-17 11:51:04+0200 [-] Loading buildbot.tac...
+2024-03-17 11:51:04+0200 [-] Loaded.
+2024-03-17 11:51:04+0200 [-] twistd 23.10.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 11:51:04+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 11:51:04+0200 [-] Starting BuildMaster -- buildbot.version: 3.11.1
+2024-03-17 11:51:04+0200 [-] Loading configuration from '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/master.cfg'
+2024-03-17 11:51:04+0200 [-] Setting up database with URL 'sqlite:/state.sqlite'
+2024-03-17 11:51:04+0200 [-] setting database journal mode to 'wal'
+2024-03-17 11:51:04+0200 [-] adding 1 new change_sources, removing 0
+2024-03-17 11:51:04+0200 [-] gitpoller: using workdir '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/gitpoller-workdir'
+2024-03-17 11:51:04+0200 [-] adding 1 new builders, removing 0
+2024-03-17 11:51:04+0200 [-] adding 2 new schedulers, removing 0
+2024-03-17 11:51:04+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:51:04+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:51:04+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:51:04+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 11:51:04+0200 [-] initializing www plugin 'console_view'
+2024-03-17 11:51:04+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 11:51:04+0200 [-] BuildbotSite starting on 8010
+2024-03-17 11:51:04+0200 [-] Starting factory <buildbot.www.service.BuildbotSite object at 0x7ff3ca344cd0>
+2024-03-17 11:51:04+0200 [-] adding 1 new workers, removing 0
+2024-03-17 11:51:04+0200 [-] PBServerFactory starting on 9989
+2024-03-17 11:51:04+0200 [-] Starting factory <twisted.spread.pb.PBServerFactory object at 0x7ff3ca316730>
+2024-03-17 11:51:04+0200 [-] BuildMaster is running
+2024-03-17 11:51:05+0200 [Broker,0,127.0.0.1] worker 'example-worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=51144)
+2024-03-17 11:51:05+0200 [Broker,0,127.0.0.1] Got workerinfo from 'example-worker'
+2024-03-17 11:51:05+0200 [-] bot attached
+2024-03-17 11:51:05+0200 [Broker,0,127.0.0.1] Worker example-worker attached to runtests
+2024-03-17 11:54:20+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=40712)
+2024-03-17 11:54:20+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=40714)
+2024-03-17 11:54:20+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=40686)
+2024-03-17 11:54:20+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=40724)
+2024-03-17 11:54:20+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=40718)
+2024-03-17 11:54:20+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=40700)
+2024-03-17 11:56:05+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 11:58:25+0200 [-] Initiating clean shutdown
+2024-03-17 11:58:25+0200 [-] No running jobs, starting shutdown immediately
+2024-03-17 11:58:25+0200 [-] doing housekeeping for master 1 t1nika00-Latitude-5580:/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master
+2024-03-17 11:58:25+0200 [-] (TCP Port 8010 Closed)
+2024-03-17 11:58:25+0200 [-] Stopping factory <buildbot.www.service.BuildbotSite object at 0x7ff3ca344cd0>
+2024-03-17 11:58:25+0200 [-] (TCP Port 9989 Closed)
+2024-03-17 11:58:25+0200 [-] Stopping factory <twisted.spread.pb.PBServerFactory object at 0x7ff3ca316730>
+2024-03-17 11:58:25+0200 [-] disconnecting old worker example-worker now
+2024-03-17 11:58:25+0200 [-] waiting for worker to finish disconnecting
+2024-03-17 11:58:25+0200 [Broker,0,127.0.0.1] Worker.detached(example-worker)
+2024-03-17 11:58:25+0200 [Broker,0,127.0.0.1] releaseLocks(<Worker 'example-worker'>): []
+2024-03-17 11:58:25+0200 [-] Worker example-worker detached from runtests
+2024-03-17 11:58:25+0200 [-] BuildMaster is stopped
+2024-03-17 11:58:25+0200 [-] Main loop terminated.
+2024-03-17 11:58:25+0200 [-] Server Shut Down.
+2024-03-17 11:58:26+0200 [-] Loading buildbot.tac...
+2024-03-17 11:58:27+0200 [-] Loaded.
+2024-03-17 11:58:27+0200 [-] twistd 23.10.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 11:58:27+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 11:58:27+0200 [-] Starting BuildMaster -- buildbot.version: 3.11.1
+2024-03-17 11:58:27+0200 [-] Loading configuration from '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/master.cfg'
+2024-03-17 11:58:27+0200 [-] Configuration Errors:
+2024-03-17 11:58:27+0200 [-]   builder 'runtests' uses unknown workers 'example-worker'
+2024-03-17 11:58:27+0200 [-] Halting master.
+2024-03-17 11:58:27+0200 [-] BuildMaster startup failed
+2024-03-17 11:58:27+0200 [-] BuildMaster is stopped
+2024-03-17 11:58:27+0200 [-] Main loop terminated.
+2024-03-17 11:58:27+0200 [-] Server Shut Down.
+2024-03-17 12:01:31+0200 [-] Loading buildbot.tac...
+2024-03-17 12:01:31+0200 [-] Loaded.
+2024-03-17 12:01:31+0200 [-] twistd 23.10.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 12:01:31+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 12:01:31+0200 [-] Starting BuildMaster -- buildbot.version: 3.11.1
+2024-03-17 12:01:31+0200 [-] Loading configuration from '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/master.cfg'
+2024-03-17 12:01:31+0200 [-] Setting up database with URL 'sqlite:/state.sqlite'
+2024-03-17 12:01:31+0200 [-] setting database journal mode to 'wal'
+2024-03-17 12:01:31+0200 [-] adding 1 new change_sources, removing 0
+2024-03-17 12:01:31+0200 [-] gitpoller: using workdir '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/gitpoller-workdir'
+2024-03-17 12:01:31+0200 [-] adding 1 new builders, removing 0
+2024-03-17 12:01:31+0200 [-] adding 2 new schedulers, removing 0
+2024-03-17 12:01:31+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 12:01:31+0200 [-] initializing www plugin 'console_view'
+2024-03-17 12:01:31+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 12:01:31+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 12:01:31+0200 [-] initializing www plugin 'console_view'
+2024-03-17 12:01:31+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 12:01:31+0200 [-] BuildbotSite starting on 8010
+2024-03-17 12:01:31+0200 [-] Starting factory <buildbot.www.service.BuildbotSite object at 0x7fddec2989a0>
+2024-03-17 12:01:31+0200 [-] adding 1 new workers, removing 0
+2024-03-17 12:01:31+0200 [-] PBServerFactory starting on 9989
+2024-03-17 12:01:31+0200 [-] Starting factory <twisted.spread.pb.PBServerFactory object at 0x7fddec212220>
+2024-03-17 12:01:31+0200 [-] BuildMaster is running
+2024-03-17 12:01:32+0200 [Broker,0,127.0.0.1] worker 'torvalds_worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=46136)
+2024-03-17 12:01:32+0200 [Broker,0,127.0.0.1] Got workerinfo from 'torvalds_worker'
+2024-03-17 12:01:32+0200 [-] bot attached
+2024-03-17 12:01:32+0200 [Broker,0,127.0.0.1] Worker torvalds_worker attached to runtests
+2024-03-17 12:03:28+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=60426)
+2024-03-17 12:03:43+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=60408)
+2024-03-17 12:03:43+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=60414)
+2024-03-17 12:03:43+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=33340)
+2024-03-17 12:04:10+0200 [-] Initiating clean shutdown
+2024-03-17 12:04:10+0200 [-] No running jobs, starting shutdown immediately
+2024-03-17 12:04:10+0200 [-] doing housekeeping for master 1 t1nika00-Latitude-5580:/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master
+2024-03-17 12:04:10+0200 [-] (TCP Port 8010 Closed)
+2024-03-17 12:04:10+0200 [-] Stopping factory <buildbot.www.service.BuildbotSite object at 0x7fddec2989a0>
+2024-03-17 12:04:10+0200 [-] (TCP Port 9989 Closed)
+2024-03-17 12:04:10+0200 [-] Stopping factory <twisted.spread.pb.PBServerFactory object at 0x7fddec212220>
+2024-03-17 12:04:10+0200 [-] disconnecting old worker torvalds_worker now
+2024-03-17 12:04:10+0200 [-] waiting for worker to finish disconnecting
+2024-03-17 12:04:10+0200 [Broker,0,127.0.0.1] Worker.detached(torvalds_worker)
+2024-03-17 12:04:10+0200 [Broker,0,127.0.0.1] releaseLocks(<Worker 'torvalds_worker'>): []
+2024-03-17 12:04:10+0200 [-] Worker torvalds_worker detached from runtests
+2024-03-17 12:04:10+0200 [-] BuildMaster is stopped
+2024-03-17 12:04:10+0200 [-] Main loop terminated.
+2024-03-17 12:04:10+0200 [-] Server Shut Down.
+2024-03-17 12:04:11+0200 [-] Loading buildbot.tac...
+2024-03-17 12:04:11+0200 [-] Loaded.
+2024-03-17 12:04:11+0200 [-] twistd 23.10.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 12:04:11+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 12:04:11+0200 [-] Starting BuildMaster -- buildbot.version: 3.11.1
+2024-03-17 12:04:11+0200 [-] Loading configuration from '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/master.cfg'
+2024-03-17 12:04:12+0200 [-] Setting up database with URL 'sqlite:/state.sqlite'
+2024-03-17 12:04:12+0200 [-] setting database journal mode to 'wal'
+2024-03-17 12:04:12+0200 [-] adding 1 new change_sources, removing 0
+2024-03-17 12:04:12+0200 [-] gitpoller: using workdir '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/gitpoller-workdir'
+2024-03-17 12:04:12+0200 [-] adding 1 new builders, removing 0
+2024-03-17 12:04:12+0200 [-] adding 2 new schedulers, removing 0
+2024-03-17 12:04:12+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 12:04:12+0200 [-] initializing www plugin 'console_view'
+2024-03-17 12:04:12+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 12:04:12+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 12:04:12+0200 [-] initializing www plugin 'console_view'
+2024-03-17 12:04:12+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 12:04:12+0200 [-] BuildbotSite starting on 8010
+2024-03-17 12:04:12+0200 [-] Starting factory <buildbot.www.service.BuildbotSite object at 0x7f2821396cd0>
+2024-03-17 12:04:12+0200 [-] adding 1 new workers, removing 0
+2024-03-17 12:04:12+0200 [-] PBServerFactory starting on 9989
+2024-03-17 12:04:12+0200 [-] Starting factory <twisted.spread.pb.PBServerFactory object at 0x7f2821368730>
+2024-03-17 12:04:12+0200 [-] BuildMaster is running
+2024-03-17 12:04:12+0200 [Broker,0,127.0.0.1] worker 'torvalds_worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=55154)
+2024-03-17 12:04:12+0200 [Broker,0,127.0.0.1] Got workerinfo from 'torvalds_worker'
+2024-03-17 12:04:12+0200 [-] bot attached
+2024-03-17 12:04:12+0200 [Broker,0,127.0.0.1] Worker torvalds_worker attached to runtests
+2024-03-17 12:05:45+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=33556)
+2024-03-17 12:05:45+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=33578)
+2024-03-17 12:05:45+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=33586)
+2024-03-17 12:05:45+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=33328)
+2024-03-17 12:07:19+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=38824)
+2024-03-17 12:07:19+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=38878)
+2024-03-17 12:07:19+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=38864)
+2024-03-17 12:07:19+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=38832)
+2024-03-17 12:07:19+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=38844)
+2024-03-17 12:07:19+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=38858)
+2024-03-17 12:08:31+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=49768)
+2024-03-17 12:08:31+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=49784)
+2024-03-17 12:08:31+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=39630)
+2024-03-17 12:08:36+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=49786)
+2024-03-17 12:09:08+0200 [-] Initiating clean shutdown
+2024-03-17 12:09:08+0200 [-] No running jobs, starting shutdown immediately
+2024-03-17 12:09:08+0200 [-] doing housekeeping for master 1 t1nika00-Latitude-5580:/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master
+2024-03-17 12:09:08+0200 [-] (TCP Port 8010 Closed)
+2024-03-17 12:09:08+0200 [-] Stopping factory <buildbot.www.service.BuildbotSite object at 0x7f2821396cd0>
+2024-03-17 12:09:08+0200 [-] (TCP Port 9989 Closed)
+2024-03-17 12:09:08+0200 [-] Stopping factory <twisted.spread.pb.PBServerFactory object at 0x7f2821368730>
+2024-03-17 12:09:08+0200 [-] disconnecting old worker torvalds_worker now
+2024-03-17 12:09:08+0200 [-] waiting for worker to finish disconnecting
+2024-03-17 12:09:08+0200 [Broker,0,127.0.0.1] Worker.detached(torvalds_worker)
+2024-03-17 12:09:08+0200 [Broker,0,127.0.0.1] releaseLocks(<Worker 'torvalds_worker'>): []
+2024-03-17 12:09:08+0200 [-] Worker torvalds_worker detached from runtests
+2024-03-17 12:09:08+0200 [-] BuildMaster is stopped
+2024-03-17 12:09:08+0200 [-] Main loop terminated.
+2024-03-17 12:09:08+0200 [-] Server Shut Down.
+2024-03-17 12:09:29+0200 [-] Loading buildbot.tac...
+2024-03-17 12:09:29+0200 [-] Loaded.
+2024-03-17 12:09:29+0200 [-] twistd 23.10.0 (/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/sandbox/bin/python3 3.8.10) starting up.
+2024-03-17 12:09:29+0200 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2024-03-17 12:09:29+0200 [-] Starting BuildMaster -- buildbot.version: 3.11.1
+2024-03-17 12:09:29+0200 [-] Loading configuration from '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/master.cfg'
+2024-03-17 12:09:29+0200 [-] Setting up database with URL 'sqlite:/state.sqlite'
+2024-03-17 12:09:29+0200 [-] setting database journal mode to 'wal'
+2024-03-17 12:09:29+0200 [-] adding 1 new change_sources, removing 0
+2024-03-17 12:09:29+0200 [-] gitpoller: using workdir '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master/gitpoller-workdir'
+2024-03-17 12:09:29+0200 [-] adding 1 new builders, removing 0
+2024-03-17 12:09:29+0200 [-] adding 2 new schedulers, removing 0
+2024-03-17 12:09:29+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 12:09:29+0200 [-] initializing www plugin 'console_view'
+2024-03-17 12:09:29+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 12:09:29+0200 [-] initializing www plugin 'waterfall_view'
+2024-03-17 12:09:29+0200 [-] initializing www plugin 'console_view'
+2024-03-17 12:09:29+0200 [-] initializing www plugin 'grid_view'
+2024-03-17 12:09:29+0200 [-] BuildbotSite starting on 8010
+2024-03-17 12:09:29+0200 [-] Starting factory <buildbot.www.service.BuildbotSite object at 0x7f7fc31f7d90>
+2024-03-17 12:09:29+0200 [-] adding 1 new workers, removing 0
+2024-03-17 12:09:29+0200 [-] PBServerFactory starting on 9989
+2024-03-17 12:09:29+0200 [-] Starting factory <twisted.spread.pb.PBServerFactory object at 0x7f7fc31c9700>
+2024-03-17 12:09:29+0200 [-] BuildMaster is running
+2024-03-17 12:09:29+0200 [Broker,0,127.0.0.1] worker 'torvalds_worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=44442)
+2024-03-17 12:09:29+0200 [Broker,0,127.0.0.1] Got workerinfo from 'torvalds_worker'
+2024-03-17 12:09:29+0200 [-] bot attached
+2024-03-17 12:09:29+0200 [Broker,0,127.0.0.1] Worker torvalds_worker attached to runtests
+2024-03-17 12:09:29+0200 [Broker,0,127.0.0.1] Worker.detached(torvalds_worker)
+2024-03-17 12:09:29+0200 [Broker,0,127.0.0.1] releaseLocks(<Worker 'torvalds_worker'>): []
+2024-03-17 12:09:29+0200 [-] Worker torvalds_worker detached from runtests
+2024-03-17 12:09:30+0200 [Broker,1,127.0.0.1] worker 'torvalds_worker' attaching from IPv4Address(type='TCP', host='127.0.0.1', port=44450)
+2024-03-17 12:09:30+0200 [Broker,1,127.0.0.1] Got workerinfo from 'torvalds_worker'
+2024-03-17 12:09:30+0200 [-] bot attached
+2024-03-17 12:09:30+0200 [Broker,1,127.0.0.1] Worker torvalds_worker attached to runtests
+2024-03-17 12:10:33+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=33434)
+2024-03-17 12:10:33+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=33474)
+2024-03-17 12:10:39+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=33458)
+2024-03-17 12:10:45+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=33450)
+2024-03-17 12:10:45+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=33486)
+2024-03-17 12:10:45+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=33498)
+2024-03-17 12:14:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 12:15:15+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=49164)
+2024-03-17 12:15:15+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=49172)
+2024-03-17 12:15:15+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=59082)
+2024-03-17 12:15:15+0200 [-] Timing out client: IPv4Address(type='TCP', host='127.0.0.1', port=59084)
+2024-03-17 12:19:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 12:24:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 12:29:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 12:34:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 12:39:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 12:44:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 12:49:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 12:54:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 12:59:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:04:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:09:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:14:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:19:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:24:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:29:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:34:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:39:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:44:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:49:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:54:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 13:59:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 14:04:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"
+2024-03-17 14:09:30+0200 [-] gitpoller: processing changes from "https://github.com/buildbot/hello-world.git"

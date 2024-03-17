@@ -1,0 +1,4 @@
+buildbot/master_root/sandbox/
+buildbot/worker_root/sandbox/
+buildbot/master_root/master/twistd.log
+buildbot/worker_root/torvalds_worker/twistd.log
