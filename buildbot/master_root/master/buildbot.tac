@@ -3,7 +3,7 @@ import os
 from twisted.application import service
 from buildbot.master import BuildMaster
 
-#basedir = '/home/t1nika00/Linux-Driver-Testing/buildbot/master_root/master'
+# basedir = '/home/user01/Linux-Driver-Testing/buildbot/master_root/master'
 basedir = '.'
 rotateLength = 10000000
 maxRotatedFiles = 10
