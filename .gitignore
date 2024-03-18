@@ -1,3 +1,5 @@
+buildbot/master_root/master/configs
+buildbot/worker_root/worker1/configs
 buildbot/master_root/sandbox/
 buildbot/worker_root/sandbox/
 buildbot/master_root/master/gitpoller-workdir/

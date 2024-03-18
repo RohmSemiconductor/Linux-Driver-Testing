@@ -4,6 +4,8 @@ import os
 from buildbot_worker.bot import Worker
 from twisted.application import service
 
+from configs.passwords import *
+
 basedir = '/home/user01/Linux-Driver-Testing/buildbot/worker_root/worker1'
 basedir = '.'
 rotateLength = 10000000
@@ -30,7 +32,7 @@ port = 9989
 connection_string = None
 
 workername = 'worker1'
-passwd = 'pass'
+passwd = worker1pass
 keepalive = 600
 umask = None
 maxdelay = 300
