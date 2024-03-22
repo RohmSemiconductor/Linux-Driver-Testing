@@ -1,13 +1,14 @@
-buildbot/master_root/master/configs
-buildbot/worker_root/worker1/configs
+buildbot/master_root/master/secrets/
+buildbot/worker_root/worker1/configs/
 buildbot/master_root/sandbox/
 buildbot/worker_root/sandbox/
 buildbot/worker_root/worker1/builder_*/
 buildbot/master_root/master/gitpoller-workdir/
 buildbot/master_root/master/gitpoller-workdir-test_linux/
+buildbot/master_root/master/gitpoller-workdir-linux_next/
 buildbot/master_root/master/twistd.log
 buildbot/worker_root/worker1/twistd.log
 buildbot/master_root/master/http.log
 buildbot/master_root/master/twistd.pid
 buildbot/worker_root/worker1/twistd.pid
-
+buildbot/master_root/master/configs/__pycache__/
