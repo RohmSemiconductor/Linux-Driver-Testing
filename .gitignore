@@ -13,3 +13,4 @@ buildbot/master_root/master/twistd.pid
 buildbot/worker_root/worker1/twistd.pid
 buildbot/master_root/master/configs/__pycache__/
 buildbot/master_root/master/master.cfg.sample
+buildbot/master_root/master/state.sqlite
