@@ -4,7 +4,8 @@ buildbot/worker_root/worker1/secrets/
 buildbot/master_root/sandbox/
 buildbot/worker_root/sandbox/
 buildbot/worker_root/worker1/builder_*/
-buildbot/master_root/master/gitpoller-workdir/
+buildbot/worker_root/worker1/Test_Linux/
+buildbot/worker_root/worker1/linux-next/
 buildbot/master_root/master/gitpoller-workdir-test_linux/
 buildbot/master_root/master/gitpoller-workdir-linux_next/
 buildbot/master_root/master/twistd.log
