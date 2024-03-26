@@ -18,12 +18,17 @@ projects['test_linux']= {
     'polling': 60,
     'scheduler_name': 'scheduler-test_linux',
     'builderNames': ["builder_test_linux"],
+    'builderNames': ["Test Linux"],
     'workerNames': ["worker1"],
     'factory': factory_test_linux,
 }
-projects['linux_next']={
-    'name': 'linux_next',
+projects['linux-next']={
+    'name': 'linux-next',
     'branches': tag_change,
     'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git',
     'polling': 60,
+    'scheduler_name': 'scheduler-linux-next',
+    'builderNames': ["linux-next"],
+    'workerNames': ["worker1"],
+    'factory': factory_linux_next,
 }
