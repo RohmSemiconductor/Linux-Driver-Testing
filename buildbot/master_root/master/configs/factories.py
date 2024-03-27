@@ -2,13 +2,21 @@
 
 from buildbot.plugins import util, steps
 
+import sys 
+import os
+sys.path.append(os.path.abspath("./configs"))
+from kernel_modules import *
+
 # factory_test_linux
 factory_test_linux = util.BuildFactory()
 factory_test_linux.addStep(steps.Git(repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git', branch='test_linux', mode='incremental',name="Update kernel source files from git"))
 factory_test_linux.addStep(steps.Git(repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git', branch='test-kernel-modules', alwaysUseLatest=True, mode='incremental', workdir="build/_test-kernel-modules", name="Update kernel module source files from git"))
 
+for key in kernel_modules['test']:
+    factory_test_linux.addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':'/home/user01/tools/beagle-dev-tools/bb-compiler/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-','PWD':'./'}, workdir="build/_test-kernel-modules/"+key, name="Build test kernel modules: "+key))
+
 #factory_test_linux.addStep(steps.ShellCommand(command=["make", "-C", "../", "ARCH=arm", "CROSS_COMPILE=/home/user01/tools/beagle-dev-tools/bb-compiler/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-", "M=_test-kernel-modules/"], workdir="build/_test-kernel-modules/overlay_merger", name="Build test kernel modules"))
-factory_test_linux.addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':'/home/user01/tools/beagle-dev-tools/bb-compiler/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-','PWD':'./'}, workdir="build/_test-kernel-modules/overlay_merger", name="Build test kernel modules"))
+# factory_test_linux.addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':'/home/user01/tools/beagle-dev-tools/bb-compiler/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-','PWD':'./'}, workdir="build/_test-kernel-modules/overlay_merger", name="Build test kernel modules"))
 
 factory_test_linux.addStep(steps.FileDownload(mastersrc="~/tools/kernel/.config",workerdest=".config",name="Copy kernel config to build directory"))
 factory_test_linux.addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE=/home/user01/tools/beagle-dev-tools/bb-compiler/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-", "LOADADDR=0x80008000", "olddefconfig"],name="Update kernel config if needed"))
