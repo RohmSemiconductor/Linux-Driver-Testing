@@ -18,7 +18,23 @@ def build_test_kernel_modules(project_name):
     
 # def build_kernel_arm32():
 
+def powercycle_ip_power(project_name, port):
 
+#    projects[project_name]["factory"].addStep(steps.ShellCommand(command=["{", "sleep", "0.5;", "echo", "'admin';", "sleep", "0.5;", "echo", "'12345678';", "sleep", "0.5;", "echo", "'ioctrl", "-s", "p6"+port+"="+"1';", "sleep", "1;", "echo", "'ioctrl", "-s", "p6"+port+"="+"1';", "}", "|","telnet", "192.168.255.250"]))
+    projects[project_name]["factory"].addStep(steps.ShellSequence(
+    commands=[
+        util.ShellArg(command=["/bin/bash", "ip-power-control.sh", port, "0"]),
+        util.ShellArg(command=["/bin/bash", "ip-power-control.sh", port, "1"]),
+        ], workdir="../tests", name="Powercycle beagle bone"))
+#    projects[project_name]["factory"].addStep(steps.ShellCommand(command=["/bin/bash", "ip-power-control.sh", port, "1"], workdir="../tests", name="Powercycle beagle bone"))
+#    projects[project_name]["factory"].addStep(steps.ShellCommand(command=["/bin/bash", "ip-power-control.sh", port, "0"], workdir="../tests", name="Powercycle beagle bone"))
+
+#    projects[project_name]["factory"].addStep(steps.ShellCommand(command=["/bin/bash", "ip-power-control.sh", "4", "0"], workdir="../tests", name="Powercycle beagle bone"))
+#  sleep 0.5; echo "admin"; sleep 0.5; echo "12345678"; sleep 1; echo "ioctrl -s p64=1"; sleep 1; echo "ioctrl -s p64=0"; sleep 1; } | telnet 192.168.255.250
+       # util.ShellArg(command=['telnet', '192.168.255.250']),
+       # util.ShellArg(command=['sleep', '0.5']),
+       # util.ShellArg(command=['admin', 'sleep' '0.5']),
+       # util.ShellArg(command=['ioctrl', '-s', 'p6'+port'='+'0']),
 ### END OF HELPES ###
 
 #for key in kernel_modules['test']:
@@ -28,18 +44,20 @@ def build_test_kernel_modules(project_name):
 
 # factory_test_linux
 factory_test_linux.addStep(steps.Git(repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git', branch='test_linux', mode='incremental',name="Update kernel source files from git"))
-factory_test_linux.addStep(steps.Git(repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git', branch='test-kernel-modules', alwaysUseLatest=True, mode='incremental', workdir="build/_test-kernel-modules", name="Update kernel module source files from git"))
+factory_test_linux.addStep(steps.Git(repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git', branch='test-kernel-modules', alwaysUseLatest=True, mode='full', workdir="build/_test-kernel-modules", name="Update kernel module source files from git"))
 
-build_test_kernel_modules('test_linux')
 factory_test_linux.addStep(steps.FileDownload(mastersrc="~/tools/kernel/.config",workerdest=".config",name="Copy kernel config to build directory"))
 factory_test_linux.addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE=/home/user01/tools/beagle-dev-tools/bb-compiler/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-", "LOADADDR=0x80008000", "olddefconfig"],name="Update kernel config if needed"))
 factory_test_linux.addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE=/home/user01/tools/beagle-dev-tools/bb-compiler/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-", "LOADADDR=0x80008000"],name="Build kernel binaries"))
-factory_test_linux.addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE=/home/user01/tools/beagle-dev-tools/bb-compiler/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-", "LOADADDR=0x80008000", "INSTALL_MOD_PATH=/home/user01/nfs"],name="Install kernel modules"))
-factory_test_linux.addStep(steps.ShellCommand(command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "/home/user01/Linux-Driver-Testing/buildbot/worker_root/worker1/builder_test_linux/build/arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", "/home/user01/Linux-Driver-Testing/buildbot/worker_root/worker1/builder_test_linux/build/arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"  ],name="Build device tree source binaries")) 
+factory_test_linux.addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE=/home/user01/tools/beagle-dev-tools/bb-compiler/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-", "LOADADDR=0x80008000", "INSTALL_MOD_PATH=/home/user01/nfs", "modules_install"],name="Install kernel modules"))
+factory_test_linux.addStep(steps.ShellCommand(command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "/home/user01/Linux-Driver-Testing/buildbot/worker_root/worker1/Test_Linux/build/arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", "/home/user01/Linux-Driver-Testing/buildbot/worker_root/worker1/builder_test_linux/build/arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"  ],name="Build device tree source binaries")) 
 
+build_test_kernel_modules('test_linux')
 factory_test_linux.addStep(steps.MultipleFileUpload(workersrcs=["arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", "arch/arm/boot/zImage"],
                                    masterdest="/var/lib/tftpboot/",
                                    mode=0o644,name="Upload compiled binaries to tftp directory"))
+
+powercycle_ip_power('test_linux','1',)
 factory_test_linux.addStep(steps.ShellCommand(command=["pytest", "--lg-env", "local.yaml", "test_shell.py"], workdir="../tests/first_test", name="Test script"))
 
 # factory_linux_next
