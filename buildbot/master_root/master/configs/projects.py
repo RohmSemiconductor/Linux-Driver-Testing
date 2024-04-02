@@ -22,6 +22,7 @@ projects['test_linux']= {
     'builderNames': ["Test Linux"],
     'workerNames': ["worker1"],
     'factory': factory_test_linux,
+#    'factory': factory_driver_test,
 }
 projects['linux-next']={
     'name': 'linux-next',
