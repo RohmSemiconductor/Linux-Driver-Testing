@@ -18,10 +18,10 @@ projects['test_linux']= {
     'polling': 60,
     'treeStableTimer': 30,
     'scheduler_name': 'scheduler-test_linux',
-    'builderNames': ["builder_test_linux"],
+#    'builderNames': ["builder_test_linux"],
     'builderNames': ["Test Linux"],
     'workerNames': ["worker1"],
-    'factory': factory_test_linux,
+    'factory': factory_driver_test,
 #    'factory': factory_driver_test,
 }
 projects['linux-next']={

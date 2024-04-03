@@ -1,0 +1,14 @@
+targets:
+  main:
+    resources:
+      RawSerialPort:
+        port: "/dev/ttyUSB0"
+    drivers:
+      ManualPowerDriver:
+        name: "example"
+      SerialDriver: {}
+      ShellDriver:
+        prompt: 'debian@\w+:[^ ]+ '
+        login_prompt: ' login: '
+        username: 'debian'
+        password: 'temppwd'

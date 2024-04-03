@@ -1,0 +1,15 @@
+targets:
+  main:
+    resources:
+      USBSerialPort:
+        match:
+          ID_SERIAL_SHORT: "A800HGAQ"
+    drivers:
+      ManualPowerDriver:
+        name: "example"
+      SerialDriver: {}
+      ShellDriver:
+        prompt: 'debian@\w+:[^ ]+ '
+        login_prompt: ' login: '
+        username: 'debian'
+        password: 'temppwd'
