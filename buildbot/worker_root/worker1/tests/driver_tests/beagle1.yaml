@@ -9,7 +9,10 @@ targets:
         name: "example"
       SerialDriver: {}
       ShellDriver:
-        prompt: 'debian@\w+:[^ ]+ '
+#        prompt: 'debian@\w+:[^ ]+ '
+        prompt: '\w+@arm:'
         login_prompt: ' login: '
+        login_timeout: 75
+        post_login_settle_time: 1
         username: 'debian'
         password: 'temppwd'

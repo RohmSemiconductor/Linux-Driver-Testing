@@ -6,11 +6,14 @@ buildbot/worker_root/sandbox/
 buildbot/worker_root/worker1/builder_*/
 buildbot/worker_root/worker1/Test_Linux/
 buildbot/worker_root/worker1/linux-next/
+buildbot/worker_root/worker1/Linux_Mainline/
+buildbot/worker_root/worker1/linux-stable/
 buildbot/worker_root/worker1/Test_kernel_modules/
 buildbot/master_root/master/gitpoller-workdir-test_linux/
 buildbot/master_root/master/gitpoller-workdir-linux_next/
 buildbot/master_root/master/gitpoller-workdir*/
 buildbot/master_root/master/twistd.log
+buildbot/master_root/master/twistd.log*
 buildbot/worker_root/worker1/twistd.log*
 buildbot/master_root/master/http.log
 buildbot/master_root/master/twistd.pid
@@ -20,4 +23,6 @@ buildbot/worker_root/worker1/tests/first_test/__pycache__/
 buildbot/worker_root/worker1/tests/driver_tests/__pycache__/
 buildbot/master_root/master/master.cfg.sample
 buildbot/master_root/master/state.sqlite
+*state.sqlite*
 *.swp
+__init__.py
