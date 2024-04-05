@@ -21,27 +21,50 @@ projects['test_linux']= {
 #    'builderNames': ["builder_test_linux"],
     'builderNames': ["Test Linux"],
     'workerNames': ["worker1"],
-    'factory': factory_driver_test,
+    'factory': factory_test_linux,
 #    'factory': factory_driver_test,
 }
 projects['linux-next']={
     'name': 'linux-next',
     'branches': tag_change,
     'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git',
-    'polling': 60,
-    'treeStableTimer': 600,
+    'polling': 600,
+    'treeStableTimer': 780,
     'scheduler_name': 'scheduler-linux-next',
     'builderNames': ["linux-next"],
     'workerNames': ["worker1"],
     'factory': factory_linux_next,
 }
-#projects['test-kernel-modules']={
-#    'name': 'test-kernel-modules',
-#    'branches': ['test-kernel-modules'],
-#    'repo_git': 'https://github.com/RohmSemiconductor/Linux-Driver-Testing.git',
-#    'polling': 60,
-#    'scheduler_name': 'scheduler-test-kernel-modules',
-#    'builderNames': ["Test kernel modules"],
-#    'workerNames': ["worker1"],
-#    'factory': factory_test_kernel_modules,
-#}
+projects['linux_mainline']={
+    'name': 'linux_mainline',
+    'branches': tag_change,
+    'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git',
+    'polling': 600,
+    'treeStableTimer': 780,
+    'scheduler_name': 'scheduler-linux_mainline',
+    'builderNames': ["Linux Mainline"],
+    'workerNames': ["worker1"],
+    'factory': factory_linux_mainline,
+}
+projects['linux_stable']={
+    'name': 'linux_stable',
+    'branches': tag_change,
+    'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/',
+    'polling': 600,
+    'treeStableTimer': 780,
+    'scheduler_name': 'scheduler-linux_stable',
+    'builderNames': ["linux-stable"],
+    'workerNames': ["worker1"],
+    'factory': factory_linux_stable,
+}
+projects['linux_rohm_devel']={
+    'name': 'linux_rohm_devel',
+    'branches': 'rohm-pmic-test-temporary',
+    'repo_git': 'https://github.com/RohmSemiconductor/Linux-Kernel-PMIC-Drivers.git',
+    'polling': 600,
+    'treeStableTimer': 780,
+    'scheduler_name': 'scheduler-linux_rohm_devel',
+    'builderNames': ["linux-rohm-devel"],
+    'workerNames': ["worker1"],
+    'factory': factory_linux_rohm_devel,
+}

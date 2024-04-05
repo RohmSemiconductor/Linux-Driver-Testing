@@ -20,4 +20,14 @@ kernel_modules['test']={
 'bd9576':['bd9576_test.dtbo','bd9576-test.ko'],
 }
 
+kernel_modules['loaded_driver_modules']={
+'bd71815':['bd71815_test.dtbo','bd71815-test.ko','bd71815-gpio-test.ko','bd71815-clktest.ko'],
+'bd71828':['bd71828_test.dtbo','bd71828-test.ko','bd71828-gpio-test.ko','bd71828-clktest.ko'],
+'bd71837':['bd71837_test.dtbo','bd71837-test.ko','bbb_only_I2C_1.dtbo'],
+'bd71847':['bd718x7_regulator','gpio_keys','rohm_regulator','clk_bd718x7','rohm_bd718x7'],
+'bd9576':['bd9576_test.dtbo','bd9576-test.ko'],
+}
 
+beagle={}
+beagle['1']=
+['bd71847','bd9576']

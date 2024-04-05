@@ -6,7 +6,9 @@ from buildbot.plugins import util, steps
 ### HELPERS
 factory_test_linux = util.BuildFactory()
 factory_linux_next = util.BuildFactory()
-factory_driver_test = util.BuildFactory()
+factory_linux_mainline = util.BuildFactory()
+factory_linux_stable = util.BuildFactory()
+factory_linux_rohm_devel = util.BuildFactory()
 
 beagle_power_port1 = "1"
 beagle_power_port2 = "2"
@@ -63,6 +65,9 @@ def powercycle_ip_power(project_name, beagle_power_port):
 def run_driver_tests(project_name,beagle_ID):
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest", "--lg-env", beagle_ID+".yaml", "test_shell.py"], workdir="../tests/driver_tests", name="Test: Login to "+beagle_ID))
 
+# pytest --lg-env beagle1.yaml test_init_overlay.py
+# pytest -ra -v --lg-env beagle1.yaml test_merge_dt_overlay.py --product=bd71847
+
 def linux_driver_test(project_name,beagle_ID,beagle_power_port):
     build_kernel_arm32(project_name)
     upload_kernel_binaries(project_name)
@@ -76,3 +81,6 @@ def linux_driver_test(project_name,beagle_ID,beagle_power_port):
 
 linux_driver_test('test_linux','beagle1',beagle_power_port1)
 linux_driver_test('linux-next','beagle1',beagle_power_port1)
+linux_driver_test('linux_mainline','beagle1',beagle_power_port1)
+linux_driver_test('linux_stable','beagle1',beagle_power_port1)
+linux_driver_test('linux_rohm_devel','beagle1',beagle_power_port1)
