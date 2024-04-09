@@ -25,4 +25,5 @@ buildbot/master_root/master/master.cfg.sample
 buildbot/master_root/master/state.sqlite
 *state.sqlite*
 *.swp
+*.log*
 __init__.py

@@ -21,6 +21,7 @@ sys.path.append(os.path.abspath("./configs"))
 from kernel_modules import *
 from projects import * 
 from paths import *
+from test_boards import *
 
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(repourl=projects[project_name]['repo_git'], mode='incremental',name="Update linux source files from git"))
@@ -54,27 +55,36 @@ def upload_test_kernel_modules(project_name):
 #+str(x)+"/"+str(len(kernel_modules['test']))
 ))
 
-def powercycle_ip_power(project_name, beagle_power_port):
+def powercycle_ip_power(project_name, beagle_power_port, target):
 
     projects[project_name]["factory"].addStep(steps.ShellSequence(
     commands=[
         util.ShellArg(command=["/bin/bash", "ip-power-control.sh", beagle_power_port, "0"]),
         util.ShellArg(command=["/bin/bash", "ip-power-control.sh", beagle_power_port, "1"]),
-        ], workdir="../tests",flunkOnFailure=False ,flunkOnWarnings=False ,name="Powercycle beagle bone"))
+        ], workdir="../tests",flunkOnFailure=False ,flunkOnWarnings=False ,name=target+": Powercycling beagle bone"))
 
-def run_driver_tests(project_name,beagle_ID):
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest", "--lg-env", beagle_ID+".yaml", "test_shell.py"], workdir="../tests/driver_tests", name="Test: Login to "+beagle_ID))
-
+def run_driver_tests(project_name):
+    for test_board in test_boards:
+        for target in test_boards[test_board]['targets']:
+            powercycle_ip_power(project_name, test_boards[test_board]['power_port'], target)
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest", "--lg-env", test_boards[test_board]['name']+".yaml", "test_shell.py"], workdir="../tests/driver_tests", name=target+": Login to "+test_boards[test_board]['name']))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_overlay.py"], workdir="../tests/driver_tests", name=target+": Install overlay merger"))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_merge_dt_overlay.py","--product=bd71847"], workdir="../tests/driver_tests", name=target+": Merge device tree overlays"))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_insmod_tests.py","--product=bd71847"], workdir="../tests/driver_tests", name=target+": insmod test modules"))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_regulator_test.py","--product=bd71847"], workdir="../tests/driver_tests", name=target+": init_regulator_test.sh"))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_test_target.py","--product=bd71847"], workdir="../tests/driver_tests", name=target+": test_target.sh"))
+    
 # pytest --lg-env beagle1.yaml test_init_overlay.py
 # pytest -ra -v --lg-env beagle1.yaml test_merge_dt_overlay.py --product=bd71847
+# pytest -ra -v --lg-env beagle1.yaml test_insmod_tests.py --product=bd71847
 
 def linux_driver_test(project_name,beagle_ID,beagle_power_port):
     build_kernel_arm32(project_name)
     upload_kernel_binaries(project_name)
     build_test_kernel_modules(project_name)
     upload_test_kernel_modules(project_name)
-    powercycle_ip_power(project_name,beagle_power_port)
-    run_driver_tests(project_name,beagle_ID)
+#    powercycle_ip_power(project_name,beagle_power_port)
+    run_driver_tests(project_name)
 ### END OF HELPES ###
 
 ####### FACTORIES #######
