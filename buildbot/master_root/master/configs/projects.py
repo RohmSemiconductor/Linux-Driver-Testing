@@ -4,7 +4,11 @@ sys.path.append(os.path.abspath("./configs"))
 
 from factories import *
 
+#### 5.15.* <- oldest linux-stable to be tested
 tag_change = lambda ref: ref.startswith('refs/tags/')
+
+
+
 
 ###### PROJECTS
 # To trigger gitpoller on tag changes, use tag_change instead of ['branch_name'] in the 'branches'
@@ -59,7 +63,7 @@ projects['linux_stable']={
 }
 projects['linux_rohm_devel']={
     'name': 'linux_rohm_devel',
-    'branches': 'rohm-pmic-test-temporary',
+    'branches': ['rohm-pmic-test-temporary'],
     'repo_git': 'https://github.com/RohmSemiconductor/Linux-Kernel-PMIC-Drivers.git',
     'polling': 600,
     'treeStableTimer': 780,

@@ -9,7 +9,7 @@ test_boards['beagle1']={
 
 test_boards['beagle2']={
 'name':'beagle2',
-'targets':['bd71816','bd71837'],
+'targets':['bd71815','bd71837'],
 'power_port':'2',
 'arch':'arm32',
 }

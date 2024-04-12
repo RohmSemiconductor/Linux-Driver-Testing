@@ -3,7 +3,7 @@ targets:
     resources:
       USBSerialPort:
         match:
-          ID_SERIAL_SHORT: "A800HGAQ"
+          ID_SERIAL_SHORT: "FTHC021E"
     drivers:
       ManualPowerDriver:
         name: "example"
