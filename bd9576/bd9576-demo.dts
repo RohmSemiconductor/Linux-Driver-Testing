@@ -54,7 +54,7 @@
 				rohm,vout1-en-low;
 				rohm,vout1-en-gpios = <&gpio2 6 0>;
 				rohm,ddr-sel-low;
-				rohm,watchdog-enable-gpios = <&gpio2 7 0>;
+				rohm,watchdog-enable-gpios = <&gpio1 28 0>;
 				rohm,watchdog-ping-gpios = <&gpio2 8 0>;
 				hw_margin_ms = <30>;
 				rohm,hw-margin-min-ms = <4>;
