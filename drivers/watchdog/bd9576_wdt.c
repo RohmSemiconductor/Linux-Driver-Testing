@@ -35,6 +35,7 @@ struct bd9576_wdt_priv {
 
 static void bd9576_wdt_disable(struct bd9576_wdt_priv *priv)
 {
+	pr_info("DISABLING WATCHDOG: %s\n", (priv->gpiod_en->name)?(priv->gpiod_en->name):"unkown");
 	gpiod_set_value_cansleep(priv->gpiod_en, 0);
 }
 
@@ -53,6 +54,7 @@ static int bd9576_wdt_start(struct watchdog_device *wdd)
 {
 	struct bd9576_wdt_priv *priv = watchdog_get_drvdata(wdd);
 
+	pr_info("ENABLING WATCHDOG: %s\n", (priv->gpiod_en->name)?(priv->gpiod_en->name):"unkown");
 	gpiod_set_value_cansleep(priv->gpiod_en, 1);
 
 	return bd9576_wdt_ping(wdd);
@@ -207,7 +209,7 @@ static int bd9576_wdt_probe(struct platform_device *pdev)
 	u32 hw_margin_max = BD957X_WDT_DEFAULT_MARGIN, hw_margin_min = 0;
 	int count;
 	int ret;
-
+	pr_info("JEEJEE\n");
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
