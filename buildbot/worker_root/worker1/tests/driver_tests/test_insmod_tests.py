@@ -4,30 +4,14 @@ import os
 sys.path.append(os.path.abspath("."))
 
 from helpers import *
-from time import sleep
 from kernel_modules import *
 
 def test_init_overlay(command,product):
-   # product = product
-    command.run('echo temppwd | sudo -S su')
-    sleep(1)
-    print(product)
-    print(kernel_modules['test'][product][1])
-    
-    for x in range(1,len(kernel_modules['test'][product])):
-        print(kernel_modules['test'][product][x])
-        stdout, stderr, returncode = command.run('sudo dd if=/'+kernel_modules['test'][product][x]+' of=/sys/kernel/mva_overlay/overlay_add bs=1M')
-        sleep(1)
+    for x in range(0,len(kernel_modules['test'][product])):
+        stdout, stderr, returncode = command.run('insmod /'+kernel_modules['test'][product][x])
     if (returncode != 0):
         print(stdout[-1])
-    assert returncode == 0
-    assert stdout
-    assert not stderr
-    assert checkStdOut(stdout,'create_sysfs_for_overlays: sysfs created')==0
-        
-#    assert 'create_sysfs_for_overlays: sysfs created' in stdout[-1]
+    lsmod, stderr, returncode = command.run('lsmod')
+    for x in range(len(kernel_modules['insmod_tests'][product])):
+        assert checkStdOut(lsmod,kernel_modules['insmod_tests'][product][x]) == 0
 
-    stdout, stderr, returncode = command.run('false')
-    assert returncode != 0
-    assert not stdout
-    assert not stderr

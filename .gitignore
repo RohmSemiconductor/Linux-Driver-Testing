@@ -1,4 +1,5 @@
 buildbot/master_root/master/secrets/
+buildbot/master_root/master/workers/
 buildbot/worker_root/worker1/configs/
 buildbot/worker_root/worker1/secrets/
 buildbot/master_root/sandbox/
@@ -23,6 +24,7 @@ buildbot/worker_root/worker1/tests/first_test/__pycache__/
 buildbot/worker_root/worker1/tests/driver_tests/__pycache__/
 buildbot/master_root/master/master.cfg.sample
 buildbot/master_root/master/state.sqlite
+*.driver_tests/kernel_modules.py
 *state.sqlite*
 *.swp
 *.log*

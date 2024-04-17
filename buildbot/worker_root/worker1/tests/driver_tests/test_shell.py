@@ -1,5 +1,6 @@
 def test_shell(command):
     stdout, stderr, returncode = command.run('cat /proc/version')
+#    command.run('echo temppwd | sudo -S su ; echo JOOOECHO')
     assert returncode == 0
     assert stdout
     assert not stderr
