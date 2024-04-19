@@ -55,7 +55,8 @@ projects['linux_mainline']={
 projects['linux_stable']={
     'name': 'linux_stable',
 #    'branches': tag_change,
-    'branches': ['master'],
+    'branches': ['linux-5.15.y','linux-6.1.y','linux-6.6.y',    #LTS kernels
+    'linux-6.8.y'],                                             #short time stable
     'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/',
     'polling': 480,
     'treeStableTimer': 1000,

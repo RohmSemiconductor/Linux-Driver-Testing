@@ -1,5 +1,5 @@
 ####### FACTORIES
-
+import functools
 from buildbot.plugins import util, steps
 
 
@@ -18,13 +18,30 @@ beagle_power_port4 = "4"
 import sys 
 import os
 sys.path.append(os.path.abspath("./configs"))
+
 from kernel_modules import *
 from projects import * 
 from paths import *
 from test_boards import *
+import re
+#propTag = factory_test_linux.getProperties().getProperty('workername')
+#propTag = getRenderingFor(util.Property('commit-description'))
+#propTag=getProperty('commit-description')
+
+def check_tag(step,target):
+    if re.search('^next.*', step.getProperty('commit-description')) or re.search('^v('+kernel_modules['linux_ver'][target][0]+'.*$|[6-9]\\.[0-9]|[6-9]\\.[0-9\\].*$){1,2}(-rc[1-9][0-9]?)?$',step.getProperty('commit-description')):
+        print(step.getProperty('commit-description'))
+        return True
+    else:
+        return False
 
 def build_kernel_arm32(project_name):
-    projects[project_name]['factory'].addStep(steps.Git(repourl=projects[project_name]['repo_git'], mode='incremental',name="Update linux source files from git"))
+    projects[project_name]['factory'].addStep(steps.Git(repourl=projects[project_name]['repo_git'], mode='incremental', getDescription={'tags':True},name="Update linux source files from git"))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo", util.Property('commit-description')],name="TEST property"))
+#    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo", getProperty('commit-description')],name="str TEST property"))
+#    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo", util.Property('commit-description')],doStepIf=check_tag ,name="TEST property2"))
+#    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo", util.Property('commit-description')],doStepIf=re.search('joo',step.getProperty('commit-description')) ,name="TEST property2"))
+
     projects[project_name]['factory'].addStep(steps.FileDownload(mastersrc="~/tools/kernel/.config",workerdest=".config",name="Copy kernel config to build directory"))
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "olddefconfig"],name="Update kernel config if needed"))
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000"],name="Build kernel binaries"))
@@ -67,14 +84,18 @@ def download_test_boards(project_name):
 #        util.ShellArg(command=["/bin/bash", "ip-power-control.sh", beagle_power_port, "0"]),
 #        util.ShellArg(command=["/bin/bash", "ip-power-control.sh", beagle_power_port, "1"]),
 #        ], workdir="../tests",flunkOnFailure=False ,flunkOnWarnings=False, decodeRC={0:0,1:0,2:0}, name=target+": Powercycling beagle bone"))
-
+#def linux_ver_parser()
 def run_driver_tests(project_name):
     for test_board in test_boards:
         for target in test_boards[test_board]['targets']: 
+            check_tag_partial=functools.partial(check_tag, target=target)
+#            check_tag_partial(target)
+#            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo"+str(change.comments)], name="Test print"))
+
             #projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "test_powercycle.py","--power_port="+test_boards[test_board]['power_port']], workdir="../tests/driver_tests", name=target+": Powercycle "+test_boards[test_board]['name']))
             #projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_shell.py"], workdir="../tests/driver_tests", name=target+": Login to "+test_boards[test_board]['name']))
 
-            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],  workdir="../tests/driver_tests", name=target+": Login to "+test_boards[test_board]['name']))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],  workdir="../tests/driver_tests",doStepIf=check_tag_partial, name=target+": Login to "+test_boards[test_board]['name']))
 
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_overlay.py"], workdir="../tests/driver_tests", name=target+": Install overlay merger"))
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_merge_dt_overlay.py","--product="+target], workdir="../tests/driver_tests", name=target+": Merge device tree overlays"))
