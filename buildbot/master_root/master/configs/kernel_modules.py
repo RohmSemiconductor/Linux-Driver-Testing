@@ -2,6 +2,15 @@
 
 kernel_modules={}
 
+kernel_modules['linux_ver']={
+'bd71815':['5.13'],
+'bd71828':['5.10'],
+'bd71837':['4.20'],
+'bd71847':['4.20'],
+'bd9576':['5.13'],
+#'bd99954':['5.'],
+}
+
 kernel_modules['build']={
 'overlay_merger':['mva_overlay.ko'],
 'bd71815':['bd71815_test.dtbo','bd71815-test.ko','bd71815-gpio-test.ko','bd71815-clktest.ko'],
