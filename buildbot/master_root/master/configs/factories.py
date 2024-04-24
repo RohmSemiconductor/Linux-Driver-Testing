@@ -24,9 +24,7 @@ from projects import *
 from paths import *
 from test_boards import *
 import re
-#propTag = factory_test_linux.getProperties().getProperty('workername')
-#propTag = getRenderingFor(util.Property('commit-description'))
-#propTag=getProperty('commit-description')
+
 def skipped(results, build):
   return results == 3
 
@@ -75,8 +73,6 @@ def check_tag(step,target):
                 else:
                     return False
 
-#                                                                                   linux_ver
-#    if re.search('^next.*', step.getProperty('commit-description')) or re.search('^v('+a+'.*$|['+l[0]+1+'-9]\\.[0-9]|[6-9]\\.[0-9\\].*$){1,2}(-rc[1-9][0-9]?)?$',step.getProperty('commit-description')):
 #         or re.search('^v('+kernel_modules['linux_ver'][target][0]+'.*$|[6-9]\\.[0-9]|[6-9]\\.[0-9\\].*$){1,2}(-rc[1-9][0-9]?)?$',step.getProperty('commit-description')):
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(repourl=projects[project_name]['repo_git'], mode='incremental', getDescription={'tags':True},name="Update linux source files from git")) #source files
@@ -99,12 +95,9 @@ def upload_kernel_binaries(project_name):
                                    mode=0o644,name="Upload compiled kernel binaries to tftp directory"))
 
 def upload_test_kernel_modules(project_name):
-#    x=0
     files = []
     for key in kernel_modules['build']:
-#        x=x+1
         for value in kernel_modules['build'].get(key):
-
             files.append("_test-kernel-modules/"+key+"/"+value)
     projects[project_name]['factory'].addStep(steps.MultipleFileUpload(workersrcs=files,
     masterdest=dir_nfs,
@@ -115,27 +108,11 @@ def download_test_boards(project_name):
     projects[project_name]['factory'].addStep(steps.FileDownload(mastersrc="configs/kernel_modules.py",
                             workerdest="../../tests/driver_tests/kernel_modules.py",
                             name="Download kernel_modules.py"))
-#+str(x)+"/"+str(len(kernel_modules['test']))
 
-
-#def powercycle_ip_power(project_name, beagle_power_port, target):
-#    projects[project_name]["factory"].addStep(steps.ShellSequence(
-#    commands=[
-#        util.ShellArg(command=["/bin/bash", "ip-power-control.sh", beagle_power_port, "0"]),
-#        util.ShellArg(command=["/bin/bash", "ip-power-control.sh", beagle_power_port, "1"]),
-#        ], workdir="../tests",flunkOnFailure=False ,flunkOnWarnings=False, decodeRC={0:0,1:0,2:0}, name=target+": Powercycling beagle bone"))
-#def linux_ver_parser()
 def run_driver_tests(project_name):
     for test_board in test_boards:
         for target in test_boards[test_board]['targets']:
             check_tag_partial=functools.partial(check_tag, target=target)
-            a=kernel_modules['linux_ver'][target][0]
-            l=[]
-            for x in range(0,len(a[0])):
-                l.append(a[0][x])
-
-#            check_tag_partial(target)
-#            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo"+str(change.comments)], name="Test print"))
 
             #projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "test_powercycle.py","--power_port="+test_boards[test_board]['power_port']], workdir="../tests/driver_tests", name=target+": Powercycle "+test_boards[test_board]['name']))
             #projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_shell.py"], workdir="../tests/driver_tests", name=target+": Login to "+test_boards[test_board]['name']))
@@ -147,10 +124,6 @@ def run_driver_tests(project_name):
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_regulator_test.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": init_regulator_test.sh"))
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_test_target.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": test_target.sh"))
     
-# pytest --lg-env beagle1.yaml test_init_overlay.py
-# pytest -ra -v --lg-env beagle1.yaml test_merge_dt_overlay.py --product=bd71847
-# pytest -ra -v --lg-env beagle1.yaml test_insmod_tests.py --product=bd71847
-
 def linux_driver_test(project_name,beagle_ID,beagle_power_port):
     build_kernel_arm32(project_name)
     upload_kernel_binaries(project_name)

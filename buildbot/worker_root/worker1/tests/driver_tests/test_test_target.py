@@ -8,17 +8,12 @@ from time import sleep
 from kernel_modules import *
 
 def test_init_overlay(command,product):
-   # product = product
 
     ####### IF TEST TIMEOUTS, INCREASE TIMEOUT #######
     # This is not well documented in labgrid, but you can pass timeout=##
     # This sets the timeout in seconds, defaults to 30 if not set
 
     stdout, stderr, returncode = command.run('cd /; ./test_'+product+'.sh',timeout=300)
-    print(product)
-#    print(product)
-    
-#    stdout, stderr, returncode = command.run('sudo /./test_'+product+'.sh')
     if (returncode != 0): 
         print("---- dmesg ----")
         dmesg = command.run('dmesg')

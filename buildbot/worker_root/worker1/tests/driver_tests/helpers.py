@@ -7,4 +7,3 @@ def checkStdOut(stdout,checkString):
 def checkStr(stdout,checkString):
     if checkString in stdout:
         return 0
-        print('noniin, nyt se toimii')
