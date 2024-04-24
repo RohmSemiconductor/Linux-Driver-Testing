@@ -14,7 +14,7 @@ beagle_power_port1 = "1"
 beagle_power_port2 = "2"
 beagle_power_port3 = "3"
 beagle_power_port4 = "4"
-
+import math
 import sys 
 import os
 sys.path.append(os.path.abspath("./configs"))
@@ -27,20 +27,60 @@ import re
 #propTag = factory_test_linux.getProperties().getProperty('workername')
 #propTag = getRenderingFor(util.Property('commit-description'))
 #propTag=getProperty('commit-description')
+def skipped(results, build):
+  return results == 3
 
-def check_tag(step,target):
-    if re.search('^next.*', step.getProperty('commit-description')) or re.search('^v('+kernel_modules['linux_ver'][target][0]+'.*$|[6-9]\\.[0-9]|[6-9]\\.[0-9\\].*$){1,2}(-rc[1-9][0-9]?)?$',step.getProperty('commit-description')):
-        print(step.getProperty('commit-description'))
-        return True
-    else:
+def isFloat(check):
+    if type(check) == str:
+        if '.' in check:
+            return True
+        else:
+            return False
+    if type(check)==int:
         return False
 
+def tagConvert(tagS):
+    tagL = tagS.replace("v","")
+    tagL = tagL.split(".",1)
+    for e in range(len(tagL)):
+        if isFloat(tagL[e]) == True:
+            tagL[e]=float(tagL[e])
+        if isFloat(tagL[e]) == False:
+            tagL[e]=int(tagL[e])
+    return tagL
+
+def check_tag(step,target):
+    if re.search('^next.*', step.getProperty('commit-description')):    #check for linux next 
+        print(step.getProperty('commit-description'))
+        return True
+    elif re.search('^'+target, step.getProperty('commit-description')): #check for driver fix
+        return True
+
+    else:
+        target_ver = tagConvert(kernel_modules['linux_ver'][target][0])
+        git_ver = tagConvert(step.getProperty('commit-description'))
+        if target_ver[0] < git_ver[0]: #git bigger pass
+            return True
+        elif target_ver[0] > git_ver[0]: #target_ver bigger fail
+            return False
+        elif target_ver[0] == git_ver[0]: #same
+            if type(target_ver[0])== int:
+                if target_ver[1] <= math.floor(git_ver[1]): #same pass
+                    return True
+                else:
+                    return False                            #same fail
+            else:
+                if target_ver[1]<=git_ver[1]:                #linux stable of same version or bigger
+                    return True
+                else:
+                    return False
+
+#                                                                                   linux_ver
+#    if re.search('^next.*', step.getProperty('commit-description')) or re.search('^v('+a+'.*$|['+l[0]+1+'-9]\\.[0-9]|[6-9]\\.[0-9\\].*$){1,2}(-rc[1-9][0-9]?)?$',step.getProperty('commit-description')):
+#         or re.search('^v('+kernel_modules['linux_ver'][target][0]+'.*$|[6-9]\\.[0-9]|[6-9]\\.[0-9\\].*$){1,2}(-rc[1-9][0-9]?)?$',step.getProperty('commit-description')):
 def build_kernel_arm32(project_name):
-    projects[project_name]['factory'].addStep(steps.Git(repourl=projects[project_name]['repo_git'], mode='incremental', getDescription={'tags':True},name="Update linux source files from git"))
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo", util.Property('commit-description')],name="TEST property"))
-#    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo", getProperty('commit-description')],name="str TEST property"))
-#    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo", util.Property('commit-description')],doStepIf=check_tag ,name="TEST property2"))
-#    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo", util.Property('commit-description')],doStepIf=re.search('joo',step.getProperty('commit-description')) ,name="TEST property2"))
+    projects[project_name]['factory'].addStep(steps.Git(repourl=projects[project_name]['repo_git'], mode='incremental', getDescription={'tags':True},name="Update linux source files from git")) #source files
+#    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo", util.Property('commit-description')],name="TEST property"))
 
     projects[project_name]['factory'].addStep(steps.FileDownload(mastersrc="~/tools/kernel/.config",workerdest=".config",name="Copy kernel config to build directory"))
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "olddefconfig"],name="Update kernel config if needed"))
@@ -87,8 +127,13 @@ def download_test_boards(project_name):
 #def linux_ver_parser()
 def run_driver_tests(project_name):
     for test_board in test_boards:
-        for target in test_boards[test_board]['targets']: 
+        for target in test_boards[test_board]['targets']:
             check_tag_partial=functools.partial(check_tag, target=target)
+            a=kernel_modules['linux_ver'][target][0]
+            l=[]
+            for x in range(0,len(a[0])):
+                l.append(a[0][x])
+
 #            check_tag_partial(target)
 #            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo"+str(change.comments)], name="Test print"))
 
@@ -96,12 +141,11 @@ def run_driver_tests(project_name):
             #projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_shell.py"], workdir="../tests/driver_tests", name=target+": Login to "+test_boards[test_board]['name']))
 
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],  workdir="../tests/driver_tests",doStepIf=check_tag_partial, name=target+": Login to "+test_boards[test_board]['name']))
-
-            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_overlay.py"], workdir="../tests/driver_tests", name=target+": Install overlay merger"))
-            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_merge_dt_overlay.py","--product="+target], workdir="../tests/driver_tests", name=target+": Merge device tree overlays"))
-            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_insmod_tests.py","--product="+target], workdir="../tests/driver_tests", name=target+": insmod test modules"))
-            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_regulator_test.py","--product="+target], workdir="../tests/driver_tests", name=target+": init_regulator_test.sh"))
-            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_test_target.py","--product="+target], workdir="../tests/driver_tests", name=target+": test_target.sh"))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_overlay.py"], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Install overlay merger"))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_merge_dt_overlay.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Merge device tree overlays"))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_insmod_tests.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": insmod test modules"))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_regulator_test.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": init_regulator_test.sh"))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_test_target.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": test_target.sh"))
     
 # pytest --lg-env beagle1.yaml test_init_overlay.py
 # pytest -ra -v --lg-env beagle1.yaml test_merge_dt_overlay.py --product=bd71847
