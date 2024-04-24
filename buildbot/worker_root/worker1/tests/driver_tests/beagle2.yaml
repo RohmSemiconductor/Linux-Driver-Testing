@@ -1,0 +1,17 @@
+targets:
+  main:
+    resources:
+      USBSerialPort:
+        match:
+          ID_SERIAL_SHORT: "FTHC021E"
+    drivers:
+      ManualPowerDriver:
+        name: "example"
+      SerialDriver: {}
+      ShellDriver:
+        prompt: '.*(debian|root)@arm:.*'
+        login_prompt: ' login: '
+        login_timeout: 75
+#        post_login_settle_time: 1
+        username: 'root'
+        password: 'a'

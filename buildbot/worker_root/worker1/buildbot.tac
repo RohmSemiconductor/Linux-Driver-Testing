@@ -4,7 +4,7 @@ import os
 from buildbot_worker.bot import Worker
 from twisted.application import service
 
-from configs.passwords import *
+from secrets.passwords import *
 
 basedir = '/home/user01/Linux-Driver-Testing/buildbot/worker_root/worker1'
 basedir = '.'
