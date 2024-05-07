@@ -22,11 +22,14 @@ buildbot/worker_root/worker1/twistd.pid
 buildbot/master_root/master/configs/__pycache__/
 buildbot/worker_root/worker1/tests/first_test/__pycache__/
 buildbot/worker_root/worker1/tests/driver_tests/__pycache__/
+buildbot/worker_root/worker1/tests/driver_tests/configs/__pycache__/
+buildbot/worker_root/worker1/tests/driver_tests/bd71847/__pycache__/
 buildbot/master_root/master/master.cfg.sample
 buildbot/master_root/master/state.sqlite
-**/driver_tests/kernel_modules.py
+**/driver_tests/configs/kernel_modules.py
 **/driver_tests/test_powercycle.py
 *state.sqlite*
 *.swp
+*.swo
 *.log*
 __init__.py
