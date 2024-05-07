@@ -39,7 +39,10 @@ def isFloat(check):
 
 def tagConvert(tagS):
     tagL = tagS.replace("v","")
-    tagL = tagL.split(".",1)
+    tagL = tagL.split("-",1)
+    if tagL[-1].startswith("rc"):
+        tagL.pop(-1)
+    tagL = tagL[0].split(".",1)
     for e in range(len(tagL)):
         if isFloat(tagL[e]) == True:
             tagL[e]=float(tagL[e])
@@ -106,7 +109,7 @@ def upload_test_kernel_modules(project_name):
 
 def download_test_boards(project_name):
     projects[project_name]['factory'].addStep(steps.FileDownload(mastersrc="configs/kernel_modules.py",
-                            workerdest="../../tests/driver_tests/kernel_modules.py",
+                            workerdest="../../tests/driver_tests/configs/kernel_modules.py",
                             name="Download kernel_modules.py"))
 
 def run_driver_tests(project_name):
@@ -116,8 +119,8 @@ def run_driver_tests(project_name):
 
             #projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "test_powercycle.py","--power_port="+test_boards[test_board]['power_port']], workdir="../tests/driver_tests", name=target+": Powercycle "+test_boards[test_board]['name']))
             #projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_shell.py"], workdir="../tests/driver_tests", name=target+": Login to "+test_boards[test_board]['name']))
-
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],  workdir="../tests/driver_tests",doStepIf=check_tag_partial, name=target+": Login to "+test_boards[test_board]['name']))
+ 
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_overlay.py"], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Install overlay merger"))
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_merge_dt_overlay.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Merge device tree overlays"))
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_insmod_tests.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": insmod test modules"))

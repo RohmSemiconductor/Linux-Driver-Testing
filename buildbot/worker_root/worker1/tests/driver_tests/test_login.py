@@ -19,6 +19,6 @@ def test_login(power_port,beagle):
             i=i+1
             result = subprocess.run('/bin/bash .././ip-power-control.sh '+power_port+' 0' ,shell=True, capture_output=True, text=True)
             result = subprocess.run('/bin/bash .././ip-power-control.sh '+power_port+' 1' ,shell=True, capture_output=True, text=True)
-            test_shell = subprocess.run('pytest --lg-env beagle1.yaml test_shell.py',shell=True)
+            test_shell = subprocess.run('pytest --lg-env '+beagle+'.yaml test_shell.py',shell=True)
 
     assert test_shell.returncode == 0
