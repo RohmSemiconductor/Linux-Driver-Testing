@@ -33,3 +33,4 @@ buildbot/master_root/master/state.sqlite
 *.swo
 *.log*
 __init__.py
+test.py
