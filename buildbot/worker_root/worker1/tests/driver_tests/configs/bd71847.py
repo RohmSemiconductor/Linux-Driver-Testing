@@ -53,13 +53,13 @@ data={
                 'start_reg':0x00,
                 'stop_reg':0x3C,
             },
-            'flat':{
-                'is_linear':True,
-                'start_mV':1300,
-                'step_mV':0,
-                'start_reg':0x3D,
-                'stop_reg':0x7F,
-            }
+            # 'flat':{
+            #     'is_linear':True,
+            #     'start_mV':1300,
+            #     'step_mV':0,
+            #     'start_reg':0x3D,
+            #     'stop_reg':0x7F,
+            # }
         }
     }, #buck1 END
     'buck2':{
@@ -86,13 +86,13 @@ data={
                 'start_reg':0x00,
                 'stop_reg':0x3C,
             },
-            'flat':{
-                'is_linear':True,
-                'start_mV':1300,
-                'step_mV':0,
-                'start_reg':0x3D,
-                'stop_reg':0x7F,
-            }
+            # 'flat':{
+            #     'is_linear':True,
+            #     'start_mV':1300,
+            #     'step_mV':0,
+            #     'start_reg':0x3D,
+            #     'stop_reg':0x7F,
+            # }
         }
     }, #buck2 END
     'buck3':{       #datasheet: buck5
@@ -111,7 +111,7 @@ data={
         'volt_reg_bitmask':         0b11000111,
         'volt_sel':True,
         'volt_sel_address':         0x14,
-             'range':{
+        'range':{
                 '00':{
                 'volt_sel_reg': 0b00000000,
                 'is_linear':False,
@@ -129,11 +129,11 @@ data={
             },
                 '10':{
                 'is_linear':False,
-                'mV_list':[675,775,875,975,1025,1075,1175,1325],
+                'list_mV':[675,775,875,975,1025,1075,1175,1325],
                 'start_reg':0x00,
                 'stop_reg':0x07,
             }
-        }
+        } #ranges ok
     }, #buck3 END
     'buck4':{       #datasheet: buck6
         'name': 'buck4',
@@ -147,11 +147,14 @@ data={
         'regulator_sel':            0b00000010,
         'regulator_pwm_fix':        0b00001000,
 
-        'volt_reg_address':0x15,
-        'volt_reg_bitmask':     0b01000011,
+        'volt_reg_address':         0x15,
+        'volt_reg_bitmask':         0b00000011,
+        
         'volt_sel':True,
-        'volt_sel_address':0x15,
-             'range':{
+        'volt_sel_address':         0x15,
+        'volt_set_bitmask':         0b01000000,
+        'volt_change_while_on':False,
+        'range':{
             '0':{
                 'volt_sel_reg': 0b00000000,
                 'is_linear':True,
@@ -168,7 +171,7 @@ data={
                 'start_reg':0x00,
                 'stop_reg':0x03,
             }
-        }
+        } #ranges ok
     }, #buck4 END
     'buck5':{       #datasheet: buck7
         'name': 'buck5',
@@ -182,13 +185,14 @@ data={
         'regulator_sel':            0b00000010,
         'regulator_pwm_fix':        0b00001000,
 
-        'volt_reg_address':0x16,
-        'volt_reg_bitmask':     0b00000111,
+        'volt_reg_address':         0x16,
+        'volt_reg_bitmask':         0b00000111,
         'volt_sel':False,
-             'range':{
-                 'values':{
+        'volt_change_while_on':False,
+        'range':{
+            'values':{
                 'is_linear':False,
-                'mV_list':[1605,1695,1755,1800,1845,1905,1950,1995],
+                'list_mV':[1605,1695,1755,1800,1845,1905,1950,1995],
                 'start_reg':0x00,
                 'stop_reg':0x07,
             }
@@ -205,10 +209,10 @@ data={
         'regulator_sel':            0b00000010,
         'regulator_pwm_fix':        0b00001000,
 
-        'volt_reg_address':         0x10,
+        'volt_reg_address':         0x17,
         'volt_reg_bitmask':         0b01111111,
         'volt_sel':False,
-             'range':{
+        'range':{
             'values':{
                 'is_linear':True,
                 'start_mV':800,
@@ -216,13 +220,13 @@ data={
                 'start_reg':0x00,
                 'stop_reg':0x3C,
             },
-            'flat':{
-                'is_linear':True,
-                'start_mV':1400,
-                'step_mV':0,
-                'start_reg':0x3D,
-                'stop_reg':0x7F,
-            }
+            # 'flat':{
+            #     'is_linear':True,
+            #     'start_mV':1400,
+            #     'step_mV':0,
+            #     'start_reg':0x3D,
+            #     'stop_reg':0x7F,
+            # }
         }
     }, #buck6 END
     'buck7':{       #datasheet: LDO1
@@ -240,7 +244,7 @@ data={
         'volt_reg_address':         0x18,
         'volt_reg_bitmask':         0b00000011,
         'volt_sel':True,
-             'range':{
+        'range':{
                  '0':{
                 'is_linear':True,
                 'start_mV':3000,
@@ -248,7 +252,7 @@ data={
                 'start_reg':0x00,
                 'stop_reg':0x03,
             },
-                 'flat':{
+                 '1':{
                 'is_linear':True,
                 'start_mV':1600,
                 'step_mV':100,
@@ -269,20 +273,21 @@ data={
         'regulator_sel':            0b00000010,
         'regulator_pwm_fix':        0b00001000,
 
-        'volt_reg_address':         0x18,
+        'volt_change_not_allowed_while_on': True,
+        'volt_reg_address':         0x19,
         'volt_reg_bitmask':         0b00000011,
         'volt_sel':True,
-             'range':{
-                 '0':{
+        'no_regulator_volt':        True,
+        'range':{
+                '0':{
                 'is_linear':True,
-                'start_mV':3000,
-                'step_mV':100,
+                'start_mV':900,
                 'start_reg':0x00,
                 'stop_reg':0x03,
             },
-                 'flat':{
+                 '1':{
                 'is_linear':True,
-                'start_mV':1600,
+                'start_mV':800,
                 'step_mV':100,
                 'start_reg':0x00,
                 'stop_reg':0x03,
@@ -301,24 +306,24 @@ data={
         'regulator_sel':            0b00000010,
         'regulator_pwm_fix':        0b00001000,
 
-        'volt_reg_address':         0x18,
-        'volt_reg_bitmask':         0b00000011,
+        'volt_reg_address':         0x1A,
+        'volt_reg_bitmask':         0b00001111,
         'volt_sel':True,
-             'range':{
-                 '0':{
+        'range':{
+                '0':{
                 'is_linear':True,
                 'start_mV':3000,
                 'step_mV':100,
                 'start_reg':0x00,
                 'stop_reg':0x03,
             },
-                 'flat':{
-                'is_linear':True,
-                'start_mV':1600,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x03,
-            }
+                #     'flat':{
+                #     'is_linear':True,
+                #     'start_mV':1600,
+                #     'step_mV':100,
+                #     'start_reg':0x00,
+                #     'stop_reg':0x03,
+                # }
         }
     }, #buck9 END
     'buck10':{       #datasheet: LDO4
@@ -333,10 +338,10 @@ data={
         'regulator_sel':            0b00000010,
         'regulator_pwm_fix':        0b00001000,
 
-        'volt_reg_address':         0x18,
+        'volt_reg_address':         0x1B,
         'volt_reg_bitmask':         0b00000011,
         'volt_sel':True,
-             'range':{
+        'range':{
                  '0':{
                 'is_linear':True,
                 'start_mV':3000,
@@ -344,13 +349,13 @@ data={
                 'start_reg':0x00,
                 'stop_reg':0x03,
             },
-                 'flat':{
-                'is_linear':True,
-                'start_mV':1600,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x03,
-            }
+                 #     'flat':{
+                 #     'is_linear':True,
+                 #     'start_mV':1600,
+                 #     'step_mV':100,
+                 #     'start_reg':0x00,
+                 #     'stop_reg':0x03,
+                 # }
         }
     }, #buck10 END
     'buck11':{       #datasheet: LDO5
@@ -365,18 +370,18 @@ data={
         'regulator_sel':            0b00000010,
         'regulator_pwm_fix':        0b00001000,
 
-        'volt_reg_address':         0x18,
+        'volt_reg_address':         0x1C,
         'volt_reg_bitmask':         0b00000011,
         'volt_sel':True,
-             'range':{
-                 '0':{
+        'range':{
+                '0':{
                 'is_linear':True,
                 'start_mV':3000,
                 'step_mV':100,
                 'start_reg':0x00,
                 'stop_reg':0x03,
             },
-                 'flat':{
+                'flat':{
                 'is_linear':True,
                 'start_mV':1600,
                 'step_mV':100,
@@ -397,18 +402,18 @@ data={
         'regulator_sel':            0b00000010,
         'regulator_pwm_fix':        0b00001000,
 
-        'volt_reg_address':         0x18,
+        'volt_reg_address':         0x1D,
         'volt_reg_bitmask':         0b00000011,
         'volt_sel':True,
-             'range':{
-                 '0':{
+        'range':{
+                '0':{
                 'is_linear':True,
                 'start_mV':3000,
                 'step_mV':100,
                 'start_reg':0x00,
                 'stop_reg':0x03,
             },
-                 'flat':{
+                'flat':{
                 'is_linear':True,
                 'start_mV':1600,
                 'step_mV':100,
