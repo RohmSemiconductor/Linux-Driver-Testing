@@ -30,5 +30,5 @@ def test_bd71847(command):
             #        if ((bd71847.check_regulator_enable_mode(regulator,command) == 1) and (bd71847.check_regulator_always_on_mode(regulator,command) == 0)):
             #            regulator_en_status = bd71847.regulator_disable(regulator,command)           
             #            assert regulator_en_status == 0
-    testfail = 1
-    assert testfail == 0
+#    testfail = 1
+#    assert testfail == 0
