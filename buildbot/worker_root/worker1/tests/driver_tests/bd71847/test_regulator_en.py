@@ -8,7 +8,7 @@ from pmic_conf import pmic
 bd71847 = pmic(bd71847)
 print(sys.path)
 
-def test_bd71847(command):
+def test_regulator_en(command):
     for regulator in bd71847.board.data['regulators'].keys():
         if bd71847.check_regulator_enable_mode(regulator,command) == 1:
             regulator_en_status = bd71847.regulator_enable(regulator,command)

@@ -8,7 +8,7 @@ from pmic_conf import pmic
 bd71847 = pmic(bd71847)
 print(sys.path)
 
-def test_bd71847_sanitycheck(command):
+def test_sanitycheck(command):
     for regulator in bd71847.board.data['regulators'].keys():
         dt_buck_check = bd71847.sanity_check(regulator,command)
         assert dt_buck_check == 0
