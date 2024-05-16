@@ -10,6 +10,7 @@ pmic_data={}
 @dataclass
 class pmic:
     board: dict
+
     def print_failures(self,failures):
         print("Regulator, Range, Index, Sent uV, Received uV")
         for i in range(len(failures[0])):
@@ -29,17 +30,19 @@ class pmic:
     def sanity_check(self,regulator,command):
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
         path = self.escape_path(stdout[0])
-        stdout, stderr, returncode = command.run("test -d "+stdout[0]+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/regulator-always-on ;echo $?")
+        stdout, stderr, returncode = command.run("test -f "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/name ;echo $?")
+        print(stdout[0])
+        print(path)
         if stdout[0] == '0': #test -d returns 0 if file is found
             return 1
-        if stdout[0] == '1':
+        elif stdout[0] == '1':
             return 0
 
     def disable_vr_fault(self,key,command):
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address'])))
         i2creturn = int(stdout[0],0)
 
-            # new_val =hex string from bitwise operation: (debug bitmask & debug setting) | (~debug bitmask & read i2c value). This code retains bits in the register that we do not want to touch.
+        # new_val =hex string from bitwise operation: (debug bitmask & debug setting) | (~debug bitmask & read i2c value). This code retains bits in the register that we do not want to touch.
         new_val = str(hex((self.board.data['debug'][key]['bitmask'] & self.board.data['debug'][key]['setting']) | (~self.board.data['debug'][key]['bitmask'] & i2creturn)))
         stdout, stderr, returncode = command.run("i2cset -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address']))+" "+new_val)
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address'])))
@@ -52,7 +55,7 @@ class pmic:
         path = self.escape_path(stdout[0])
         stdout, stderr, returncode = command.run("test -f "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/rohm,no-regulator-enable-control ;echo $?")
         return int(stdout[0])   #test -f returns 1 if regulator can be enabled
-    
+
     def check_regulator_always_on_mode(self, regulator, command): 
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'")
         path = self.escape_path(stdout[0])
@@ -63,11 +66,36 @@ class pmic:
         if stdout[0] == '1':
             return 0
 
+    def check_bd9576_vout1_en_low(self,command):
+        stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'")
+        path = self.escape_path(stdout[0])
+        stdout, stderr, returncode = command.run("test -f "+path+"rohm,vout1-en-low ;echo $?")
+        if stdout[0] == '0':
+            return 1
+        if stdout[0] == '1':
+            return 0
+
+    def regulator_is_on_driver(self, regulator, command):
+        stdout, stderr, returncode = command.run("cat /sys/kernel/mva_test/regulators/"+regulator+"_en")
+        if stdout[0] == '0\x00':
+            return 0
+        elif stdout[0] == '1\x00':
+            return 1
+
     def regulator_is_on(self, regulator, command):
         regulator_enable_mode = self.check_regulator_enable_mode(regulator,command)
 
         if (self.board.data['name'] == 'bd71837' or self.board.data['name'] == 'bd71847') and (regulator_enable_mode == 0):
             regulator_en_status = 1
+
+        elif (self.board.data['name'] == 'bd9576'):
+            stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
+            i2creturn = int(stdout[0],0)
+            if i2creturn != self.board.data['regulators'][regulator]['regulator_en_bitmask']:
+                regulator_en_status = 1
+            else:
+                regulator_en_status = 0
+
         else:
             stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
             i2creturn = int(stdout[0],0)
@@ -87,16 +115,63 @@ class pmic:
         command.run("echo 0 > /sys/kernel/mva_test/regulators/"+regulator+"_en")
         sleep(0.2)
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
-        i2creturn = int(stdout[0],0);
+        i2creturn = int(stdout[0],0)
         regulator_en_status = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
         return regulator_en_status
 
-    def regulator_voltage(self,regulator, r,command, volt_index=None):
+    def regulator_voltage_driver_get(self, regulator, command):
+        stdout, stderr, returncode = command.run("cat /sys/kernel/mva_test/regulators/"+regulator+"_set")
+        print(stdout)
+        print(stdout[0])
+        return int(stdout[0],0)
 
-        ######## SET VOLTAGE THROUGH TEST KERNEL MODULE ######
+    def calculated_uv(self, regulator, r, command, volt_index=None):
         if self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True:
             mv = self.board.data['regulators'][regulator]['range'][r]['start_mV'] +(self.board.data['regulators'][regulator]['range'][r]['step_mV'] * volt_index)
-        
+
+        elif self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False:
+            mv = self.board.data['regulators'][regulator]['range'][r]['list_mV'][volt_index]
+
+        uv = self.mv_to_uv(mv)
+        return uv
+
+    def regulator_voltage_get(self, regulator, command, r='values', volt_index=None):
+        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['volt_reg_address'])))
+        i2creturn = int(stdout[0],0)
+        operation = 'add'
+
+        if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]:
+            volt_index = i2creturn & self.board.data['regulators'][regulator]['volt_reg_bitmask']
+
+        if self.board.data['regulators'][regulator]['volt_sel'] == True:
+            r = i2creturn & self.board.data['regulators'][regulator]['volt_sel_bitmask']
+
+        if 'is_offset_bipolar' in self.board.data['regulators'][regulator]['range'][r]:
+            unmasked_offset_sign = i2creturn & self.board.data['regulators'][regulator]['range'][r]['offset_sign_bitmask']
+            if unmasked_offset_sign == 1:
+                operation = 'substract'
+
+        if self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True:
+            if operation == 'add':
+                calculated_return_value = self.board.data['regulators'][regulator]['range'][r]['start_mV']+(volt_index * self.board.data['regulators'][regulator]['range'][r]['step_mV'])
+            elif operation == 'substract':
+                calculated_return_value = self.board.data['regulators'][regulator]['range'][r]['start_mV']-(volt_index * self.board.data['regulators'][regulator]['range'][r]['step_mV'])
+
+        elif (self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False and not 'is_offset_bipolar' in self.board.data['regulators'][regulator]['range'][r]):
+            if operation == 'add':
+                calculated_return_value = self.board.data['regulators'][regulator]['range'][r]['list_mV'][volt_index]
+            elif operation == 'substract':
+                calculated_return_value = self.board.data['regulators'][regulator]['range'][r]['list_mV'][volt_index]
+        else:
+            print("Regulator voltage calculation is not implemented yet!")
+
+        return calculated_return_value
+
+    def regulator_voltage_set(self, regulator, r, command, volt_index=None):
+        ######## SETS VOLTAGE THROUGH TEST KERNEL MODULE ######
+        if self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True:
+            mv = self.board.data['regulators'][regulator]['range'][r]['start_mV'] +(self.board.data['regulators'][regulator]['range'][r]['step_mV'] * volt_index)
+
         elif self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False:
             mv = self.board.data['regulators'][regulator]['range'][r]['list_mV'][volt_index]
 
@@ -104,35 +179,11 @@ class pmic:
         command.run("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+regulator+"_set")
         print("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+regulator+"_set")
 
-        ########### READ VOLTAGE #######
-        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['volt_reg_address'])))
-        i2creturn = int(stdout[0],0)
+        return uv
 
-#            print("or if not")
-        if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]:
-            unmasked_volt = i2creturn & self.board.data['regulators'][regulator]['volt_reg_bitmask']
-
-        if (self.board.data['regulators'][regulator]['volt_sel'] == False or not "volt_sel"in self.board.data['regulators'][regulator]):
-            if self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True:
-                calculated_return_value = self.board.data['regulators'][regulator]['range'][r]['start_mV']+(unmasked_volt * self.board.data['regulators'][regulator]['range'][r]['step_mV'])
-            if self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False:
-                calculated_return_value = self.board.data['regulators'][regulator]['range'][r]['list_mV'][volt_index]
-
-        if self.board.data['regulators'][regulator]['volt_sel'] == True:
-            unmasked_range = i2creturn & self.board.data['regulators'][regulator]['volt_sel_bitmask']
-
-            ##Linear ranges:
-            print("Unmasked range: "+str(unmasked_range))
-
-            if self.board.data['regulators'][regulator]['range'][unmasked_range]['is_linear'] == True:
-                calculated_return_value = self.board.data['regulators'][regulator]['range'][unmasked_range]['start_mV']+(unmasked_volt * self.board.data['regulators'][regulator]['range'][unmasked_range]['step_mV'])
-            elif self.board.data['regulators'][regulator]['range'][unmasked_range]['is_linear'] == False:
-                calculated_return_value = self.board.data['regulators'][regulator]['range'][unmasked_range]['list_mV'][unmasked_volt]
-
-            print("Unmasked and calculated returnval: "+str(calculated_return_value))
-
-
-            regulator_volt_status = i2creturn
+    def regulator_voltage(self,regulator, r,command, volt_index=None):
+        uv = self.regulator_voltage_set(regulator, r, command, volt_index)
+        calculated_return_value = self.regulator_voltage_get(regulator, r, command, volt_index)
         calculated_return_value = self.mv_to_uv(calculated_return_value)
         return uv, calculated_return_value
 
@@ -143,29 +194,13 @@ class pmic:
             }
 
         for r in self.board.data['regulators'][regulator]['range'].keys():
+            for x in range(self.board.data['regulators'][regulator]['range'][r]['start_reg'], self.board.data['regulators'][regulator]['range'][r]['stop_reg']+1):
+                volt_index = x - self.board.data['regulators'][regulator]['range'][r]['start_reg']
+                uv, calculated_return_value = self.regulator_voltage(regulator, r,command, volt_index)
+                if uv != calculated_return_value:
+                    voltage_run['test_failed']=1
+                    voltage_run['buck_fail'].append([regulator,r,volt_index,uv, calculated_return_value])
+                    print(uv)
+                    print(calculated_return_value)
 
-                if self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True:
-                    print("Range: "+str(r))
-
-                    for x in range(self.board.data['regulators'][regulator]['range'][r]['start_reg'], self.board.data['regulators'][regulator]['range'][r]['stop_reg']+1): 
-                        volt_index = x - self.board.data['regulators'][regulator]['range'][r]['start_reg']
-                        uv, calculated_return_value = self.regulator_voltage(regulator, r,command, volt_index)
-                        if uv != calculated_return_value:
-                            voltage_run['test_failed']=1
-                            voltage_run['buck_fail'].append([regulator,r,volt_index,uv, calculated_return_value])
-                            print(uv)
-                            print(calculated_return_value)
-                elif self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False:
-                    print("Range: "+str(r))
-                    #for x in range(len(self.board.data['regulators'][regulator]['range'][r]['list_mV'])):
-                    for x in range(self.board.data['regulators'][regulator]['range'][r]['start_reg'], self.board.data['regulators'][regulator]['range'][r]['stop_reg']+1):
-                        #    print(x)
-                        volt_index = x
-                        uv, calculated_return_value = self.regulator_voltage(regulator, r, command, volt_index)
-                        if uv != calculated_return_value:
-                            voltage_run['test_failed']=1
-                            voltage_run['buck_fail'][regulator]={r:volt_index}
-                            print(uv)
-                            print(calculated_return_value)
-#                        print("Reg volt i2c hex: "+str(hex(regulator_volt_status)))
         return voltage_run

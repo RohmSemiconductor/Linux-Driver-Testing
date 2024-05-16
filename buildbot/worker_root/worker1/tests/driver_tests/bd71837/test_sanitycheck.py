@@ -11,7 +11,7 @@ print(sys.path)
 def test_sanitycheck(command):
     for regulator in bd71837.board.data['regulators'].keys():
         dt_buck_check = bd71837.sanity_check(regulator,command)
-        assert dt_buck_check == 0
+        assert dt_buck_check == 1
 
     for key in bd71837.board.data['debug']:
         vr_fault_status = bd71837.disable_vr_fault(key,command)
