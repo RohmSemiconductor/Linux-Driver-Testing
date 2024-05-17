@@ -41,18 +41,18 @@ data={
         'regulator_pwm_fix_bitmask':    0b00001000,
         'regulator_ramprate_bitmask':   0b11000000,
 
-        'volt_reg_address':             0x0D,
-        'volt_reg_bitmask':             0b01111111,
+        'volt_reg_address':             0x07,       #VOLT_H register
+        'volt_reg_bitmask':             0b00111111,
         
         'volt_sel': False,
         
         'range':{
             'values':{
                 'is_linear':    True,
-                'start_mV':     700,
-                'step_mV':      10,
-                'start_reg':    0x00,
-                'stop_reg':     0x3C,
+                'start_mV':     800,
+                'step_mV':      25,
+                'start_reg':    0x0,
+                'stop_reg':     0x30,
             },
             # 'flat':{
             #     'is_linear':True,
@@ -76,16 +76,16 @@ data={
         'regulator_pwm_fix_bitmask':    0b00001000,
         'regulator_ramprate':           0b11000000,
 
-        'volt_reg_address':             0x10,
-        'volt_reg_bitmask':             0b01111111,
+        'volt_reg_address':             0x09,       #VOLT_H
+        'volt_reg_bitmask':             0b00111111,
         'volt_sel': False,
         'range':{
             'values':{
                 'is_linear':    True,
-                'start_mV':     700,
-                'step_mV':      10,
-                'start_reg':    0x00,
-                'stop_reg':     0x3C,
+                'start_mV':     800,
+                'step_mV':      25,
+                'start_reg':    0x0,
+                'stop_reg':     0x30,
             },
             # 'flat':{
             #     'is_linear':True,
@@ -108,34 +108,18 @@ data={
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
 
-        'volt_reg_address':             0x14,
-        'volt_reg_bitmask':             0b00000111,
+        'volt_reg_address':             0x0B,
+        'volt_reg_bitmask':             0b00011111,
 
-        'volt_sel':True,
-        'volt_sel_address':             0x14,
-        'volt_sel_bitmask':             0b11000000,
+        'volt_sel':False,
         'range':{
-                0b00000000:{
-                'volt_sel_reg':         0b00000000,
-                'is_linear':False,
-                'list_mV':[700,800,900,1000,1050,1100,1200,1350],
-                'start_reg':0x00,
-                'stop_reg':0x07,
+            'values':{
+                'is_linear':    True,
+                'start_mV':     1200,
+                'step_mV':      50,
+                'start_reg':    0x0,
+                'stop_reg':     0x1E,
             },
-                0b01000000:{
-                'volt_sel_reg':         0b01000000,
-                'is_linear':True,
-                'start_mV':550,
-                'step_mV':50,
-                'start_reg':0x00,
-                'stop_reg':0x07,
-            },
-                0b10000000:{
-                'is_linear':False,
-                'list_mV':[675,775,875,975,1025,1075,1175,1325],
-                'start_reg':0x00,
-                'stop_reg':0x07,
-            }
         } #ranges ok
     }, #buck3 END
     'buck4':{
@@ -144,25 +128,17 @@ data={
         'regulator_en_address':     0x05,
         'regulator_en_bitmask':     0b00000100,
 
-        'volt_reg_address':         0x18,
-        'volt_reg_bitmask':         0b00000011,
-        'volt_sel':True,
-        'volt_sel_bitmask':         0b00100000,
+        'volt_reg_address':         0x0C,
+        'volt_reg_bitmask':         0b00011111,
+        'volt_sel':False,
         'range':{
-                0b00000000:{
-                'is_linear':True,
-                'start_mV':3000,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x03,
+            'values':{
+                'is_linear':    True,
+                'start_mV':     1100,
+                'step_mV':      25,
+                'start_reg':    0x0,
+                'stop_reg':     0x1E,
             },
-                0b00100000:{
-                'is_linear':True,
-                'start_mV':1600,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x03,
-            }
         }
     }, #buck4 END
     'buck5':{
@@ -171,29 +147,18 @@ data={
         'regulator_en_address':     0x06,
         'regulator_en_bitmask':     0b00000100,
 
+        'volt_reg_address':         0x0D,
+        'volt_reg_bitmask':         0b00011111,
 
-        'volt_change_not_allowed_while_on': True,
-        'volt_reg_address':         0x19,
-        'volt_reg_bitmask':         0b00000000,
-
-        'volt_sel':True,
-        'volt_sel_bitmask':         0b00100000,
-        'no_regulator_volt':        True,
+        'volt_sel':False,
         'range':{
-                0b00000000:{
-                'is_linear':True,
-                'start_mV':900,
-                'step_mV':0,
-                'start_reg':0x00,
-                'stop_reg':0x00,
+            'values':{
+                'is_linear':    True,
+                'start_mV':     1800,
+                'step_mV':      50,
+                'start_reg':    0x0,
+                'stop_reg':     0x1E,
             },
-                0b00100000:{
-                'is_linear':True,
-                'start_mV':800,
-                'step_mV':0,
-                'start_reg':0x00,
-                'stop_reg':0x00,
-            }
         }
     }, #buck5 END
     'buck6':{       #datasheet: LDO1
@@ -202,16 +167,16 @@ data={
         'regulator_en_address':     0x10,
         'regulator_en_bitmask':     0b01000000,
 
-        'volt_reg_address':         0x1A,
-        'volt_reg_bitmask':         0b00001111,
+        'volt_reg_address':         0x14,
+        'volt_reg_bitmask':         0b00111111,
         'volt_sel':False,
         'range':{
                 'values':{
                 'is_linear':True,
-                'start_mV':1800,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0xF,
+                'start_mV':800,
+                'step_mV':50,
+                'start_reg':0x0,
+                'stop_reg':0x32,
             },
                 #     'flat':{
                 #     'is_linear':True,
@@ -228,16 +193,16 @@ data={
         'regulator_en_address':     0x11,
         'regulator_en_bitmask':     0b00000100,
 
-        'volt_reg_address':         0x1B,
-        'volt_reg_bitmask':         0b00001111,
+        'volt_reg_address':         0x15,
+        'volt_reg_bitmask':         0b00111111,
         'volt_sel':False,
         'range':{
                 'values':{
                 'is_linear':True,
-                'start_mV':900,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x09,
+                'start_mV':800,
+                'step_mV':50,
+                'start_reg':0x0,
+                'stop_reg':0x32,
             },
                  #     'flat':{
                  #     'is_linear':True,
@@ -254,16 +219,16 @@ data={
         'regulator_en_address':     0x11,
         'regulator_en_bitmask':     0b01000000,
 
-        'volt_reg_address':         0x1B,
-        'volt_reg_bitmask':         0b00001111,
+        'volt_reg_address':         0x16,
+        'volt_reg_bitmask':         0b00111111,
         'volt_sel':False,
         'range':{
                 'values':{
                 'is_linear':True,
-                'start_mV':900,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x09,
+                'start_mV':800,
+                'step_mV':50,
+                'start_reg':0x0,
+                'stop_reg':0x32,
             },
                  #     'flat':{
                  #     'is_linear':True,
@@ -280,16 +245,16 @@ data={
         'regulator_en_address':     0x12,
         'regulator_en_bitmask':     0b00000100,
 
-        'volt_reg_address':         0x1B,
-        'volt_reg_bitmask':         0b00001111,
+        'volt_reg_address':         0x17,
+        'volt_reg_bitmask':         0b00111111,
         'volt_sel':False,
         'range':{
                 'values':{
                 'is_linear':True,
-                'start_mV':900,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x09,
+                'start_mV':800,
+                'step_mV':50,
+                'start_reg':0x0,
+                'stop_reg':0x32,
             },
                  #     'flat':{
                  #     'is_linear':True,
@@ -306,16 +271,16 @@ data={
         'regulator_en_address':     0x12,
         'regulator_en_bitmask':     0b01000000,
 
-        'volt_reg_address':         0x1B,
-        'volt_reg_bitmask':         0b00001111,
+        'volt_reg_address':         0x18,       #VOLT_H register
+        'volt_reg_bitmask':         0b00111111,
         'volt_sel':False,
         'range':{
                 'values':{
                 'is_linear':True,
-                'start_mV':900,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x09,
+                'start_mV':800,
+                'step_mV':50,
+                'start_reg':0x0,
+                'stop_reg':0x32,
             },
                  #     'flat':{
                  #     'is_linear':True,

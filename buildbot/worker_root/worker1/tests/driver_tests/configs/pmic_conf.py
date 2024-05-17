@@ -123,7 +123,7 @@ class pmic:
         print(stdout[0])
         return int(stdout[0],0)
 
-    def calculated_uv(self, regulator, r, command, volt_index=None):
+    def calculated_uv(self, regulator,command,r, volt_index=None):
         if self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True:
             mv = self.board.data['regulators'][regulator]['range'][r]['start_mV'] +(self.board.data['regulators'][regulator]['range'][r]['step_mV'] * volt_index)
 
@@ -165,7 +165,7 @@ class pmic:
 
         return calculated_return_value
 
-    def regulator_voltage_set(self, regulator, r, command, volt_index=None):
+    def regulator_voltage_set(self, regulator, command,r, volt_index=None):
         ######## SETS VOLTAGE THROUGH TEST KERNEL MODULE ######
         if self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True:
             mv = self.board.data['regulators'][regulator]['range'][r]['start_mV'] +(self.board.data['regulators'][regulator]['range'][r]['step_mV'] * volt_index)
@@ -179,7 +179,7 @@ class pmic:
 
         return uv
 
-    def regulator_voltage(self,regulator, r,command, volt_index=None):
+    def regulator_voltage(self,regulator, command,r , volt_index=None):
         uv = self.regulator_voltage_set(regulator, r, command, volt_index)
         calculated_return_value = self.regulator_voltage_get(regulator, r, command, volt_index)
         calculated_return_value = self.mv_to_uv(calculated_return_value)

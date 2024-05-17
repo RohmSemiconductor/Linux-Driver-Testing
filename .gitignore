@@ -15,7 +15,7 @@ buildbot/worker_root/worker1/Test_kernel_modules/
 
 **/driver_tests/configs/kernel_modules.py
 **/driver_tests/test_powercycle.py
-
+bd_template.py
 **/twistd.log*
 **/sandbox/
 **/twistd.pid
