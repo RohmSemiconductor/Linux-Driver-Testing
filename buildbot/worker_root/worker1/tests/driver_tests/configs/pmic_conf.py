@@ -31,8 +31,6 @@ class pmic:
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
         path = self.escape_path(stdout[0])
         stdout, stderr, returncode = command.run("test -f "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/name ;echo $?")
-        print(stdout[0])
-        print(path)
         if stdout[0] == '0': #test -d returns 0 if file is found
             return 1
         elif stdout[0] == '1':
