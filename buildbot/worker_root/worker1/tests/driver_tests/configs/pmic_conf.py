@@ -3,6 +3,7 @@ import pytest
 from time import sleep
 import sys
 import os
+import copy
 
 sys.path.append(os.path.abspath("."))
 pmic_data={}
@@ -26,6 +27,30 @@ class pmic:
 
     def _print_reg_val(reg_val):
         pass 
+
+    def validate_config(self, target_name):
+        assert target_name == self.board.data['name']
+        assert type(self.board.data['i2c']['bus']) == int
+        assert type(self.board.data['i2c']['address']) == int
+        for regulator in self.board.data['regulators']:
+            if ('volt_sel' in self.board.data['regulators'][regulator] and self.board.data['regulators'][regulator]['volt_sel'] == True):
+                assert type(self.board.data['regulators'][regulator]['volt_sel_bitmask']) == int
+            for r in self.board.data['regulators'][regulator]['range'].keys():
+                if 'is_linear' in self.board.data['regulators'][regulator]['range'][r].keys() and self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True:
+                    assert type(self.board.data['regulators'][regulator]['range'][r]['step_mV']) == int
+                elif 'is_linear' in self.board.data['regulators'][regulator]['range'][r].keys() and self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False:
+                    assert type(self.board.data['regulators'][regulator]['range'][r]['list_mV']) == list
+                if 'is_bipolar' in self.board.data['regulators'][regulator].keys():
+                    assert type(self.board.data['regulators'][regulator]['sign_bitmask']) == int
+
+
+
+    def validate_config_basic(self):
+        pass
+        validation_fail = 0
+        if (not 'name' in self.board.data.keys() and not 'i2c' in self.board.data.keys() and not 'regulators' in self.board.data.keys()):
+            validation_fail = 1
+        return validation_fail
 
     def sanity_check(self,regulator,command):
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
@@ -133,16 +158,29 @@ class pmic:
         uv = self.mv_to_uv(mv)
         return uv
 
-    def regulator_voltage_get(self, regulator, command, r='values', volt_index=None):
-        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['volt_reg_address'])))
-        i2creturn = int(stdout[0],0)
-        operation = 'add'
-
+    def regulator_voltage_get(self, regulator, command, r='not_given', volt_index=None):
         if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]:
-            volt_index = i2creturn & self.board.data['regulators'][regulator]['volt_reg_bitmask']
+            stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['volt_reg_address'])))
+            i2creturn = int(stdout[0],0)
+            unmasked_return = i2creturn & self.board.data['regulators'][regulator]['volt_reg_bitmask']
+        elif(not 'volt_reg_bitmask' in self.board.data['regulators'][regulator] and 'regulator_en_address' in self.board.data['regulators'][regulator]):
+            stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
+            i2creturn = int(stdout[0],0)
 
+        operation = 'add'
+        
+        if (self.board.data['regulators'][regulator]['volt_sel'] == False and r == 'not_given'):
+            for found_r in self.board.data['regulators'][regulator]['range'].keys():
+                if unmasked_return in range(self.board.data['regulators'][regulator]['range'][found_r]['start_reg'], self.board.data['regulators'][regulator]['range'][found_r]['stop_reg']+1):
+                    r=found_r
+                else:
+                    r='range_error'
+        
         if self.board.data['regulators'][regulator]['volt_sel'] == True:
             r = i2creturn & self.board.data['regulators'][regulator]['volt_sel_bitmask']
+
+        if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]:
+            volt_index = (i2creturn & self.board.data['regulators'][regulator]['volt_reg_bitmask']) - self.board.data['regulators'][regulator]['range'][r]['start_reg']
 
         if 'is_offset_bipolar' in self.board.data['regulators'][regulator]['range'][r]:
             unmasked_offset_sign = i2creturn & self.board.data['regulators'][regulator]['range'][r]['offset_sign_bitmask']
@@ -164,6 +202,43 @@ class pmic:
             print("Regulator voltage calculation is not implemented yet!")
 
         return calculated_return_value
+    
+    def get_min_max_volt(self, regulator):
+        last_min = 'default'
+        last_max = 'default'
+        for r in self.board.data['regulators'][regulator]['range'].keys():
+            if (self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True and not 'is_offset_bipolar' in self.board.data['regulators'][regulator]['range'][r]):
+                min = self.board.data['regulators'][regulator]['range'][r]['start_mV']
+                max = self.board.data['regulators'][regulator]['range'][r]['start_mV']+(self.board.data['regulators'][regulator]['range'][r]['stop_reg'] * self.board.data['regulators'][regulator]['range'][r]['step_mV'])
+            
+            elif (self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False and not 'is_offset_bipolar' in self.board.data['regulators'][regulator]['range'][r]):
+                min = self.board.data['regulators'][regulator]['range'][r]['list_mV'][0]
+                max = self.board.data['regulators'][regulator]['range'][r]['list_mV'][-1]
+
+            elif (self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False and not 'is_offset_bipolar' in self.board.data['regulators'][regulator]['range'][r]):
+                min = self.board.data['regulators'][regulator]['range'][r]['list_mV'][0]
+                max = self.board.data['regulators'][regulator]['range'][r]['list_mV'][-1]
+        
+            elif (self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True and self.board.data['regulators'][regulator]['range'][r]['is_offset_bipolar'] == True):
+                min = self.board.data['regulators'][regulator]['range'][r]['start_mV']-(self.board.data['regulators'][regulator]['range'][r]['stop_reg'] * self.board.data['regulators'][regulator]['range'][r]['step_mV'])
+                max = self.board.data['regulators'][regulator]['range'][r]['start_mV']+(self.board.data['regulators'][regulator]['range'][r]['stop_reg'] * self.board.data['regulators'][regulator]['range'][r]['step_mV'])
+        
+            elif (self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False and self.board.data['regulators'][regulator]['range'][r]['is_offset_bipolar'] == True):
+                min = self.board.data['regulators'][regulator]['range'][r]['start_mV']-(self.board.data['regulators'][regulator]['range'][r]['list_mV'][-1])
+                max = self.board.data['regulators'][regulator]['range'][r]['start_mV']+(self.board.data['regulators'][regulator]['range'][r]['list_mV'][-1])
+            
+            if (last_min == 'default' or min < last_min):
+                last_min = copy.copy(min)
+            if (last_max == 'default' or max > last_max):
+                last_max = copy.copy(max)
+        
+        last_min = self.mv_to_uv(min)
+        last_max = self.mv_to_uv(max)
+
+        return last_min, last_max
+
+    def regulator_voltage_driver_set(self,regulator,uv,command):
+        command.run("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+regulator+"_set")
 
     def regulator_voltage_set(self, regulator, command,r, volt_index=None):
         ######## SETS VOLTAGE THROUGH TEST KERNEL MODULE ######
@@ -173,7 +248,7 @@ class pmic:
         elif self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False:
             mv = self.board.data['regulators'][regulator]['range'][r]['list_mV'][volt_index]
 
-        uv = self.mv_to_uv(mv)
+        uv = int(self.mv_to_uv(mv))
         command.run("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+regulator+"_set")
         print("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+regulator+"_set")
 
