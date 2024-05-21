@@ -290,6 +290,40 @@ data={
                  #     'stop_reg':0x03,
                  # }
         }
-    }, #buck7 END
+    }, #buck10 END
+    'wled':{       #datasheet: LDO5
+        'name': 'wled',
+        'of_match':'wled',
+        'regulator_en_address':     0x0E,
+        'regulator_en_bitmask':     0b00000100,
+
+        'volt_reg_address':         0x0F,       #VOLT_H register
+        'volt_reg_bitmask':         0b00111111,
+        'volt_sel':False,
+        'range':{
+                'values1':{
+                'is_linear':False,
+                'start_mV':800,
+                'step_mV':50,
+                'list_mV':[0.01,0.02,0.03,0.05,0.07,0.1,0.2,0.3,0.5,0.7],
+                'start_reg':0x0,
+                'stop_reg':0x09,
+            },
+                'values2':{
+                'is_linear':True,
+                'start_mV':1,
+                'step_mV':1,
+                'start_reg':0x0A,
+                'stop_reg':0x22,
+            },
+                 #     'flat':{
+                 #     'is_linear':True,
+                 #     'start_mV':1600,
+                 #     'step_mV':100,
+                 #     'start_reg':0x00,
+                 #     'stop_reg':0x03,
+                 # }
+        }
+    }, #buck11 END
 } #regulators END    
 } #bd##### END

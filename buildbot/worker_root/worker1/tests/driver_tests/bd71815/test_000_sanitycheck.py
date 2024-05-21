@@ -9,6 +9,7 @@ bd71815 = pmic(bd71815)
 print(sys.path)
 
 def test_sanitycheck(command):
+    bd71815.validate_config('bd71815')
     for regulator in bd71815.board.data['regulators'].keys():
         dt_buck_check = bd71815.sanity_check(regulator,command)
         print(regulator)
