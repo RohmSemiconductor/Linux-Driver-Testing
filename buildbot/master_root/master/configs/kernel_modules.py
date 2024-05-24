@@ -21,6 +21,17 @@ kernel_modules['build']={
 'bd99954':['bd99954_test.dtbo'],
 }
 
+kernel_modules['dts_files']={
+    'bd71847':{
+        'default':      'bd71847_test.dts',
+        'outofrange':   'bd71847_test_outofrange.dts',
+            },
+    'bd71837':{
+        'default':      'bd71837_test.dts',
+        'outofrange':   'bd71837_test_outofrange.dts',
+        }
+}
+
 kernel_modules['dt_overlays']={
 'bd71815':['bd71815_test.dtbo'],
 'bd71828':['bd71828_test.dtbo'],#not yet installed
