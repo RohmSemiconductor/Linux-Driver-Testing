@@ -1,0 +1,9 @@
+env DTS_FILE=bd71847_test_outofrange.dts KERNEL_DIR=~/Linux-Driver-Testing/buildbot/worker_root/worker1/Test_Linux/build/ CC=/home/user01/Linux-Driver-Testing/compilers/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf- PWD=./ make
+
+
+/home/user01/Linux-Driver-Testing/buildbot/worker_root/worker1/Test_Linux/build/_test-kernel-modules/bd71847
+
+
+env KERNEL_DIR=../../ CC=/home/user01/Linux-Driver-Testing/compilers/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf- PWD=./ DTS_FILE=bd71847_test_outofrange.dts make
+
+env KERNEL_DIR=../../ CC=/home/user01/Linux-Driver-Testing/compilers/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf- PWD=/home/user01/Linux-Driver-Testing/buildbot/worker_root/worker1/Test_Linux/build/_test-kernel-modules/bd71847 DTS_FILE=bd71847_test_outofrange.dts make

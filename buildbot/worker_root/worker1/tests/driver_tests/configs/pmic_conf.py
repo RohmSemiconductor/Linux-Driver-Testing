@@ -28,6 +28,19 @@ class pmic:
     def _print_reg_val(reg_val):
         pass 
 
+    def read_dt(self,regulator,command,setting):
+        stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
+        path = self.escape_path(stdout[0])
+        stdout, stderr, returncode = command.run("xxd -p "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/"+self.board.data['regulators'][regulator][setting]['of_match'])
+        hex=('0x'+stdout[0])
+        print(int(hex,0))
+        int_hex= int(hex,0)
+        return int_hex
+
+    def dt_run(self, regulator, dts, command):
+        for property in self.board.data['regulators'][regulator]['dt_properties'][dts]:
+            dts_value = self.read_dt(regulator,property,command)
+            
     def validate_config(self, target_name):
         assert target_name == self.board.data['name']
         assert type(self.board.data['i2c']['bus']) == int
@@ -42,8 +55,6 @@ class pmic:
                     assert type(self.board.data['regulators'][regulator]['range'][r]['list_mV']) == list
                 if 'is_bipolar' in self.board.data['regulators'][regulator].keys():
                     assert type(self.board.data['regulators'][regulator]['sign_bitmask']) == int
-
-
 
     def validate_config_basic(self):
         pass
@@ -157,6 +168,16 @@ class pmic:
 
         uv = self.mv_to_uv(mv)
         return uv
+    def regulator_limit_get(self, regulator,setting, command, r='values'):
+            stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator][setting]['reg_address'])))
+            i2creturn = int(stdout[0],0)
+            unmasked_return = i2creturn & self.board.data['regulators'][regulator][setting]['reg_bitmask']
+            
+            volt_index = (i2creturn & self.board.data['regulators'][regulator][setting]['reg_bitmask']) - self.board.data['regulators'][regulator][setting][r]['start_reg']
+
+            calculated_return_value = self.calculate_return_value(regulator, command,r, volt_index,i2creturn,setting)
+            calculated_return_value = self.mv_to_uv(calculated_return_value)
+            return calculated_return_value
 
     def regulator_voltage_get(self, regulator, command, r='not_given', volt_index=None):
         if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]:
@@ -166,9 +187,7 @@ class pmic:
         elif(not 'volt_reg_bitmask' in self.board.data['regulators'][regulator] and 'regulator_en_address' in self.board.data['regulators'][regulator]):
             stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
             i2creturn = int(stdout[0],0)
-
-        operation = 'add'
-        
+ 
         if (self.board.data['regulators'][regulator]['volt_sel'] == False and r == 'not_given'):
             for found_r in self.board.data['regulators'][regulator]['range'].keys():
                 if unmasked_return in range(self.board.data['regulators'][regulator]['range'][found_r]['start_reg'], self.board.data['regulators'][regulator]['range'][found_r]['stop_reg']+1):
@@ -181,28 +200,36 @@ class pmic:
 
         if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]:
             volt_index = (i2creturn & self.board.data['regulators'][regulator]['volt_reg_bitmask']) - self.board.data['regulators'][regulator]['range'][r]['start_reg']
+        
+        calculated_return_value = self.calculate_return_value(regulator, command, r, volt_index,i2creturn)
+        return calculated_return_value
+    
+    def _config_to_mv(self, regulator,command, r, volt_index,i2creturn)
 
-        if 'is_offset_bipolar' in self.board.data['regulators'][regulator]['range'][r]:
-            unmasked_offset_sign = i2creturn & self.board.data['regulators'][regulator]['range'][r]['offset_sign_bitmask']
+    def calculate_return_value(self, regulator,command, r, volt_index,i2creturn, setting='range'):
+        operation = 'add'
+
+        if 'is_offset_bipolar' in self.board.data['regulators'][regulator][setting][r]:
+            unmasked_offset_sign = i2creturn & self.board.data['regulators'][regulator][setting][r]['offset_sign_bitmask']
             if unmasked_offset_sign == 1:
                 operation = 'substract'
 
-        if self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True:
+        if self.board.data['regulators'][regulator][setting][r]['is_linear'] == True:
             if operation == 'add':
-                calculated_return_value = self.board.data['regulators'][regulator]['range'][r]['start_mV']+(volt_index * self.board.data['regulators'][regulator]['range'][r]['step_mV'])
+                calculated_return_value = self.board.data['regulators'][regulator][setting][r]['start_mV']+(volt_index * self.board.data['regulators'][regulator][setting][r]['step_mV'])
             elif operation == 'substract':
-                calculated_return_value = self.board.data['regulators'][regulator]['range'][r]['start_mV']-(volt_index * self.board.data['regulators'][regulator]['range'][r]['step_mV'])
+                calculated_return_value = self.board.data['regulators'][regulator][setting][r]['start_mV']-(volt_index * self.board.data['regulators'][regulator][setting][r]['step_mV'])
 
-        elif (self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False and not 'is_offset_bipolar' in self.board.data['regulators'][regulator]['range'][r]):
+        elif (self.board.data['regulators'][regulator][setting][r]['is_linear'] == False and not 'is_offset_bipolar' in self.board.data['regulators'][regulator][setting][r]):
             if operation == 'add':
-                calculated_return_value = self.board.data['regulators'][regulator]['range'][r]['list_mV'][volt_index]
+                calculated_return_value = self.board.data['regulators'][regulator][setting][r]['list_mV'][volt_index]
             elif operation == 'substract':
-                calculated_return_value = self.board.data['regulators'][regulator]['range'][r]['list_mV'][volt_index]
+                calculated_return_value = self.board.data['regulators'][regulator][setting][r]['list_mV'][volt_index]
         else:
             print("Regulator voltage calculation is not implemented yet!")
 
         return calculated_return_value
-    
+        
     def get_min_max_volt(self, regulator):
         last_min = 'default'
         last_max = 'default'
@@ -277,3 +304,38 @@ class pmic:
                     print(calculated_return_value)
 
         return voltage_run
+    
+    def i2c_to_uv(self, regulator, command):
+        if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]:
+            stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['volt_reg_address'])))
+            i2creturn = int(stdout[0],0)
+            unmasked_return = i2creturn & self.board.data['regulators'][regulator]['volt_reg_bitmask']
+        elif(not 'volt_reg_bitmask' in self.board.data['regulators'][regulator] and 'regulator_en_address' in self.board.data['regulators'][regulator]):
+            stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
+            i2creturn = int(stdout[0],0)
+        
+        uv = xx
+        return uv
+
+    def _i2c_to_volt_config(self,regulator,i2creturn, unmasked_return):
+
+        if (self.board.data['regulators'][regulator]['volt_sel'] == False and r == 'not_given'):
+            for found_r in self.board.data['regulators'][regulator]['range'].keys():
+                if unmasked_return in range(self.board.data['regulators'][regulator]['range'][found_r]['start_reg'], self.board.data['regulators'][regulator]['range'][found_r]['stop_reg']+1):
+                    r=found_r
+                else:
+                    r='range_error'
+        
+        if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]:
+            volt_index = (i2creturn & self.board.data['regulators'][regulator]['volt_reg_bitmask']) - self.board.data['regulators'][regulator]['range'][r]['start_reg']
+        
+        start_reg = xx
+        stop_reg = xx
+        start_mV = xx
+        step_mV = xx
+        #return a list or dict
+
+    def _calculate_linear_mv(self,regulator, r,volt_index):
+        pass
+
+    def _calculate_nonlinear_mv():

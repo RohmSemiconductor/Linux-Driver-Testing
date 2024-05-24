@@ -34,15 +34,51 @@ data={
                 'step_mV':              100,
                 'start_reg':            0x00,
                 'stop_reg':             0x05,
-            },
-            # 'flat':{
-            #     'is_linear':True,
-            #     'start_mV':1300,
-            #     'step_mV':0,
-            #     'start_reg':0x3D,
-            #     'stop_reg':0x7F,
-            # }
+            }
+        },
+        #        'limit_settings':['ovd','uvd'],
+        'limit_settings':{
+            'ovd':{
+                'of_match': 'regulator-ov-error-microvolt',
+                'reg_address': 0x51,
+                'reg_bitmask': 0b01111111,
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             225,
+                        'step_mV':              5,
+                        'start_reg':            0x2C,
+                        'stop_reg':             0x54,
+                    },
+                }
+            }
         }
+
+        'ovd':{
+            'of_match': 'regulator-ov-error-microvolt',
+            'reg_bitmask':              0b01111111,
+            'reg_address':              0x51,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             225,
+                'step_mV':              5,
+                'start_reg':            0x2C,
+                'stop_reg':             0x54,
+            },
+        },
+        'uvd':{
+            'of_match': 'regulator-uv-error-microvolt',
+            'reg_bitmask':              0b01111111,
+            'reg_address':              0x52,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             225,
+                'step_mV':              5,
+                'start_reg':            0x2C,
+                'stop_reg':             0x54, 
+            }
+        }
+        
     }, #buck1 END
     'buck2':{
         'name': 'buck2',
@@ -71,13 +107,31 @@ data={
                 'start_reg':    0x00,
                 'stop_reg':     0x07,
             },
-            # 'flat':{
-            #     'is_linear':True,
-            #     'start_mV':1300,
-            #     'step_mV':0,
-            #     'start_reg':0x3D,
-            #     'stop_reg':0x7F,
-            # }
+        },
+        'limit_settings':['ovd','uvd'],
+        'ovd':{
+            'of_match': 'regulator-ov-error-microvolt',
+            'reg_bitmask':              0b01111111,
+            'reg_address':              0x54,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             17,
+                'step_mV':              1,
+                'start_reg':            0x10,
+                'stop_reg':             0x6D,
+            },
+        },
+        'uvd':{
+            'of_match': 'regulator-uv-error-microvolt',
+            'reg_bitmask':              0b01111111,
+            'reg_address':              0x55,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             17,
+                'step_mV':              1,
+                'start_reg':            0x10,
+                'stop_reg':             0x6D, 
+            }
         }
     }, #buck2 END
     'buck3':{
@@ -106,9 +160,34 @@ data={
                 'step_mV':      10,
                 'start_reg':    0x00,
                 'stop_reg':     0x1F,
+            },     
+        }, #ranges ok
+        'limit_settings':['ovd','uvd'],
+
+        'ovd':{
+            'of_match': 'regulator-ov-warn-microvolt',
+            'reg_bitmask':              0b01111111,
+            'reg_address':              0x57,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             17,
+                'step_mV':              1,
+                'start_reg':            0x10,
+                'stop_reg':             0x6D,
             },
-             
-        } #ranges ok
+        },
+        'uvd':{
+            'of_match': 'regulator-uv-warn-microvolt',
+            'reg_bitmask':              0b01111111,
+            'reg_address':              0x58,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             17,
+                'step_mV':              1,
+                'start_reg':            0x10,
+                'stop_reg':             0x6D, 
+            }
+        }
     }, #buck3 END
     'buck4':{
         'name': 'buck4',
@@ -132,7 +211,32 @@ data={
                 'stop_reg':     0x1F,
             },
              
-        } #ranges ok
+        }, #ranges ok
+        'limit_settings':['ovd','uvd'],
+        'ovd':{
+            'of_match': 'regulator-ov-warn-microvolt',
+            'reg_bitmask':              0b01111111,
+            'reg_address':              0x5A,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             17,
+                'step_mV':              1,
+                'start_reg':            0x10,
+                'stop_reg':             0x6D,
+            },
+        },
+        'uvd':{
+            'of_match': 'regulator-uv-error-microvolt',
+            'reg_bitmask':              0b01111111,
+            'reg_address':              0x5B,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             17,
+                'step_mV':              1,
+                'start_reg':            0x10,
+                'stop_reg':             0x6D, 
+            }
+        }
     }, #buck4 END
     'buck5':{
         'name': 'buck5',
@@ -158,7 +262,32 @@ data={
                 'stop_reg':     0x7,
             },
              
-        } #ranges ok
+        }, #ranges ok
+        'limit_settings':['ovd','uvd'],
+        'ovd':{
+            'of_match': 'regulator-ov-error-microvolt',
+            'reg_bitmask':              0b01111111,
+            'reg_address':              0x5D,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             34,
+                'step_mV':              2,
+                'start_reg':            0x10,
+                'stop_reg':             0x6D,
+            },
+        },
+        'uvd':{
+            'of_match': 'regulator-uv-error-microvolt',
+            'reg_bitmask':              0b01111111,
+            'reg_address':              0x5E,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             34,
+                'step_mV':              2,
+                'start_reg':            0x10,
+                'stop_reg':             0x6D, 
+            }
+        }
     }, #buck5 END
     'buck6':{
         'name': 'buck6',
@@ -182,6 +311,31 @@ data={
                 #     'start_reg':0x00,
                 #     'stop_reg':0x03,
                 # }
+        },
+        'limit_settings':['ocw','ocp'],
+        'ocw':{ #start_mV, step_mV are milliamperes here
+            'of_match': 'regulator-oc-warn-microamp',
+            'reg_bitmask':              0b00111111,
+            'reg_address':              0x5F,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             200,
+                'step_mV':              50,
+                'start_reg':            0x04,
+                'stop_reg':             0x18,
+            },
+        },
+        'ocp':{
+            'of_match': 'regulator-oc-error-microamp',
+            'reg_bitmask':              0b00111111,
+            'reg_address':              0x60,
+            'values':{
+                'is_linear':            True,
+                'start_mV':             300,
+                'step_mV':              50,
+                'start_reg':            0x06,
+                'stop_reg':             0x1B, 
+            }
         }
     }, #buck6 END
 } #regulators END    
