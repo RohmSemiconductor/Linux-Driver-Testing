@@ -176,31 +176,6 @@ class pmic:
             calculated_return_value = self.mv_to_uv(calculated_return_value)
             return calculated_return_value
 
-    def regulator_voltage_get(self, regulator, command, r='not_given', volt_index=None):
-        if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]:
-            stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['volt_reg_address'])))
-            i2creturn = int(stdout[0],0)
-            unmasked_return = i2creturn & self.board.data['regulators'][regulator]['volt_reg_bitmask']
-        elif(not 'volt_reg_bitmask' in self.board.data['regulators'][regulator] and 'regulator_en_address' in self.board.data['regulators'][regulator]):
-            stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
-            i2creturn = int(stdout[0],0)
- 
-        if (self.board.data['regulators'][regulator]['volt_sel'] == False and r == 'not_given'):
-            for found_r in self.board.data['regulators'][regulator]['range'].keys():
-                if unmasked_return in range(self.board.data['regulators'][regulator]['range'][found_r]['start_reg'], self.board.data['regulators'][regulator]['range'][found_r]['stop_reg']+1):
-                    r=found_r
-                else:
-                    r='range_error'
-        
-        if self.board.data['regulators'][regulator]['volt_sel'] == True:
-            r = i2creturn & self.board.data['regulators'][regulator]['volt_sel_bitmask']
-
-        if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]:
-            volt_index = (i2creturn & self.board.data['regulators'][regulator]['volt_reg_bitmask']) - self.board.data['regulators'][regulator]['range'][r]['start_reg']
-        
-        calculated_return_value = self.calculate_return_value(regulator, command, r, volt_index,i2creturn)
-        return calculated_return_value
-    
     def calculate_return_value(self, regulator,command, r, volt_index,i2creturn, setting='range'):
         operation = 'add'
 
