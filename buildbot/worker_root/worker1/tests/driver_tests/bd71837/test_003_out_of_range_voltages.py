@@ -22,20 +22,16 @@ def test_out_of_range_voltages(command):
             min, max = bd71837.get_min_max_volt(regulator)
             
             bd71837.regulator_voltage_driver_set(regulator,min,command)
-            return_val_min = bd71837.regulator_voltage_get(regulator,command)
+            return_val_min = bd71837.i2c_to_uv(regulator,command)
 
             bd71837.regulator_voltage_driver_set(regulator,min-10000,command)
-            return_val_try_less = bd71837.regulator_voltage_get(regulator,command)
+            return_val_try_less = bd71837.i2c_to_uv(regulator,command)
             
             assert return_val_min == return_val_try_less
             
             bd71837.regulator_voltage_driver_set(regulator,max,command)
-            return_val_max = bd71837.regulator_voltage_get(regulator,command)
+            return_val_max = bd71837.i2c_to_uv(regulator,command)
             bd71837.regulator_voltage_driver_set(regulator,max+10000,command)
-            return_val_try_more = bd71837.regulator_voltage_get(regulator,command)
+            return_val_try_more = bd71837.i2c_to_uv(regulator,command)
             
             assert return_val_max == return_val_try_more
-
-
-#    test_fail = 0
-#    assert test_fail == 1

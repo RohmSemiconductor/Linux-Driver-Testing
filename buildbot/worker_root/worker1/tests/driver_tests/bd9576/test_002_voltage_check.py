@@ -13,4 +13,4 @@ def test_voltage_run(command):
         if regulator == 'buck6':
             assert bd9576.regulator_voltage_driver_get(regulator,command) == bd9576.mv_to_uv(3300) 
         else:
-            assert bd9576.regulator_voltage_driver_get(regulator,command) == bd9576.mv_to_uv(bd9576.regulator_voltage_get(regulator,command))
+            assert bd9576.regulator_voltage_driver_get(regulator,command) == bd9576.i2c_to_uv(regulator,command)

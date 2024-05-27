@@ -52,7 +52,7 @@ data={
                     },
                 }
             }
-        }
+        },
 
         'ovd':{
             'of_match': 'regulator-ov-error-microvolt',
