@@ -36,7 +36,6 @@ data={
                 'stop_reg':             0x05,
             }
         },
-        #        'limit_settings':['ovd','uvd'],
         'limit_settings':{
             'ovd':{
                 'of_match': 'regulator-ov-error-microvolt',
@@ -50,35 +49,65 @@ data={
                         'start_reg':            0x2C,
                         'stop_reg':             0x54,
                     },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             225,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x2B,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             425,
+                        'step_mV':              0,
+                        'start_reg':            0x55,
+                        'stop_reg':             0x7F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                    }
+                }
+            },
+            'uvd':{
+                'of_match': 'regulator-uv-error-microvolt',
+                'reg_bitmask':              0b01111111,
+                'reg_address':              0x52,
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             225,
+                        'step_mV':              5,
+                        'start_reg':            0x2C,
+                        'stop_reg':             0x54,
+                    },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             225,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x2B,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             425,
+                        'step_mV':              0,
+                        'start_reg':            0x55,
+                        'stop_reg':             0x7F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                    }
                 }
             }
         },
-
-        'ovd':{
-            'of_match': 'regulator-ov-error-microvolt',
-            'reg_bitmask':              0b01111111,
-            'reg_address':              0x51,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             225,
-                'step_mV':              5,
-                'start_reg':            0x2C,
-                'stop_reg':             0x54,
-            },
-        },
-        'uvd':{
-            'of_match': 'regulator-uv-error-microvolt',
-            'reg_bitmask':              0b01111111,
-            'reg_address':              0x52,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             225,
-                'step_mV':              5,
-                'start_reg':            0x2C,
-                'stop_reg':             0x54, 
-            }
-        }
-        
     }, #buck1 END
     'buck2':{
         'name': 'buck2',
@@ -108,29 +137,76 @@ data={
                 'stop_reg':     0x07,
             },
         },
-        'limit_settings':['ovd','uvd'],
-        'ovd':{
-            'of_match': 'regulator-ov-error-microvolt',
-            'reg_bitmask':              0b01111111,
-            'reg_address':              0x54,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             17,
-                'step_mV':              1,
-                'start_reg':            0x10,
-                'stop_reg':             0x6D,
+        'limit_settings':{
+            'ovd':{
+                'of_match': 'regulator-ov-error-microvolt',
+                'reg_bitmask':              0b01111111,
+                'reg_address':              0x54,
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              1,
+                        'start_reg':            0x10,
+                        'stop_reg':             0x6D,
+                    },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x0F,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             110,
+                        'step_mV':              0,
+                        'start_reg':            0x6E,
+                        'stop_reg':             0x7F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                    }
+                }
             },
-        },
-        'uvd':{
-            'of_match': 'regulator-uv-error-microvolt',
-            'reg_bitmask':              0b01111111,
-            'reg_address':              0x55,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             17,
-                'step_mV':              1,
-                'start_reg':            0x10,
-                'stop_reg':             0x6D, 
+            'uvd':{
+                'of_match': 'regulator-uv-error-microvolt',
+                'reg_bitmask':              0b01111111,
+                'reg_address':              0x55,
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              1,
+                        'start_reg':            0x10,
+                        'stop_reg':             0x6D,
+                    },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x0F,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             110,
+                        'step_mV':              0,
+                        'start_reg':            0x6E,
+                        'stop_reg':             0x7F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                    }
+                }
             }
         }
     }, #buck2 END
@@ -162,30 +238,77 @@ data={
                 'stop_reg':     0x1F,
             },     
         }, #ranges ok
-        'limit_settings':['ovd','uvd'],
+        'limit_settings':{
 
-        'ovd':{
-            'of_match': 'regulator-ov-warn-microvolt',
-            'reg_bitmask':              0b01111111,
-            'reg_address':              0x57,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             17,
-                'step_mV':              1,
-                'start_reg':            0x10,
-                'stop_reg':             0x6D,
+            'ovd':{
+                'of_match': 'regulator-ov-warn-microvolt',
+                'reg_bitmask':              0b01111111,
+                'reg_address':              0x57,
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              1,
+                        'start_reg':            0x10,
+                        'stop_reg':             0x6D,
+                    },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x0F,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             110,
+                        'step_mV':              0,
+                        'start_reg':            0x6E,
+                        'stop_reg':             0x7F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                    }
+                }
             },
-        },
-        'uvd':{
-            'of_match': 'regulator-uv-warn-microvolt',
-            'reg_bitmask':              0b01111111,
-            'reg_address':              0x58,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             17,
-                'step_mV':              1,
-                'start_reg':            0x10,
-                'stop_reg':             0x6D, 
+            'uvd':{
+                'of_match': 'regulator-uv-warn-microvolt',
+                'reg_bitmask':              0b01111111,
+                'reg_address':              0x58,
+                'range': {
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              1,
+                        'start_reg':            0x10,
+                        'stop_reg':             0x6D,
+                    },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x0F,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             110,
+                        'step_mV':              0,
+                        'start_reg':            0x6E,
+                        'stop_reg':             0x7F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                    }
+                }
             }
         }
     }, #buck3 END
@@ -212,29 +335,76 @@ data={
             },
              
         }, #ranges ok
-        'limit_settings':['ovd','uvd'],
-        'ovd':{
-            'of_match': 'regulator-ov-warn-microvolt',
-            'reg_bitmask':              0b01111111,
-            'reg_address':              0x5A,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             17,
-                'step_mV':              1,
-                'start_reg':            0x10,
-                'stop_reg':             0x6D,
+        'limit_settings':{
+            'ovd':{
+                'of_match': 'regulator-ov-warn-microvolt',
+                'reg_bitmask':              0b01111111,
+                'reg_address':              0x5A,
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              1,
+                        'start_reg':            0x10,
+                        'stop_reg':             0x6D,
+                    },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x0F,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             110,
+                        'step_mV':              0,
+                        'start_reg':            0x6E,
+                        'stop_reg':             0x7F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                    }
+                }
             },
-        },
-        'uvd':{
-            'of_match': 'regulator-uv-error-microvolt',
-            'reg_bitmask':              0b01111111,
-            'reg_address':              0x5B,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             17,
-                'step_mV':              1,
-                'start_reg':            0x10,
-                'stop_reg':             0x6D, 
+            'uvd':{
+                'of_match': 'regulator-uv-error-microvolt',
+                'reg_bitmask':              0b01111111,
+                'reg_address':              0x5B,
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              1,
+                        'start_reg':            0x10,
+                        'stop_reg':             0x6D,
+                    },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             17,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x0F,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             110,
+                        'step_mV':              0,
+                        'start_reg':            0x6E,
+                        'stop_reg':             0x7F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                    }
+                }
             }
         }
     }, #buck4 END
@@ -261,31 +431,78 @@ data={
                 'start_reg':    0x00,
                 'stop_reg':     0x7,
             },
-             
+
         }, #ranges ok
-        'limit_settings':['ovd','uvd'],
-        'ovd':{
-            'of_match': 'regulator-ov-error-microvolt',
-            'reg_bitmask':              0b01111111,
-            'reg_address':              0x5D,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             34,
-                'step_mV':              2,
-                'start_reg':            0x10,
-                'stop_reg':             0x6D,
+        'limit_settings':{
+            'ovd':{
+                'of_match': 'regulator-ov-error-microvolt',
+                'reg_bitmask':              0b01111111,
+                'reg_address':              0x5D,
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             34,
+                        'step_mV':              2,
+                        'start_reg':            0x10,
+                        'stop_reg':             0x6D,
+                    },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             34,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x0F,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             220,
+                        'step_mV':              0,
+                        'start_reg':            0x6E,
+                        'stop_reg':             0x7F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                    }
+                }
             },
-        },
-        'uvd':{
-            'of_match': 'regulator-uv-error-microvolt',
-            'reg_bitmask':              0b01111111,
-            'reg_address':              0x5E,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             34,
-                'step_mV':              2,
-                'start_reg':            0x10,
-                'stop_reg':             0x6D, 
+            'uvd':{
+                'of_match': 'regulator-uv-error-microvolt',
+                'reg_bitmask':              0b01111111,
+                'reg_address':              0x5E,
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             34,
+                        'step_mV':              2,
+                        'start_reg':            0x10,
+                        'stop_reg':             0x6D,
+                    },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             34,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x0F,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             220,
+                        'step_mV':              0,
+                        'start_reg':            0x6E,
+                        'stop_reg':             0x7F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                    }
+                }
             }
         }
     }, #buck5 END
@@ -312,29 +529,76 @@ data={
                 #     'stop_reg':0x03,
                 # }
         },
-        'limit_settings':['ocw','ocp'],
-        'ocw':{ #start_mV, step_mV are milliamperes here
-            'of_match': 'regulator-oc-warn-microamp',
-            'reg_bitmask':              0b00111111,
-            'reg_address':              0x5F,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             200,
-                'step_mV':              50,
-                'start_reg':            0x04,
-                'stop_reg':             0x18,
+        'limit_settings':{
+            'ocw':{ #start_mV, step_mV are milliamperes here
+                'of_match': 'regulator-oc-warn-microamp',
+                'reg_bitmask':              0b00111111,
+                'reg_address':              0x5F,
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             200,
+                        'step_mV':              50,
+                        'start_reg':            0x04,
+                        'stop_reg':             0x18,
+                    },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             200,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x03,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             1200,
+                        'step_mV':              0,
+                        'start_reg':            0x19,
+                        'stop_reg':             0x3F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                        }
+                }
             },
-        },
-        'ocp':{
-            'of_match': 'regulator-oc-error-microamp',
-            'reg_bitmask':              0b00111111,
-            'reg_address':              0x60,
-            'values':{
-                'is_linear':            True,
-                'start_mV':             300,
-                'step_mV':              50,
-                'start_reg':            0x06,
-                'stop_reg':             0x1B, 
+            'ocp':{
+                'of_match': 'regulator-oc-protection-microamp',
+                'reg_bitmask':              0b00111111,
+                'reg_address':              0x60,
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'start_mV':             300,
+                        'step_mV':              50,
+                        'start_reg':            0x06,
+                        'stop_reg':             0x1B,
+                    },
+                    'clip_low':{
+                        'is_linear':            True,
+                        'start_mV':             300,
+                        'step_mV':              0,
+                        'start_reg':            0x01,
+                        'stop_reg':             0x05,
+                    },
+                    'clip_high':{
+                        'is_linear':            True,
+                        'start_mV':             1350,
+                        'step_mV':              0,
+                        'start_reg':            0x1C,
+                        'stop_reg':             0x3F,
+                    },
+                    'disabled':{
+                        'is_linear':            True,
+                        'start_mV':             0,
+                        'step_mV':              0,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x00,
+                        }
+                }
             }
         }
     }, #buck6 END

@@ -25,12 +25,11 @@ class pmic:
         uV = mV * 1000
         return uV
 
-    def read_dt(self,regulator,command,setting):
+    def read_dt(self, regulator, setting_type, setting, command):
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
         path = self.escape_path(stdout[0])
-        stdout, stderr, returncode = command.run("xxd -p "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/"+self.board.data['regulators'][regulator][setting]['of_match'])
+        stdout, stderr, returncode = command.run("xxd -p "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/"+self.board.data['regulators'][regulator][setting_type][setting]['of_match'])
         hex=('0x'+stdout[0])
-        print(int(hex,0))
         int_hex= int(hex,0)
         return int_hex
 
@@ -281,11 +280,17 @@ class pmic:
         uv = self.mv_to_uv(mv)
         return uv
 
-    def i2c_to_lim_uv(self, regulator, command):
-        volt_config = self._i2c_to_lim_config(regulator,command)
+    def i2c_to_lim_uv(self, regulator, setting, command):
+        volt_config = self._i2c_to_lim_config(regulator,setting,command)
+        
+        if volt_config['is_linear'] == True:
+            mv = self._calculate_linear_mv(volt_config)
+        else:
+            mv = self._calculate_nonlinear_mv(volt_config)
+        uv = self.mv_to_uv(mv)
+        return uv
 
-    def _i2c_to_lim_config(self):
-        pass
+    def _i2c_to_lim_config(self, regulator, setting, command):
         volt_config={
                 'r':            None,
                 'volt_index':   None,
@@ -295,6 +300,28 @@ class pmic:
                 'step_mV':      None,
                 'list_mV':      None,
                 }
+
+        #   Get limit register value
+        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['limit_settings'][setting]['reg_address'])))
+        i2creturn = int(stdout[0],0)
+        volt_config['volt_index'] = i2creturn & self.board.data['regulators'][regulator]['limit_settings'][setting]['reg_bitmask']
+        
+        #   Get range
+        for key in self.board.data['regulators'][regulator]['limit_settings'][setting]['range'].keys():
+            if volt_config['volt_index'] in range(self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][key]['start_reg'], self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][key]['stop_reg']+1):
+                r=key
+        
+        volt_config['volt_index'] = (i2creturn & self.board.data['regulators'][regulator]['limit_settings'][setting]['reg_bitmask']) - self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['start_reg']
+        
+        #   Gather linear / non-linear info of current range
+        volt_config['is_linear'] = self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['is_linear']
+        if self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['is_linear'] == True:
+            volt_config['start_mV'] = self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['start_mV']
+            volt_config['step_mV'] = self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['step_mV']
+        elif self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['is_linear'] == False:
+            volt_config['list_mV'] = self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['list_mV']
+
+        return volt_config
 
     def _i2c_to_volt_config(self, regulator, command,setting ='range'):
         volt_config={
