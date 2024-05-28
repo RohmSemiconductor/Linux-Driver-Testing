@@ -13,13 +13,22 @@ print(sys.path)
 
 def test_dts():
     new_dts= open('new_dts.dts','w+', encoding="utf-8")
-    with fileinput.input(files=('configs/bd71847_test_gen_template.dts'), encoding="utf-8") as f:
-        
-        for line in f:
-                print(line,end='',file=new_dts)
-                if 'regulator-name = "buck1"' in line:
-                
-                    print("TESTING;",file=new_dts)
+    f = open('configs/bd71847_test_gen_template.dts')
+    lines = len(f.readlines())
+    f.close()
+    f = open('configs/bd71847_test_gen_template.dts')
+    for line in f:
+        if 'regulator-name = "buck1"' in line: 
+            print("TESTING2;",file=new_dts)
+        else:
+            print(line,end='',file=new_dts)
+    print(type(f))
+    print(lines)
+    print(type(lines))
+    lines = lines +10
+    print(lines)
+    
+    f.close()
     new_dts.close()
     # for regulator in bd71847.board.data['regulators'].keys():
      #   print(regulator)
