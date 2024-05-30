@@ -26,3 +26,5 @@ bd_template.py
 *.log*
 __init__.py
 test.py
+
+*_test.dts

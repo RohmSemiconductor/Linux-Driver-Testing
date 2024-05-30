@@ -12,6 +12,6 @@ print(sys.path)
 
 
 def test_dts():
-    bd71847.generate_dts('protection_0','configs/bd71847_gen_template.dts','new_dts.dts')
+    bd71847.generate_dts('protection_0','configs/bd71847_gen_template.dts','generated_test.dts')
     test_fail = 0
     assert test_fail == 1
