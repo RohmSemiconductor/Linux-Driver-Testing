@@ -59,8 +59,8 @@
 						regulator-name = "buck1";
 						regulator-min-microvolt = <700000>;
 						regulator-max-microvolt = <1300000>;
-/*						regulator-boot-on; */
-/*						regulator-always-on; */
+						//regulator-boot-on;
+						//regulator-always-on;
 						regulator-ramp-delay = <1250>;
 						regulator-ov-protection-microvolt = <1>;
 						regulator-uv-protection-microvolt = <1>;
@@ -117,7 +117,7 @@
 						regulator-min-microvolt = <1600000>;
 						regulator-max-microvolt = <3300000>;
 						regulator-boot-on;
-/*						regulator-always-on; */
+						//regulator-always-on;
 						regulator-uv-protection-microvolt = <1>;
 					};
 
@@ -126,7 +126,7 @@
 						regulator-min-microvolt = <800000>;
 						regulator-max-microvolt = <900000>;
 						regulator-boot-on;
-/*						regulator-always-on; */
+						//regulator-always-on;
 						regulator-uv-protection-microvolt = <1>;
 					};
 
@@ -142,6 +142,7 @@
 						regulator-min-microvolt = <900000>;
 						regulator-max-microvolt = <1800000>;
 						regulator-uv-protection-microvolt = <1>;
+						//regulator-boot-on;
 					};
 
 					ldo5: LDO5 {

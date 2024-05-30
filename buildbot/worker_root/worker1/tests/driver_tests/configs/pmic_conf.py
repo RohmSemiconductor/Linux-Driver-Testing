@@ -11,6 +11,45 @@ pmic_data={}
 @dataclass
 class pmic:
     board: dict
+    
+    #### Device tree functions
+
+    def generate_dts(self, conf_dts, source_file, target_file):
+        in_dts = open(source_file)
+        out_dts = open(target_file, 'w+', encoding="utf-8")
+        regulator = 0
+        for line in in_dts:
+            #get regulator name from device tree property
+            if "regulator-name =" in line:
+                regulator_list = line.split('"',2)
+                regulator = regulator_list[1]
+
+            if  regulator != 0:
+                prop_found=False
+                x=0
+                for property in self.board.dts['regulators'][regulator]['dts'][conf_dts]:
+                    x=x+1
+                    #if property in line or "//"+property in line:
+                    if property in line:
+                        if type(self.board.dts['regulators'][regulator]['dts'][conf_dts][property]) == int:
+                            prop_found=True
+                            print(property+" = <"+str(self.board.dts['regulators'][regulator]['dts'][conf_dts][property])+">;\n", end ='', file = out_dts)
+                        elif type(self.board.dts['regulators'][regulator]['dts'][conf_dts][property]) == bool:
+                            prop_found=True
+                            print(property+";\n", end='', file = out_dts)
+                        elif type(self.board.dts['regulators'][regulator]['dts'][conf_dts][property]) == str:
+                            prop_found=True
+                            print(property+" = <"+self.board.dts['regulators'][regulator]['dts'][conf_dts][property]+">;\n", end ='', file = out_dts)
+                    # if property was not found, copy line from template
+                    if x == len(self.board.dts['regulators'][regulator]['dts'][conf_dts]) and prop_found==False:
+                        print(line, end ='', file = out_dts)
+            else:
+                print(line, end ='', file = out_dts)
+
+        in_dts.close()
+        out_dts.close()
+
+    #### /Device tree functions
 
     def print_failures(self,failures):
         print("Regulator, Range, Index, Sent uV, Received uV")

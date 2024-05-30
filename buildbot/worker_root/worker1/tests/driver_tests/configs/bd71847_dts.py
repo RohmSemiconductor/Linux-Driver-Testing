@@ -1,6 +1,6 @@
 dts={
 'name':'bd71847',
-'dts_list':['protection_0'],
+#'dts_list':['protection_0'],
 'i2c':{
     'bus':      1,
     'address':  0x4b,
@@ -67,7 +67,7 @@ dts={
             },
         }
     }, #buck6 END
-    'buck7':{       #datasheet: LDO1
+    'ldo1':{       #datasheet: LDO1
         'name': 'buck7',
         'of_match':'LDO1',
         'dts':{
@@ -77,7 +77,7 @@ dts={
             },
         }
     }, #buck7 END
-    'buck8':{       #datasheet: LDO2
+    'ldo2':{       #datasheet: LDO2
         'name': 'buck8',
         'of_match':'LDO2',
         'dts':{
@@ -87,7 +87,7 @@ dts={
             },
         }
     }, #buck8 END
-    'buck9':{       #datasheet: LDO3
+    'ldo3':{       #datasheet: LDO3
         'name': 'buck9',
         'of_match':'LDO3',
         'dts':{
@@ -97,17 +97,18 @@ dts={
             },
         }
     }, #buck9 END
-    'buck10':{       #datasheet: LDO4
+    'ldo4':{       #datasheet: LDO4
         'name': 'buck10',
         'of_match':'LDO4',
         'dts':{
             'protection_0':{
                 'regulator-ov-protection-microvolt':0,
-                'regulator-uv-protection-microvolt':0, 
+                'regulator-uv-protection-microvolt':0,
+                'regulator-boot-on': True,
             },
         }
     }, #buck10 END
-    'buck11':{       #datasheet: LDO5
+    'ldo5':{       #datasheet: LDO5
         'name': 'buck11',
         'of_match':'LDO5',
         'dts':{
@@ -117,7 +118,7 @@ dts={
             },
         }
     }, #buck11 END
-    'buck12':{       #datasheet: LDO6
+    'ldo6':{       #datasheet: LDO6
         'name': 'buck12',
         'of_match':'LDO6',
         'dts':{
