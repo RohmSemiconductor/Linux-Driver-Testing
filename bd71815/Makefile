@@ -3,8 +3,8 @@ obj-m += bd71815-test.o bd71815-gpio-test.o bd71815-clktest.o
 all: bd71815-test dtb
 bd71815-test: bd71815-test.c bd71815-gpio-test.c bd71815-clktest.c
 	make -C ${KERNEL_DIR} CROSS_COMPILE=${CC} ARCH=arm M=$(PWD) modules
-dtb: ${CFG_BBB_NFS_ROOT}
-	dtc -O dtb -o bd71815_test.dtbo -b 0 -@ ${CFG_BBB_NFS_ROOT}
+dtb: bd71815_test.dts
+	dtc -O dtb -o bd71815_test.dtbo -b 0 -@ bd71815_test.dts
 
 clean:
 	rm -rf bd71815_test.dtbo bd71815-clktest.ko
