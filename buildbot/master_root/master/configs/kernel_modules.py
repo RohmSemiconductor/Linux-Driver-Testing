@@ -23,12 +23,15 @@ kernel_modules['build']={
 
 kernel_modules['dts_files']={
     'bd71847':{
-        'default':      'bd71847_test.dts',
+        'default':      'bd71847_test_outofrange.dts',
         'outofrange':   'bd71847_test_outofrange.dts',
             },
     'bd71837':{
-        'default':      'bd71837_test.dts',
+        'default':      'bd71837_test_outofrange.dts',
         'outofrange':   'bd71837_test_outofrange.dts',
+        },
+    'bd9576':{
+        'default':      'bd9576-demo.dts'
         }
 }
 
