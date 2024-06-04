@@ -1,7 +1,8 @@
 ####### FACTORIES
 import functools
 from buildbot.plugins import util, steps
-
+from buildbot.process import buildstep, logobserver
+from twisted.internet import defer
 
 ### HELPERS
 factory_test_linux = util.BuildFactory()
@@ -24,6 +25,41 @@ from projects import *
 from paths import *
 from test_boards import *
 import re
+
+class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
+
+    def __init__(self,test_board, target, **kwargs):
+        kwargs = self.setupShellMixin(kwargs)
+        super().__init__(**kwargs)
+        self.test_board = test_board
+        self.target = target
+        self.observer = logobserver.BufferLogObserver()
+        self.addLogObserver('stdio', self.observer)
+
+    def extract_stages(self, stdout):
+        stages = []
+        for line in stdout.split('\n'):
+            stage = str(line.strip())
+            if stage:
+                stages.append(stage)
+        return stages
+
+    @defer.inlineCallbacks
+    def run(self):
+        # run 'generate_steps.py' to generate the list of steps
+        cmd = yield self.makeRemoteShellCommand()
+        yield self.runCommand(cmd)
+
+        # if the command passes extract the list of stages
+        result = cmd.results()
+        if result == util.SUCCESS:
+            # create a ShellCommand for each stage and add them to the build
+            self.build.addStepsAfterCurrentStep([
+                steps.ShellCommand(name=self.target+": "+stage, workdir="../tests/driver_tests", command=["pytest","--lg-env="+self.test_board+".yaml",self.target+"/"+stage])
+                for stage in self.extract_stages(self.observer.getStdout())
+            ])
+
+        return result
 
 def skipped(results, build):
   return results == 3
@@ -76,6 +112,8 @@ def check_tag(step,target):
                 else:
                     return False
 
+    
+
 #         or re.search('^v('+kernel_modules['linux_ver'][target][0]+'.*$|[6-9]\\.[0-9]|[6-9]\\.[0-9\\].*$){1,2}(-rc[1-9][0-9]?)?$',step.getProperty('commit-description')):
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(repourl=projects[project_name]['repo_git'], mode='incremental', getDescription={'tags':True},name="Update linux source files from git")) #source files
@@ -91,7 +129,7 @@ def build_test_kernel_modules(project_name):
     projects[project_name]['factory'].addStep(steps.Git(repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git', branch='test-kernel-modules', alwaysUseLatest=True, mode='full', workdir="build/_test-kernel-modules", name="Update kernel module source files from git"))
     for key in kernel_modules['build']:
         if key in kernel_modules['dts_files'].keys():
-            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./','DTS_FILE':kernel_modules['dts_files'][key]['outofrange']}, workdir="build/_test-kernel-modules/"+key, name="Build test kernel modules: "+key))
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./','DTS_FILE':kernel_modules['dts_files'][key]['default']}, workdir="build/_test-kernel-modules/"+key, name="Build test kernel modules: "+key))
         else:
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./'}, workdir="build/_test-kernel-modules/"+key, name="Build test kernel modules: "+key))
 
@@ -120,16 +158,23 @@ def run_driver_tests(project_name):
         for target in test_boards[test_board]['targets']:
             check_tag_partial=functools.partial(check_tag, target=target)
 
-            #projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "test_powercycle.py","--power_port="+test_boards[test_board]['power_port']], workdir="../tests/driver_tests", name=target+": Powercycle "+test_boards[test_board]['name']))
-            #projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_shell.py"], workdir="../tests/driver_tests", name=target+": Login to "+test_boards[test_board]['name']))
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],  workdir="../tests/driver_tests",doStepIf=check_tag_partial, name=target+": Login to "+test_boards[test_board]['name']))
  
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_overlay.py"], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Install overlay merger"))
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_merge_dt_overlay.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Merge device tree overlays"))
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_insmod_tests.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": insmod test modules"))
-            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_regulator_test.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": init_regulator_test.sh"))
-            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_test_target.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": test_target.sh"))
-    
+            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_regulator_test.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": init_regulator_test.py"))
+#            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_test_target.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": test_target.sh"))
+            generate_driver_tests(project_name,test_boards[test_board]['name'],target)
+
+def generate_driver_tests(project_name,test_board,target):
+    check_tag_partial=functools.partial(check_tag, target=target)
+    projects[project_name]['factory'].addStep(GenerateStagesCommand(
+        test_board, target,
+        name=target+": Generate test stages",
+        command=["python3", "generate_steps.py", target], workdir="../tests/driver_tests",
+        haltOnFailure=True, doStepIf=check_tag_partial, hideStepIf=skipped))
+
 def linux_driver_test(project_name,beagle_ID,beagle_power_port):
     build_kernel_arm32(project_name)
     upload_kernel_binaries(project_name)
