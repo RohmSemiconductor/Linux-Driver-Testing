@@ -6,9 +6,14 @@ from pathlib import Path
 #sys.path.append(os.path.abspath("."))
 sys.path.append(str(Path('./configs').absolute()))
 product = sys.argv[1]
+test_type = sys.argv[2]
 
 pwd = os.getcwd()
-pwd = pwd + '/'+product
+if test_type == 'regulator':
+    pwd = pwd + '/'+product
+elif test_type == 'dts':
+    pwd = pwd + '/'+product+'/dts'
+
 dir_list = os.listdir(pwd)
 x=0
 for i in dir_list:
