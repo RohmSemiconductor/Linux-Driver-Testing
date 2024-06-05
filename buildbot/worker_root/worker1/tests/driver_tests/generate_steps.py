@@ -12,14 +12,20 @@ pwd = os.getcwd()
 if test_type == 'regulator':
     pwd = pwd + '/'+product
 elif test_type == 'dts':
-    pwd = pwd + '/'+product+'/dts'
+    dts = sys.argv[3]
+    pwd = pwd + '/'+product+'/dts/'+dts
 
 dir_list = os.listdir(pwd)
-x=0
-for i in dir_list:
-    if "__pycache__" == i:
-        dir_list.pop(x)
-        x=x+1
+
+pop_list=[]
+for i in range(len(dir_list)):
+    if ((dir_list[i] == "__pycache__") or (dir_list[i] == "dts")):
+        pop_list.append(i)
+
+if len(pop_list) > 0:
+    for i in range(len(pop_list)):
+        dir_list.pop(pop_list[i]-i)
+
 dir_list = sorted(dir_list)
 for i in dir_list:
     print(i)
