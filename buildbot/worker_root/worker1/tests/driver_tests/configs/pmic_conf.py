@@ -11,10 +11,28 @@ pmic_data={}
 @dataclass
 class pmic:
     board: dict
-    
-    #### Device tree functions
 
-    def generate_dts(self, conf_dts, source_file, target_file):
+    #### Device tree functions
+    def i2c_read_dt_property(self,command, test_dts, regulator, property):
+        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.dts['i2c']['bus'])+" "+str(hex(self.board.dts['i2c']['address']))+" "+str(hex(self.board.dts['regulators'][regulator]['test'][test_dts][property]['reg_address'])))
+        i2creturn = int(stdout[0],0)
+        ret_register_value = i2creturn & self.board.dts['regulators'][regulator]['test'][test_dts][property]['bitmask']
+        return ret_register_value
+
+    def test_dts_properties(self, command, test_dts, property):
+        for regulator in self.board.dts['regulators'].keys():
+            if 'test' in self.board.dts['regulators'][regulator]:
+                if test_dts in self.board.dts['regulators'][regulator]['test'].keys():
+                    if property in self.board.dts['regulators'][regulator]['test'][test_dts].keys():
+                        self.test_property(command, test_dts, regulator, property)
+
+    def test_property(self, command, test_dts, regulator, property):
+        i2c_return = self.i2c_read_dt_property(command, test_dts, regulator, property)
+        print(i2c_return)
+        print(self.board.dts['regulators'][regulator]['test'][test_dts][property]['register_value'])
+        assert i2c_return == self.board.dts['regulators'][regulator]['test'][test_dts][property]['register_value']
+
+    def generate_dts(self, test_dts, source_file, target_file):
         in_dts = open(source_file)
         out_dts = open(target_file, 'w+', encoding="utf-8")
         regulator = 0
@@ -27,22 +45,26 @@ class pmic:
             if  regulator != 0:
                 prop_found=False
                 x=0
-                for property in self.board.dts['regulators'][regulator]['dts'][conf_dts]:
-                    x=x+1
-                    #if property in line or "//"+property in line:
-                    if property in line:
-                        if type(self.board.dts['regulators'][regulator]['dts'][conf_dts][property]) == int:
-                            prop_found=True
-                            print(property+" = <"+str(self.board.dts['regulators'][regulator]['dts'][conf_dts][property])+">;\n", end ='', file = out_dts)
-                        elif type(self.board.dts['regulators'][regulator]['dts'][conf_dts][property]) == bool:
-                            prop_found=True
-                            print(property+";\n", end='', file = out_dts)
-                        elif type(self.board.dts['regulators'][regulator]['dts'][conf_dts][property]) == str:
-                            prop_found=True
-                            print(property+" = <"+self.board.dts['regulators'][regulator]['dts'][conf_dts][property]+">;\n", end ='', file = out_dts)
-                    # if property was not found, copy line from template
-                    if x == len(self.board.dts['regulators'][regulator]['dts'][conf_dts]) and prop_found==False:
-                        print(line, end ='', file = out_dts)
+                if test_dts in self.board.dts['regulators'][regulator]['dts']:
+                    for property in self.board.dts['regulators'][regulator]['dts'][test_dts]:
+                        x=x+1
+                        #if property in line or "//"+property in line:
+                        if property in line:
+                            if type(self.board.dts['regulators'][regulator]['dts'][test_dts][property]) == int:
+                                prop_found=True
+                                print(property+" = <"+str(self.board.dts['regulators'][regulator]['dts'][test_dts][property])+">;\n", end ='', file = out_dts)
+                            elif type(self.board.dts['regulators'][regulator]['dts'][test_dts][property]) == bool:
+                                prop_found=True
+                                print(property+";\n", end='', file = out_dts)
+                            elif type(self.board.dts['regulators'][regulator]['dts'][test_dts][property]) == str:
+                                prop_found=True
+                                print(property+" = <"+self.board.dts['regulators'][regulator]['dts'][test_dts][property]+">;\n", end ='', file = out_dts)
+                        # if property was not found, copy line from template
+                        if x == len(self.board.dts['regulators'][regulator]['dts'][test_dts]) and prop_found==False:
+                            print(line, end ='', file = out_dts)
+                else:
+                    print(line, end ='', file = out_dts)
+
             else:
                 print(line, end ='', file = out_dts)
 
