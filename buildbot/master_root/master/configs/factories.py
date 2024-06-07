@@ -28,11 +28,13 @@ import re
 
 class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
 
-    def __init__(self,test_board, target, **kwargs):
+    def __init__(self,test_board, target,test_type, dts, **kwargs):
         kwargs = self.setupShellMixin(kwargs)
         super().__init__(**kwargs)
         self.test_board = test_board
         self.target = target
+        self.test_type = test_type
+        self.dts = dts
         self.observer = logobserver.BufferLogObserver()
         self.addLogObserver('stdio', self.observer)
 
@@ -54,10 +56,16 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
         result = cmd.results()
         if result == util.SUCCESS:
             # create a ShellCommand for each stage and add them to the build
-            self.build.addStepsAfterCurrentStep([
-                steps.ShellCommand(name=self.target+": "+stage, workdir="../tests/driver_tests", command=["pytest","--lg-env="+self.test_board+".yaml",self.target+"/"+stage])
-                for stage in self.extract_stages(self.observer.getStdout())
-            ])
+            if self.test_type == "regulator":
+                self.build.addStepsAfterCurrentStep([
+                    steps.ShellCommand(name=self.target+": "+stage, workdir="../tests/driver_tests", command=["pytest","--lg-env="+self.test_board+".yaml",self.target+"/"+stage])
+                    for stage in self.extract_stages(self.observer.getStdout())
+                ])
+            elif self.test_type == "dts":
+                self.build.addStepsAfterCurrentStep([
+                    steps.ShellCommand(name=self.target+": "+stage, workdir="../tests/driver_tests", command=["pytest","--lg-env="+self.test_board+".yaml",self.target+"/dts/"+self.dts+"/"+stage])
+                    for stage in self.extract_stages(self.observer.getStdout())
+                ])
 
         return result
 
@@ -125,6 +133,9 @@ def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "INSTALL_MOD_PATH="+dir_nfs, "modules_install"],name="Install kernel modules"))
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", dir_worker_root+projects[project_name]['workerNames'][0]+"/"+projects[project_name]['builderNames'][0]+"/build/arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", dir_worker_root+projects[project_name]['workerNames'][0]+"/"+projects[project_name]['builderNames'][0]+"/build/arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"],name="Build device tree source binaries"))
 
+def update_test_kernel_modules(project_name):
+    projects[project_name]['factory'].addStep(steps.Git(repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git', branch='test-kernel-modules', alwaysUseLatest=True, mode='full', workdir="build/_test-kernel-modules", name="Update kernel module source files from git"))
+
 def build_test_kernel_modules(project_name):
     projects[project_name]['factory'].addStep(steps.Git(repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git', branch='test-kernel-modules', alwaysUseLatest=True, mode='full', workdir="build/_test-kernel-modules", name="Update kernel module source files from git"))
     for key in kernel_modules['build']:
@@ -138,6 +149,19 @@ def upload_kernel_binaries(project_name):
                                    masterdest=dir_tftpboot,
                                    mode=0o644,name="Upload compiled kernel binaries to tftp directory"))
 
+def build_dts(project_name, target, test_dts):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./','DTS_FILE':'generated_dts_'+test_dts+'.dts'}, workdir="build/_test-kernel-modules/"+target, name="Build test kernel module: "+target))
+
+    pass
+
+def upload_test_kernel_modules_single_target(project_name,target):
+    files = []
+    for value in kernel_modules['build'][target]:
+        files.append("_test-kernel-modules/"+target+"/"+value)
+    projects[project_name]['factory'].addStep(steps.MultipleFileUpload(workersrcs=files,
+    masterdest=dir_nfs,
+    name="Upload test kernel modules to nfs directory"
+))
 def upload_test_kernel_modules(project_name):
     files = []
     for key in kernel_modules['build']:
@@ -161,26 +185,48 @@ def initialize_driver_test(project_name, test_board, target):
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_insmod_tests.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": insmod test modules"))
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_regulator_test.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": init_regulator_test.py"))
 
+def generate_driver_tests(project_name,test_board,target, test_type, dts=None):
+    check_tag_partial=functools.partial(check_tag, target=target)
+    if test_type == "regulator":
+        projects[project_name]['factory'].addStep(GenerateStagesCommand(
+            test_board, target, test_type, dts,
+            name=target+": Generate "+test_type+" test stages",
+            command=["python3", "generate_steps.py", target, test_type], workdir="../tests/driver_tests",
+            haltOnFailure=True, doStepIf=check_tag_partial, hideStepIf=skipped))
+    elif test_type == "dts":
+        projects[project_name]['factory'].addStep(GenerateStagesCommand(
+            test_board, target, test_type, dts,
+            name=target+": Generate "+test_type+" test stages",
+            command=["python3", "generate_steps.py", target, test_type, dts], workdir="../tests/driver_tests",
+            haltOnFailure=True, doStepIf=check_tag_partial, hideStepIf=skipped))
+
+def check_dts_tests(target):
+    dts_tests=[]
+    if target in kernel_modules['dts_tests'].keys():
+        for dts in kernel_modules['dts_tests'][target]:
+            dts_tests.append(dts)
+    return dts_tests
+
+def copy_generated_dts(project_name, target, dts):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["cp", "../../../tests/driver_tests/configs/dts/"+target+"/generated_dts_"+dts+".dts", "./"+target], workdir="build/_test-kernel-modules", name="Copy generated dts: "+dts))
+
+
 def run_driver_tests(project_name):
     for test_board in test_boards:
         for target in test_boards[test_board]['targets']:
             check_tag_partial=functools.partial(check_tag, target=target)
             initialize_driver_test(project_name, test_board, target)
-#            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],  workdir="../tests/driver_tests",doStepIf=check_tag_partial, name=target+": Login to "+test_boards[test_board]['name']))
-#
-#            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_overlay.py"], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Install overlay merger"))
-#            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_merge_dt_overlay.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Merge device tree overlays"))
-#            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_insmod_tests.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": insmod test modules"))
-#            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_regulator_test.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": init_regulator_test.py"))
             generate_driver_tests(project_name,test_boards[test_board]['name'],target, "regulator")
 
-def generate_driver_tests(project_name,test_board,target, test_type):
-    check_tag_partial=functools.partial(check_tag, target=target)
-    projects[project_name]['factory'].addStep(GenerateStagesCommand(
-        test_board, target,
-        name=target+": Generate "+test_type+" test stages",
-        command=["python3", "generate_steps.py", target, test_type], workdir="../tests/driver_tests",
-        haltOnFailure=True, doStepIf=check_tag_partial, hideStepIf=skipped))
+            dts_tests = check_dts_tests(target)
+            for dts in dts_tests:
+                copy_generated_dts(project_name, target, dts)
+                build_dts(project_name, target, dts)
+                upload_test_kernel_modules_single_target(project_name,target)
+                initialize_driver_test(project_name, test_board, target)
+                generate_driver_tests(project_name, test_boards[test_board]['name'], target, "dts", dts)
+
+#            check_dts_tests(target)
 
 def linux_driver_test(project_name,beagle_ID,beagle_power_port):
     build_kernel_arm32(project_name)
@@ -188,7 +234,6 @@ def linux_driver_test(project_name,beagle_ID,beagle_power_port):
     build_test_kernel_modules(project_name)
     upload_test_kernel_modules(project_name)
     download_test_boards(project_name)
-#    powercycle_ip_power(project_name,beagle_power_port)
     run_driver_tests(project_name)
 ### END OF HELPES ###
 
