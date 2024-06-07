@@ -20,19 +20,27 @@ kernel_modules['build']={
 'bd9576':['bd9576_test.dtbo','bd9576-test.ko'],
 'bd99954':['bd99954_test.dtbo'],
 }
+kernel_modules['dts_tests']={
+        'bd71847':['ramprate2']
+        }
 
 kernel_modules['dts_files']={
     'bd71847':{
-        'default':      'bd71847_test_outofrange.dts',
-        'outofrange':   'bd71847_test_outofrange.dts',
+#        'default':      'bd71847_test_outofrange.dts',
+        'default':      'bd71847_test_oor_rampr1.dts',
+#        'outofrange':   'bd71847_test_outofrange.dts',
+#        'ramprate2':    'bd71847_test_ramprate2.dts',
             },
     'bd71837':{
         'default':      'bd71837_test_outofrange.dts',
-        'outofrange':   'bd71837_test_outofrange.dts',
+#        'outofrange':   'bd71837_test_outofrange.dts',
         },
     'bd9576':{
         'default':      'bd9576-demo.dts'
-        }
+        },
+    'bd71815':{
+        'default':      'bd71815_test_outofrange.dts',
+        },
 }
 
 kernel_modules['dt_overlays']={
