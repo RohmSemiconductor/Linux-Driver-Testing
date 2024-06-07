@@ -120,8 +120,6 @@ def check_tag(step,target):
                 else:
                     return False
 
-    
-
 #         or re.search('^v('+kernel_modules['linux_ver'][target][0]+'.*$|[6-9]\\.[0-9]|[6-9]\\.[0-9\\].*$){1,2}(-rc[1-9][0-9]?)?$',step.getProperty('commit-description')):
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(repourl=projects[project_name]['repo_git'], mode='incremental', getDescription={'tags':True},name="Update linux source files from git")) #source files
@@ -131,10 +129,14 @@ def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "olddefconfig"],name="Update kernel config if needed"))
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000"],name="Build kernel binaries"))
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "INSTALL_MOD_PATH="+dir_nfs, "modules_install"],name="Install kernel modules"))
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", dir_worker_root+projects[project_name]['workerNames'][0]+"/"+projects[project_name]['builderNames'][0]+"/build/arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", dir_worker_root+projects[project_name]['workerNames'][0]+"/"+projects[project_name]['builderNames'][0]+"/build/arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"],name="Build device tree source binaries"))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", dir_worker_root+projects[project_name]['workerNames'][0]+"/"+projects[project_name]['builderNames'][0]+"/build/arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", dir_worker_root+projects[project_name]['workerNames'][0]+"/"+projects[project_name]['builderNames'][0]+"/build/arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"],name="Build Beagle device tree source binaries"))
 
 def update_test_kernel_modules(project_name):
     projects[project_name]['factory'].addStep(steps.Git(repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git', branch='test-kernel-modules', alwaysUseLatest=True, mode='full', workdir="build/_test-kernel-modules", name="Update kernel module source files from git"))
+
+def build_overlay_merger(project_name):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./'}, workdir="build/_test-kernel-modules/overlay_merger", name="Build test kernel module: overlay_merger"))
+
 
 def build_test_kernel_modules(project_name):
     projects[project_name]['factory'].addStep(steps.Git(repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git', branch='test-kernel-modules', alwaysUseLatest=True, mode='full', workdir="build/_test-kernel-modules", name="Update kernel module source files from git"))
@@ -150,9 +152,7 @@ def upload_kernel_binaries(project_name):
                                    mode=0o644,name="Upload compiled kernel binaries to tftp directory"))
 
 def build_dts(project_name, target, test_dts):
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./','DTS_FILE':'generated_dts_'+test_dts+'.dts'}, workdir="build/_test-kernel-modules/"+target, name="Build test kernel module: "+target))
-
-    pass
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./','DTS_FILE':'generated_dts_'+test_dts+'.dts'}, workdir="build/_test-kernel-modules/"+target, name=target+": Build dts: "+test_dts))
 
 def upload_test_kernel_modules_single_target(project_name,target):
     files = []
@@ -160,8 +160,9 @@ def upload_test_kernel_modules_single_target(project_name,target):
         files.append("_test-kernel-modules/"+target+"/"+value)
     projects[project_name]['factory'].addStep(steps.MultipleFileUpload(workersrcs=files,
     masterdest=dir_nfs,
-    name="Upload test kernel modules to nfs directory"
+    name=target+": Upload test kernel modules to nfs"
 ))
+
 def upload_test_kernel_modules(project_name):
     files = []
     for key in kernel_modules['build']:
@@ -208,21 +209,32 @@ def check_dts_tests(target):
     return dts_tests
 
 def copy_generated_dts(project_name, target, dts):
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["cp", "../../../tests/driver_tests/configs/dts/"+target+"/generated_dts_"+dts+".dts", "./"+target], workdir="build/_test-kernel-modules", name="Copy generated dts: "+dts))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["cp", "../../../tests/driver_tests/configs/dts_generated/"+target+"/generated_dts_"+dts+".dts", "./"+target], workdir="build/_test-kernel-modules", name=target+": Copy generated dts: "+dts))
 
+def generate_dts(project_name, target, dts):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "generate_dts.py", target, dts], workdir="../tests/driver_tests", name=target+": Generate dts: "+dts))
+    
 
 def run_driver_tests(project_name):
     for test_board in test_boards:
         for target in test_boards[test_board]['targets']:
             check_tag_partial=functools.partial(check_tag, target=target)
+
+            generate_dts(project_name, target, 'default')
+            copy_generated_dts(project_name, target, 'default')
+            build_dts(project_name, target, 'default')
+            upload_test_kernel_modules_single_target(project_name,target)
+
             initialize_driver_test(project_name, test_board, target)
             generate_driver_tests(project_name,test_boards[test_board]['name'],target, "regulator")
 
             dts_tests = check_dts_tests(target)
             for dts in dts_tests:
+                generate_dts(project_name, target, dts)
                 copy_generated_dts(project_name, target, dts)
                 build_dts(project_name, target, dts)
                 upload_test_kernel_modules_single_target(project_name,target)
+
                 initialize_driver_test(project_name, test_board, target)
                 generate_driver_tests(project_name, test_boards[test_board]['name'], target, "dts", dts)
 
@@ -231,8 +243,13 @@ def run_driver_tests(project_name):
 def linux_driver_test(project_name,beagle_ID,beagle_power_port):
     build_kernel_arm32(project_name)
     upload_kernel_binaries(project_name)
-    build_test_kernel_modules(project_name)
-    upload_test_kernel_modules(project_name)
+     
+    update_test_kernel_modules(project_name)
+    build_overlay_merger(project_name)
+    upload_test_kernel_modules_single_target(project_name,'overlay_merger')
+
+#    build_test_kernel_modules(project_name)
+#    upload_test_kernel_modules(project_name)
     download_test_boards(project_name)
     run_driver_tests(project_name)
 ### END OF HELPES ###
