@@ -1,10 +1,12 @@
 data={
-#'name':'',
 'name':'bd71847',
 'i2c':{
     'bus':      1,
     'address':  0x4b,
     },
+
+### 'debug' is to disable vrfault at sanitycheck stage
+
 'debug':{
     'vrfaulten':{
         'address':                      0x21,
@@ -32,15 +34,12 @@ data={
     'buck1':{
         'name': 'buck1',
         'of_match': 'BUCK1',
+
         'regulator_en_address':         0x05,
         'regulator_en_bitmask':         0b00000001,
 
-        'control_reg_address':          0x05,
-        'control_reg_bitmask':          0b11001011,
-
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
-        'regulator_ramprate_bitmask':   0b11000000,
 
         'volt_reg_address':             0x0D,
         'volt_reg_bitmask':             0b01111111,
@@ -62,24 +61,62 @@ data={
             #     'start_reg':0x3D,
             #     'stop_reg':0x7F,
             # }
-        }
+        },
+        'settings':{
+            'ramprate':{
+                'of_match': 'regulator-ramp-delay',
+                'reg_address':              0x05,
+                'reg_bitmask':              0b11000000,
+                'range':{
+                    'values':{
+                        'is_linear':            False,
+                        'list_mV':              [10, 5, 2.5, 1.25],
+                        'start_reg':            0b00000000,
+                        'stop_reg':             0b11000000,
+                    },
+                },    
+            },
+        }, 
+
+        #### DEVICE TREE TEST SECTION 
+        #   'dts' is used to generate device tree source files
+        #   'dts_error_comments' is error message if setting failed
+
+        'dts':{
+            'default':{
+                'dts_properties':{
+                    'regulator-ramp-delay': 10000,
+                },
+                'dts_error_comments':{
+                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 10 mV/us'
+                },
+            },
+
+            'ramprate2':{
+                'dts_properties':{
+                    'regulator-ramp-delay': 2500,
+                },
+                'dts_error_comments':{
+                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 2.5 mV/us'
+                },
+            },
+        },
     }, #buck1 END
+
     'buck2':{
         'name': 'buck2',
         'of_match':'BUCK2',
         'regulator_en_address':         0x06,
         'regulator_en_bitmask':         0b00000001,
 
-        'control_reg_address':          0x06,
-        'control_reg_bitmask':          0b11001011,
-
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
-        'regulator_ramprate':           0b11000000,
 
         'volt_reg_address':             0x10,
         'volt_reg_bitmask':             0b01111111,
+
         'volt_sel': False,
+
         'range':{
             'values':{
                 'is_linear':    True,
@@ -95,16 +132,54 @@ data={
             #     'start_reg':0x3D,
             #     'stop_reg':0x7F,
             # }
-        }
+        },
+        'settings':{
+            'ramprate':{
+                'of_match': 'regulator-ramp-delay',
+                'reg_address':          0x06,
+                'reg_bitmask':              0b11000000,
+                'range':{
+                    'values':{
+                        'is_linear':            False,
+                        'list_mV':              [10, 5, 2.5, 1.25],
+                        'start_reg':            0b00000000,
+                        'stop_reg':             0b11000000,
+                    },
+                },    
+            },
+        },
+
+        #### DEVICE TREE TEST SECTION 
+        #   'dts' is used to generate device tree source files
+        #   'dts_error_comments' is error message if setting failed
+
+        'dts':{
+            'default':{
+                'dts_properties':{
+                    'regulator-ramp-delay': 5000,
+                },
+                'dts_error_comments':{
+                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 5 mV/us'
+                },
+            },
+
+            'ramprate2':{
+                'dts_properties':{
+                    'regulator-ramp-delay': 1250,
+                },
+                'dts_error_comments':{
+                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 1.25 mV/us'
+                },
+            },
+        },
     }, #buck2 END
-    'buck3':{       #datasheet: buck5
+
+    'buck3':{   #datasheet buck 5
         'name': 'buck3',
         'of_match': 'BUCK3',
+
         'regulator_en_address':         0x09,
         'regulator_en_bitmask':         0b00000001,
-
-        'control_reg_address':          0x09,
-        'control_reg_bitmask':          0b00001011,
 
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
@@ -115,6 +190,7 @@ data={
         'volt_sel':True,
         'volt_sel_address':             0x14,
         'volt_sel_bitmask':             0b11000000,
+
         'range':{
                 0b00000000:{
                 'volt_sel_reg':         0b00000000,
@@ -137,16 +213,15 @@ data={
                 'start_reg':0x00,
                 'stop_reg':0x07,
             }
-        } #ranges ok
+        }
     }, #buck3 END
-    'buck4':{       #datasheet: buck6
+
+    'buck4':{   #datasheet buck6
         'name': 'buck4',
         'of_match':'BUCK4',
+
         'regulator_en_address':         0x0A,
         'regulator_en_bitmask':         0b00000001,
-
-        'control_reg_address':          0x0A,
-        'control_reg_bitmask':          0b00001011,
 
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
@@ -157,7 +232,7 @@ data={
         'volt_sel':True,
         'volt_sel_address':             0x15,
         'volt_sel_bitmask':             0b01000000,
-        'volt_change_while_on':False,
+
         'range':{
             0b00000000:{
                 'volt_sel_reg':         0b00000000,
@@ -175,24 +250,24 @@ data={
                 'start_reg':0x00,
                 'stop_reg':0x03,
             }
-        } #ranges ok
+        }
     }, #buck4 END
-    'buck5':{       #datasheet: buck7
+
+    'buck5':{   #datasheet buck7
         'name': 'buck5',
         'of_match':'BUCK5',
+
         'regulator_en_address':         0x0B,
         'regulator_en_bitmask':         0b00000001,
-
-        'control_reg_address':          0x0B,
-        'control_reg_bitmask':          0b00001011,
 
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
 
         'volt_reg_address':             0x16,
         'volt_reg_bitmask':             0b00000111,
+
         'volt_sel':False,
-        'volt_change_while_on':False,
+
         'range':{
             'values':{
                 'is_linear':False,
@@ -202,20 +277,21 @@ data={
             }
         }
     }, #buck5 END
-    'buck6':{       #datasheet: buck8
+
+    'buck6':{   #datasheet buck8
         'name': 'buck6',
         'of_match':'BUCK6',
         'regulator_en_address':     0x0C,
         'regulator_en_bitmask':     0b00000001,
 
-        'control_reg_address':      0x0C,
-        'control_reg_bitmask':      0b00001011,
         'regulator_sel_bitmask':            0b00000010,
         'regulator_pwm_fix_bitmask':        0b00001000,
 
         'volt_reg_address':         0x17,
         'volt_reg_bitmask':         0b01111111,
+
         'volt_sel':False,
+
         'range':{
             'values':{
                 'is_linear':True,
@@ -233,16 +309,20 @@ data={
             # }
         }
     }, #buck6 END
-    'buck7':{       #datasheet: LDO1
+
+    'ldo1':{
         'name': 'buck7',
         'of_match':'LDO1',
+
         'regulator_en_address':     0x18,
         'regulator_en_bitmask':     0b01000000,
 
         'volt_reg_address':         0x18,
         'volt_reg_bitmask':         0b00000011,
+
         'volt_sel':True,
         'volt_sel_bitmask':         0b00100000,
+
         'range':{
                 0b00000000:{
                 'is_linear':True,
@@ -259,21 +339,23 @@ data={
                 'stop_reg':0x03,
             }
         }
-    }, #buck7 END
-    'buck8':{       #datasheet: LDO2
+    }, #ldo1 END
+
+    'ldo2':{
         'name': 'buck8',
         'of_match':'LDO2',
+
         'regulator_en_address':     0x19,
         'regulator_en_bitmask':     0b01000000,
 
-
-        'volt_change_not_allowed_while_on': True,
         'volt_reg_address':         0x19,
         'volt_reg_bitmask':         0b00000000,
+        'no_regulator_volt':        True,
 
+        'volt_change_not_allowed_while_on': True,
         'volt_sel':True,
         'volt_sel_bitmask':         0b00100000,
-        'no_regulator_volt':        True,
+
         'range':{
                 0b00000000:{
                 'is_linear':True,
@@ -290,16 +372,20 @@ data={
                 'stop_reg':0x00,
             }
         }
-    }, #buck8 END
-    'buck9':{       #datasheet: LDO3
+    }, #ldo2 END
+
+    'ldo3':{
         'name': 'buck9',
         'of_match':'LDO3',
+
         'regulator_en_address':     0x1A,
         'regulator_en_bitmask':     0b01000000,
 
         'volt_reg_address':         0x1A,
         'volt_reg_bitmask':         0b00001111,
+
         'volt_sel':False,
+
         'range':{
                 'values':{
                 'is_linear':True,
@@ -316,16 +402,20 @@ data={
                 #     'stop_reg':0x03,
                 # }
         }
-    }, #buck9 END
-    'buck10':{       #datasheet: LDO4
+    }, #ldo3 END
+
+    'ldo4':{
         'name': 'buck10',
         'of_match':'LDO4',
+
         'regulator_en_address':     0x1B,
         'regulator_en_bitmask':     0b01000000,
 
         'volt_reg_address':         0x1B,
         'volt_reg_bitmask':         0b00001111,
+
         'volt_sel':False,
+
         'range':{
                 'values':{
                 'is_linear':True,
@@ -342,17 +432,21 @@ data={
                  #     'stop_reg':0x03,
                  # }
         }
-    }, #buck10 END
-    'buck11':{       #datasheet: LDO5
+    }, #ldo4 END
+
+    'ldo5':{
         'name': 'buck11',
         'of_match':'LDO5',
+
         'regulator_en_address':     0x1C,
         'regulator_en_bitmask':     0b01000000,
 
         'volt_reg_address':         0x1C,
         'volt_reg_bitmask':         0b00001111,
+
         'volt_sel':True,
         'volt_sel_bitmask':         0b00100000,
+
         'range':{
                 0b00000000:{
                 'is_linear':True,
@@ -369,16 +463,20 @@ data={
                 'stop_reg':0xF,
             }
         }
-    }, #buck11 END
-    'buck12':{       #datasheet: LDO6
+    }, #ldo5 END
+
+    'ldo6':{
         'name': 'buck12',
         'of_match':'LDO6',
+
         'regulator_en_address':     0x1D,
         'regulator_en_bitmask':     0b01000000,
 
         'volt_reg_address':         0x1D,
         'volt_reg_bitmask':         0b00001111,
+
         'volt_sel':False,
+
         'range':{
                 'values':{
                 'is_linear':True,
@@ -388,6 +486,7 @@ data={
                 'stop_reg':0x9,
             },
         }
-    } #buck12 END
+    } #ldo6 END
+
 } #regulators END    
 } #bd71847 END

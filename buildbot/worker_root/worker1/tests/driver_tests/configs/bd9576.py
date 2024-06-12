@@ -6,24 +6,20 @@ data={
     },
 
 'regulators':{
-    'buck1':{
+    'VD50':{
         'name': 'buck1',
         'of_match': 'regulator-vd50',
         'regulator_en_address':         0x41,
         'regulator_en_bitmask':         0b11111111,
 
-        'control_reg_address':          0x05,
-        'control_reg_bitmask':          0b11001011,
-
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
-        'regulator_ramprate_bitmask':   0b11000000,
 
         'volt_reg_address':             0x50,
         'volt_reg_bitmask':             0b00000111,
-        
+
         'volt_sel': False,
-        
+
         'range':{
             'values':{
                 'is_linear':            True,
@@ -36,7 +32,8 @@ data={
                 'stop_reg':             0x05,
             }
         },
-        'limit_settings':{
+
+        'settings':{
             'ovd':{
                 'of_match': 'regulator-ov-error-microvolt',
                 'reg_address': 0x51,
@@ -108,23 +105,53 @@ data={
                 }
             }
         },
-    }, #buck1 END
-    'buck2':{
+
+        #### DEVICE TREE TEST SECTION 
+        #   'dts' is used to generate device tree source files
+        #   'dts_error_comments' is error message if setting failed
+
+        'dts':{
+
+            'default':{
+                'dts_properties':{
+                    'regulator-ov-error-microvolt': 360000,
+                    'regulator-uv-error-microvolt': 360000,
+                },
+                'dts_error_comments':{
+                    'regulator-ov-error-microvolt': ' FAILURE: OVD SET failed to set to 360 mV',
+                    'regulator-uv-error-microvolt': ' FAILURE: UVD SET failed to set to 360 mV',
+                },
+            },
+
+            'ovd_uvd_disable':{
+                'dts_properties':{
+                    'regulator-ov-error-microvolt': 0,
+                    'regulator-uv-error-microvolt': 0,
+                },
+                'dts_error_comments':{
+                    'regulator-ov-error-microvolt': ' FAILURE: OVD SET failed to disable',
+                    'regulator-uv-error-microvolt': ' FAILURE: UVD SET failed to disable',
+                },
+
+            },
+        },
+    }, # VD50
+
+    'VD18':{
         'name': 'buck2',
         'of_match':'regulator-vd18',
+
         'regulator_en_address':         0x42,
         'regulator_en_bitmask':         0b11111111,
 
-        'control_reg_address':          0x06,
-        'control_reg_bitmask':          0b11001011,
-
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
-        'regulator_ramprate':           0b11000000,
 
         'volt_reg_address':             0x53,
         'volt_reg_bitmask':             0b00000111,
+
         'volt_sel': False,
+
         'range':{
             'values':{
                 'is_linear':    True,
@@ -137,7 +164,8 @@ data={
                 'stop_reg':     0x07,
             },
         },
-        'limit_settings':{
+
+        'settings':{
             'ovd':{
                 'of_match': 'regulator-ov-error-microvolt',
                 'reg_bitmask':              0b01111111,
@@ -208,16 +236,44 @@ data={
                     }
                 }
             }
-        }
-    }, #buck2 END
-    'buck3':{
+        },
+
+        #### DEVICE TREE TEST SECTION 
+        #   'dts' is used to generate device tree source files
+        #   'dts_error_comments' is error message if setting failed
+
+        'dts':{
+
+            'default':{
+                'dts_properties':{
+                    'regulator-ov-error-microvolt': 18000,
+                    'regulator-uv-error-microvolt': 109000,
+                },
+                'dts_error_comments':{
+                    'regulator-ov-error-microvolt': ' FAILURE: OVD SET failed to set to 18 mV',
+                    'regulator-uv-error-microvolt': ' FAILURE: UVD SET failed to set to 109 mV',
+                },
+            },
+
+            'ovd_uvd_disable':{
+                'dts_properties':{
+                    'regulator-ov-error-microvolt': 0,
+                    'regulator-uv-error-microvolt': 0,
+                },
+                'dts_error_comments':{
+                    'regulator-ov-error-microvolt': ' FAILURE: OVD SET failed to disable',
+                    'regulator-uv-error-microvolt': ' FAILURE: UVD SET failed to disable',
+                },
+
+            },
+        },
+    }, #VD18 END
+
+    'VDDDR':{
         'name': 'buck3',
         'of_match': 'regulator-vdddr',
         'regulator_en_address':         0x43,
         'regulator_en_bitmask':         0b11111111,
-
-        'control_reg_address':          0x09,
-        'control_reg_bitmask':          0b00001011,
 
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
@@ -226,6 +282,7 @@ data={
         'volt_reg_bitmask':             0b00011111,
 
         'volt_sel': False,
+
         'range':{
             'values':{
                 'is_linear':    True,
@@ -237,9 +294,9 @@ data={
                 'start_reg':    0x00,
                 'stop_reg':     0x1F,
             },     
-        }, #ranges ok
-        'limit_settings':{
-
+        },
+        
+        'settings':{
             'ovd':{
                 'of_match': 'regulator-ov-warn-microvolt',
                 'reg_bitmask':              0b01111111,
@@ -310,11 +367,41 @@ data={
                     }
                 }
             }
-        }
-    }, #buck3 END
-    'buck4':{
+        },
+
+        #### DEVICE TREE TEST SECTION 
+        #   'dts' is used to generate device tree source files
+        #   'dts_error_comments' is error message if setting failed
+
+        'dts':{
+            'default':{
+                'dts_properties':{
+                    'regulator-ov-warn-microvolt': 110000,
+                    'regulator-uv-warn-microvolt': 110000,
+                },
+                'dts_error_comments':{
+                    'regulator-ov-warn-microvolt': ' FAILURE: OVD SET failed to set to 110 mV (high clip)',
+                    'regulator-uv-warn-microvolt': ' FAILURE: UVD SET failed to set to 110 mV (high clip)',
+                },
+            },
+
+            'ovd_uvd_disable':{
+                'dts_properties':{
+                    'regulator-ov-warn-microvolt': 0,
+                    'regulator-uv-warn-microvolt': 0,
+                },
+                'dts_error_comments':{
+                    'regulator-ov-warn-microvolt': ' FAILURE: OVD SET failed to disable',
+                    'regulator-uv-warn-microvolt': ' FAILURE: UVD SET failed to disable',
+                },
+            },
+        },
+    }, #VDDDR END
+
+    'VD10':{
         'name': 'buck4',
         'of_match':'regulator-vd10',
+
         'regulator_en_address':     0x44,
         'regulator_en_bitmask':     0b11111111,
 
@@ -322,6 +409,7 @@ data={
         'volt_reg_bitmask':         0b00011111,
         
         'volt_sel':False,
+
         'range':{
             'values':{
                 'is_linear':    True,
@@ -334,10 +422,11 @@ data={
                 'stop_reg':     0x1F,
             },
              
-        }, #ranges ok
-        'limit_settings':{
+        },
+
+        'settings':{
             'ovd':{
-                'of_match': 'regulator-ov-warn-microvolt',
+                'of_match': 'regulator-ov-error-microvolt',
                 'reg_bitmask':              0b01111111,
                 'reg_address':              0x5A,
                 'range':{
@@ -406,20 +495,51 @@ data={
                     }
                 }
             }
-        }
-    }, #buck4 END
-    'buck5':{
+        },
+
+        #### DEVICE TREE TEST SECTION 
+        #   'dts' is used to generate device tree source files
+        #   'dts_error_comments' is error message if setting failed
+
+        'dts':{
+            'default':{
+                'dts_properties':{
+                    'regulator-ov-error-microvolt': 26000,
+                    'regulator-uv-error-microvolt': 26000,
+                },
+                'dts_error_comments':{
+                    'regulator-ov-error-microvolt': ' FAILURE: OVD SET failed to set to 26 mV (default)',
+                    'regulator-uv-error-microvolt': ' FAILURE: UVD SET failed to set to 26 mV (default)',
+                },
+            },
+
+            'ovd_uvd_disable':{
+                'dts_properties':{
+                    'regulator-ov-error-microvolt': 0,
+                    'regulator-uv-error-microvolt': 0,
+                },
+                'dts_error_comments':{
+                    'regulator-ov-error-microvolt': ' FAILURE: OVD SET failed to disable',
+                    'regulator-uv-error-microvolt': ' FAILURE: UVD SET failed to disable',
+                },
+            },
+        },
+    }, #VD10 END
+
+    'VOUTL1':{
         'name': 'buck5',
         'of_match':'regulator-voutl1',
+
         'regulator_en_address':     0x45,
         'regulator_en_bitmask':     0b11111111,
 
 
-        'volt_change_not_allowed_while_on': True,
         'volt_reg_address':         0x5C,
         'volt_reg_bitmask':         0b00000111,
 
+        'volt_change_not_allowed_while_on': True,
         'volt_sel':False,
+
         'range':{
             'values':{
                 'is_linear':    True,
@@ -431,9 +551,9 @@ data={
                 'start_reg':    0x00,
                 'stop_reg':     0x7,
             },
+        },
 
-        }, #ranges ok
-        'limit_settings':{
+        'settings':{
             'ovd':{
                 'of_match': 'regulator-ov-error-microvolt',
                 'reg_bitmask':              0b01111111,
@@ -504,15 +624,46 @@ data={
                     }
                 }
             }
-        }
-    }, #buck5 END
-    'buck6':{
+        },
+
+        #### DEVICE TREE TEST SECTION 
+        #   'dts' is used to generate device tree source files
+        #   'dts_error_comments' is error message if setting failed
+
+        'dts':{
+            'default':{
+                'dts_properties':{
+                    'regulator-ov-error-microvolt': 34000,
+                    'regulator-uv-error-microvolt': 34000,
+                },
+                'dts_error_comments':{
+                    'regulator-ov-error-microvolt': ' FAILURE: OVD SET failed to set to 34 mV (low clip)',
+                    'regulator-uv-error-microvolt': ' FAILURE: UVD SET failed to set to 34 mV (low clip)',
+                },
+            },
+
+            'ovd_uvd_disable':{
+                'dts_properties':{
+                    'regulator-ov-error-microvolt': 0,
+                    'regulator-uv-error-microvolt': 0,
+                },
+                'dts_error_comments':{
+                    'regulator-ov-error-microvolt': ' FAILURE: OVD SET failed to disable',
+                    'regulator-uv-error-microvolt': ' FAILURE: UVD SET failed to disable',
+                },
+            },
+        },
+    }, #VOUTL1 END
+
+    'VOUTS1':{
         'name': 'buck6',
         'of_match':'regulator-vouts1',
+
         'regulator_en_address':     0x46,
         'regulator_en_bitmask':     0b11111111,
 
         'volt_sel':False,
+
         'range':{
                 'values':{
                 'is_linear':True,
@@ -529,7 +680,8 @@ data={
                 #     'stop_reg':0x03,
                 # }
         },
-        'limit_settings':{
+
+        'settings':{
             'ocw':{ #start_mV, step_mV are milliamperes here
                 'of_match': 'regulator-oc-warn-microamp',
                 'reg_bitmask':              0b00111111,
@@ -600,7 +752,37 @@ data={
                         }
                 }
             }
-        }
-    }, #buck6 END
+        },
+
+        #### DEVICE TREE TEST SECTION 
+        #   'dts' is used to generate device tree source files
+        #   'dts_error_comments' is error message if setting failed
+
+        'dts':{
+
+            'default':{
+                'dts_properties':{
+                    'regulator-oc-protection-microamp': 1350000,
+                    'regulator-oc-warn-microamp': 350000,
+                },
+                'dts_error_comments':{
+                    'regulator-oc-error-microamp': ' FAILURE: OCP SET failed to set to 1350 mA (high clip)',
+                    'regulator-oc-warn-microamp': ' FAILURE: OCW SET failed to set to 350 mA (low clip)',
+                },
+            },
+
+            'ovd_uvd_disable':{
+                'dts_properties':{
+                    'regulator-oc-protection-microamp': 0,
+                    'regulator-oc-warn-microamp': 0,
+                    },
+                'dts_error_comments':{
+                    'regulator-oc-error-microamp': ' FAILURE: OCP SET failed to disable',
+                    'regulator-oc-warn-microamp': ' FAILURE: OCW SET failed to disable',
+                },
+            },
+        },
+    }, #VOUTS1 END
+
 } #regulators END    
-} #bd##### END
+} #bd9576 END

@@ -4,42 +4,17 @@ data={
     'bus':      2,
     'address':  0x4b,
     },
-'debug':{
-    'vrfaulten':{
-        'address':                      0x21,
-        'bitmask':                      0x01,
-        'setting':                      0x01,
-     },
-    'mvrfltmask0':{
-        'address':                      0x22,
-        'bitmask':                      0xFF,
-        'setting':                      0xFF,
-        },
-    'mvrfltmask1':{
-        'address':                      0x23,
-        'bitmask':                      0x0F,
-        'setting':                      0x0F,
-        },
-    'mvrfltmask2':{
-        'address':                      0x24,
-        'bitmask':                      0x3F,
-        'setting':                      0x3F,
-        },
-},
 
 'regulators':{
     'buck1':{
         'name': 'buck1',
         'of_match': 'buck1',
+
         'regulator_en_address':         0x02,
         'regulator_en_bitmask':         0b00000100,
 
-        'control_reg_address':          0x05,
-        'control_reg_bitmask':          0b11001011,
-
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
-        'regulator_ramprate_bitmask':   0b11000000,
 
         'volt_reg_address':             0x07,       #VOLT_H register
         'volt_reg_bitmask':             0b00111111,
@@ -61,24 +36,65 @@ data={
             #     'start_reg':0x3D,
             #     'stop_reg':0x7F,
             # }
-        }
+        },
+        'settings':{
+            'ramprate':{
+                'of_match': 'regulator-ramp-delay',
+                'reg_address':              0x02,
+                'reg_bitmask':              0b11000000,
+                'range':{
+                    'values':{
+                        'is_linear':            False,
+                        'list_mV':              [10, 5, 2.5, 1.25],
+                        'start_reg':            0b00000000,
+                        'stop_reg':             0b11000000,
+                    },
+                },
+            },
+        },
+
+        #### DEVICE TREE TEST SECTION 
+        #   'dts' is used to generate device tree source files
+        #   'dts_error_comments' is error message if setting failed
+
+	    'dts':{
+
+            'default':{
+                'dts_properties':{
+                    'regulator-ramp-delay': 10000,
+                },
+                'dts_error_comments':{
+                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 10 mV/us'
+                },
+            },
+
+            'ramprate2':{
+                'dts_properties':{
+                    'regulator-ramp-delay': 2500,
+                },
+                'dts_error_comments':{
+                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 2.5 mV/us'
+                },
+            },             
+        },
+
     }, #buck1 END
+
     'buck2':{
         'name': 'buck2',
         'of_match':'buck2',
+
         'regulator_en_address':         0x03,
         'regulator_en_bitmask':         0b00000100,
 
-        'control_reg_address':          0x06,
-        'control_reg_bitmask':          0b11001011,
-
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
-        'regulator_ramprate':           0b11000000,
 
         'volt_reg_address':             0x09,       #VOLT_H
         'volt_reg_bitmask':             0b00111111,
+
         'volt_sel': False,
+
         'range':{
             'values':{
                 'is_linear':    True,
@@ -94,16 +110,55 @@ data={
             #     'start_reg':0x3D,
             #     'stop_reg':0x7F,
             # }
-        }
+        },
+        'settings':{
+            'ramprate':{
+                'of_match': 'regulator-ramp-delay',
+                'reg_address':              0x03,
+                'reg_bitmask':              0b11000000,
+                'range':{
+                    'values':{
+                        'is_linear':            False,
+                        'list_mV':              [10, 5, 2.5, 1.25],
+                        'start_reg':            0b00000000,
+                        'stop_reg':             0b11000000,
+                    },
+                },
+            },
+        },
+
+        #### DEVICE TREE TEST SECTION 
+        #   'dts' is used to generate device tree source files
+        #   'dts_error_comments' is error message if setting failed
+
+	    'dts':{
+            'default':{
+                'dts_properties':{
+                    'regulator-ramp-delay': 5000,
+                },
+                'dts_error_comments':{
+                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 5 mV/us'
+                },
+            },
+
+            'ramprate2':{
+                'dts_properties':{
+                    'regulator-ramp-delay': 1250,
+                },
+                'dts_error_comments':{
+                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 1.25 mV/us'
+                },
+            },
+	    },
+
     }, #buck2 END
+
     'buck3':{
         'name': 'buck3',
         'of_match': 'buck3',
+
         'regulator_en_address':         0x04,
         'regulator_en_bitmask':         0b00000100,
-
-        'control_reg_address':          0x09,
-        'control_reg_bitmask':          0b00001011,
 
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
@@ -112,6 +167,7 @@ data={
         'volt_reg_bitmask':             0b00011111,
 
         'volt_sel':False,
+
         'range':{
             'values':{
                 'is_linear':    True,
@@ -120,17 +176,21 @@ data={
                 'start_reg':    0x0,
                 'stop_reg':     0x1E,
             },
-        } #ranges ok
+        }
     }, #buck3 END
+
     'buck4':{
         'name': 'buck4',
         'of_match':'buck4',
+
         'regulator_en_address':     0x05,
         'regulator_en_bitmask':     0b00000100,
 
         'volt_reg_address':         0x0C,
         'volt_reg_bitmask':         0b00011111,
+
         'volt_sel':False,
+
         'range':{
             'values':{
                 'is_linear':    True,
@@ -141,9 +201,11 @@ data={
             },
         }
     }, #buck4 END
+
     'buck5':{
         'name': 'buck5',
         'of_match':'buck5',
+
         'regulator_en_address':     0x06,
         'regulator_en_bitmask':     0b00000100,
 
@@ -151,6 +213,7 @@ data={
         'volt_reg_bitmask':         0b00011111,
 
         'volt_sel':False,
+
         'range':{
             'values':{
                 'is_linear':    True,
@@ -161,15 +224,19 @@ data={
             },
         }
     }, #buck5 END
-    'buck6':{       #datasheet: LDO1
+
+    'ldo1':{
         'name': 'buck6',
         'of_match':'ldo1',
+
         'regulator_en_address':     0x10,
         'regulator_en_bitmask':     0b01000000,
 
         'volt_reg_address':         0x14,
         'volt_reg_bitmask':         0b00111111,
+
         'volt_sel':False,
+
         'range':{
                 'values':{
                 'is_linear':True,
@@ -186,16 +253,20 @@ data={
                 #     'stop_reg':0x03,
                 # }
         }
-    }, #buck6 END
-    'buck7':{       #datasheet: LDO2
+    }, #ldo1 END
+
+    'ldo2':{
         'name': 'buck7',
         'of_match':'ldo2',
+
         'regulator_en_address':     0x11,
         'regulator_en_bitmask':     0b00000100,
 
         'volt_reg_address':         0x15,
         'volt_reg_bitmask':         0b00111111,
+
         'volt_sel':False,
+
         'range':{
                 'values':{
                 'is_linear':True,
@@ -212,16 +283,20 @@ data={
                  #     'stop_reg':0x03,
                  # }
         }
-    }, #buck7 END
-    'buck8':{       #datasheet: LDO3
+    }, #ldo2 END
+
+    'ldo3':{
         'name': 'buck8',
         'of_match':'ldo3',
+
         'regulator_en_address':     0x11,
         'regulator_en_bitmask':     0b01000000,
 
         'volt_reg_address':         0x16,
         'volt_reg_bitmask':         0b00111111,
+
         'volt_sel':False,
+
         'range':{
                 'values':{
                 'is_linear':True,
@@ -238,16 +313,20 @@ data={
                  #     'stop_reg':0x03,
                  # }
         }
-    }, #buck8 END
-    'buck9':{       #datasheet: LDO4
+    }, #ldo3 END
+
+    'ldo4':{
         'name': 'buck9',
         'of_match':'ldo4',
+
         'regulator_en_address':     0x12,
         'regulator_en_bitmask':     0b00000100,
 
         'volt_reg_address':         0x17,
         'volt_reg_bitmask':         0b00111111,
+
         'volt_sel':False,
+
         'range':{
                 'values':{
                 'is_linear':True,
@@ -264,16 +343,20 @@ data={
                  #     'stop_reg':0x03,
                  # }
         }
-    }, #buck9 END
-    'buck10':{       #datasheet: LDO5
+    }, #ldo4 END
+
+    'ldo5':{
         'name': 'buck10',
         'of_match':'ldo5',
+
         'regulator_en_address':     0x12,
         'regulator_en_bitmask':     0b01000000,
 
         'volt_reg_address':         0x18,       #VOLT_H register
         'volt_reg_bitmask':         0b00111111,
+
         'volt_sel':False,
+
         'range':{
                 'values':{
                 'is_linear':True,
@@ -290,16 +373,20 @@ data={
                  #     'stop_reg':0x03,
                  # }
         }
-    }, #buck10 END
-    'wled':{       #datasheet: LDO5
+    }, #ldo5 END
+
+    'wled':{
         'name': 'wled',
         'of_match':'wled',
+
         'regulator_en_address':     0x0E,
         'regulator_en_bitmask':     0b00000100,
 
         'volt_reg_address':         0x0F,       #VOLT_H register
         'volt_reg_bitmask':         0b00111111,
+
         'volt_sel':False,
+
         'range':{
                 'values1':{
                 'is_linear':False,
@@ -324,6 +411,19 @@ data={
                  #     'stop_reg':0x03,
                  # }
         }
-    }, #buck11 END
+    }, #wled END
+
+    'ldodvref':{
+        'name': 'ldodvref',
+        'of_match':'ldodvref',
+        'dts_only': True,
+    }, #ldodvref END
+
+    'ldolpsr':{
+        'name': 'ldolpsr',
+        'of_match':'ldolpsr',
+        'dts_only': True,
+    }, #ldolpsr END
+
 } #regulators END    
 } #bd##### END
