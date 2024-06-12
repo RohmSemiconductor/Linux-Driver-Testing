@@ -8,15 +8,14 @@ from pathlib import Path
 from datetime import date
 sys.path.append(str(Path('./configs').absolute()))
 from pmic_conf import pmic
-import bd71847_dts
 today = date.today()
 todaystr = today.strftime("%d-%m-%Y")
 target = sys.argv[1]
 test_dts = sys.argv[2]
-target_dts = target+"_dts"
+target_dts = target
 
 imported_dts = __import__(target_dts)
 target = pmic(imported_dts)
 
-template = 'configs/dts_templates/'+target.board.dts['name']+'_gen_template.dts'
-target.generate_dts(test_dts, template,'configs/dts_generated/'+target.board.dts['name']+'/generated_dts_'+test_dts+'.dts')
+template = 'configs/dts_templates/'+target.board.data['name']+'_gen_template.dts'
+target.generate_dts(test_dts, template,'configs/dts_generated/'+target.board.data['name']+'/generated_dts_'+test_dts+'.dts')
