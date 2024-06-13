@@ -21,7 +21,9 @@ kernel_modules['build']={
 'bd99954':['bd99954_test.dtbo'],
 }
 kernel_modules['dts_tests']={
-        'bd71847':['ramprate2']
+        'bd71847':['ramprate2'],
+        'bd9576':['ovd_uvd_disable'],
+        'bd71815':['ramprate2']
         }
 
 kernel_modules['dts_files']={
