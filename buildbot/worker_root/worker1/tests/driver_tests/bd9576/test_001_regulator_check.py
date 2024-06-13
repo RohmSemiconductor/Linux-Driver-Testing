@@ -13,7 +13,7 @@ def test_regulator_check(command):
 
     for regulator in bd9576.board.data['regulators'].keys():
         regulator_is_on = bd9576.regulator_is_on(regulator,command)
-        if regulator == 'buck1' and vout1_en_low == 1:
+        if regulator == 'VD50' and vout1_en_low == 1:
             assert bd9576.regulator_is_on_driver(regulator,command) == 0
         elif regulator_is_on == 1:
             assert bd9576.regulator_is_on_driver(regulator,command) == 1
