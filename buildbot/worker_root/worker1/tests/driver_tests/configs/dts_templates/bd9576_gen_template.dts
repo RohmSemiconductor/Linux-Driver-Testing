@@ -92,7 +92,8 @@
 					buck3: regulator-vd10 {
 						regulator-name = "VD10";
 						regulator-ov-protection-microvolt = <1>;
-						regulator-ov-warn-microvolt = <18000>;
+						//regulator-ov-warn-microvolt = <18000>;
+						regulator-ov-error-microvolt = <18000>;
 						regulator-uv-protection-microvolt = <1>;
 						regulator-uv-error-microvolt = <18000>;
 						regulator-temp-protection-kelvin = <1>;
@@ -110,9 +111,8 @@
 
 					sw: regulator-vouts1 {
 						regulator-name = "VOUTS1";
-					/*	regulator-oc-protection-microamp = <180000>; */
 						regulator-oc-protection-microamp = <0>;
-						regulator-oc-error-microamp = <200000>;
+						//regulator-oc-error-microamp = <200000>;
 						regulator-oc-warn-microamp = <200000>;
 /*						rohm,ocw-fet-ron-micro-ohms = <100>; */
 					};
