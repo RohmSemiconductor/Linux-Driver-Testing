@@ -79,6 +79,7 @@
 						regulator-name = "buck3";
 						regulator-min-microvolt = <600000>;
 						regulator-max-microvolt = <1400000>;
+						//regulator-ramp-delay = <1250>;
 				//		regulator-boot-on;
 						rohm,no-regulator-enable-control;
 					};
@@ -87,6 +88,7 @@
 						regulator-min-microvolt = <600000>;
 						regulator-max-microvolt = <1400000>;
 						regulator-boot-on;
+						//regulator-ramp-delay = <1250>;
 					};
 					buck5: BUCK5 {
 						regulator-name = "buck5";
