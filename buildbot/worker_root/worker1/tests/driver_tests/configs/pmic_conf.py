@@ -4,6 +4,7 @@ from time import sleep
 import sys
 import os
 import copy
+import math
 
 sys.path.append(os.path.abspath("."))
 pmic_data={}
@@ -45,25 +46,29 @@ class pmic:
             if  regulator != 0:
                 prop_found=False
                 x=0
-                if test_dts in self.board.dts['regulators'][regulator]['dts']:
-                    for property in self.board.dts['regulators'][regulator]['dts'][test_dts]:
-                        x=x+1
-                        #if property in line or "//"+property in line:
-                        if property in line:
-                            if type(self.board.dts['regulators'][regulator]['dts'][test_dts][property]) == int:
-                                prop_found=True
-                                print(property+" = <"+str(self.board.dts['regulators'][regulator]['dts'][test_dts][property])+">;\n", end ='', file = out_dts)
-                            elif type(self.board.dts['regulators'][regulator]['dts'][test_dts][property]) == bool:
-                                prop_found=True
-                                print(property+";\n", end='', file = out_dts)
-                            elif type(self.board.dts['regulators'][regulator]['dts'][test_dts][property]) == str:
-                                prop_found=True
-                                print(property+" = <"+self.board.dts['regulators'][regulator]['dts'][test_dts][property]+">;\n", end ='', file = out_dts)
-                        # if property was not found, copy line from template
-                        if x == len(self.board.dts['regulators'][regulator]['dts'][test_dts]) and prop_found==False:
-                            print(line, end ='', file = out_dts)
+                if 'dts' in self.board.data['regulators'][regulator].keys():
+                    if test_dts in self.board.data['regulators'][regulator]['dts']:
+                        for property in self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties']:
+                            x=x+1
+                            #if property in line or "//"+property in line:
+                            if property in line:
+                                if type(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]) == int:
+                                    prop_found=True
+                                    print(property+" = <"+str(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property])+">;\n", end ='', file = out_dts)
+                                elif type(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]) == bool:
+                                    prop_found=True
+                                    print(property+";\n", end='', file = out_dts)
+                                elif type(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]) == str:
+                                    prop_found=True
+                                    print(property+" = <"+self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]+">;\n", end ='', file = out_dts)
+                            # if property was not found, copy line from template
+                            if x == len(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties']) and prop_found==False:
+                                print(line, end ='', file = out_dts)
+                    else:
+                        print(line, end ='', file = out_dts)
                 else:
                     print(line, end ='', file = out_dts)
+
 
             else:
                 print(line, end ='', file = out_dts)
@@ -86,6 +91,14 @@ class pmic:
         uV = mV * 1000
         return uV
 
+    def read_dt_setting(self, regulator, setting, command):
+        stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
+        path = self.escape_path(stdout[0])
+        stdout, stderr, returncode = command.run("xxd -p "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/"+self.board.data['regulators'][regulator]['settings'][setting]['of_match'])
+        hex=('0x'+stdout[0])
+        int_hex= int(hex,0)
+        return int_hex
+
     def read_dt(self, regulator, setting_type, setting, command):
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
         path = self.escape_path(stdout[0])
@@ -103,15 +116,16 @@ class pmic:
         assert type(self.board.data['i2c']['bus']) == int
         assert type(self.board.data['i2c']['address']) == int
         for regulator in self.board.data['regulators']:
-            if ('volt_sel' in self.board.data['regulators'][regulator] and self.board.data['regulators'][regulator]['volt_sel'] == True):
-                assert type(self.board.data['regulators'][regulator]['volt_sel_bitmask']) == int
-            for r in self.board.data['regulators'][regulator]['range'].keys():
-                if 'is_linear' in self.board.data['regulators'][regulator]['range'][r].keys() and self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True:
-                    assert type(self.board.data['regulators'][regulator]['range'][r]['step_mV']) == int
-                elif 'is_linear' in self.board.data['regulators'][regulator]['range'][r].keys() and self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False:
-                    assert type(self.board.data['regulators'][regulator]['range'][r]['list_mV']) == list
-                if 'is_bipolar' in self.board.data['regulators'][regulator].keys():
-                    assert type(self.board.data['regulators'][regulator]['sign_bitmask']) == int
+            if 'dts_only' not in self.board.data['regulators'][regulator].keys():
+                if ('volt_sel' in self.board.data['regulators'][regulator] and self.board.data['regulators'][regulator]['volt_sel'] == True):
+                    assert type(self.board.data['regulators'][regulator]['volt_sel_bitmask']) == int
+                for r in self.board.data['regulators'][regulator]['range'].keys():
+                    if 'is_linear' in self.board.data['regulators'][regulator]['range'][r].keys() and self.board.data['regulators'][regulator]['range'][r]['is_linear'] == True:
+                        assert type(self.board.data['regulators'][regulator]['range'][r]['step_mV']) == int
+                    elif 'is_linear' in self.board.data['regulators'][regulator]['range'][r].keys() and self.board.data['regulators'][regulator]['range'][r]['is_linear'] == False:
+                        assert type(self.board.data['regulators'][regulator]['range'][r]['list_mV']) == list
+                    if 'is_bipolar' in self.board.data['regulators'][regulator].keys():
+                        assert type(self.board.data['regulators'][regulator]['sign_bitmask']) == int
 
     def validate_config_basic(self):
         pass
@@ -167,7 +181,7 @@ class pmic:
             return 0
 
     def regulator_is_on_driver(self, regulator, command):
-        stdout, stderr, returncode = command.run("cat /sys/kernel/mva_test/regulators/"+regulator+"_en")
+        stdout, stderr, returncode = command.run("cat /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_en")
         if stdout[0] == '0\x00':
             return 0
         elif stdout[0] == '1\x00':
@@ -195,7 +209,7 @@ class pmic:
         return regulator_en_status
 
     def regulator_enable(self,regulator,command):
-        command.run("echo 1 > /sys/kernel/mva_test/regulators/"+regulator+"_en")
+        command.run("echo 1 > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_en")
         sleep(0.2)
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
         i2creturn = int(stdout[0],0)
@@ -203,7 +217,7 @@ class pmic:
         return regulator_en_status
 
     def regulator_disable(self,regulator,command):
-        command.run("echo 0 > /sys/kernel/mva_test/regulators/"+regulator+"_en")
+        command.run("echo 0 > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_en")
         sleep(0.2)
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
         i2creturn = int(stdout[0],0)
@@ -211,7 +225,7 @@ class pmic:
         return regulator_en_status
 
     def regulator_voltage_driver_get(self, regulator, command):
-        stdout, stderr, returncode = command.run("cat /sys/kernel/mva_test/regulators/"+regulator+"_set")
+        stdout, stderr, returncode = command.run("cat /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_set")
         print(stdout)
         print(stdout[0])
         return int(stdout[0],0)
@@ -295,7 +309,7 @@ class pmic:
         return last_min, last_max
 
     def regulator_voltage_driver_set(self,regulator,uv,command):
-        command.run("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+regulator+"_set")
+        command.run("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_set")
 
     def regulator_voltage_set(self, regulator,r, command, volt_index=None):
         ######## SETS VOLTAGE THROUGH TEST KERNEL MODULE ######
@@ -306,8 +320,8 @@ class pmic:
             mv = self.board.data['regulators'][regulator]['range'][r]['list_mV'][volt_index]
 
         uv = int(self.mv_to_uv(mv))
-        command.run("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+regulator+"_set")
-        print("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+regulator+"_set")
+        command.run("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_set")
+        print("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_set")
 
         return uv
 
@@ -351,6 +365,54 @@ class pmic:
         uv = self.mv_to_uv(mv)
         return uv
 
+    def i2c_to_ramprate_uv(self, regulator, command):
+        volt_config = self._i2c_to_ramprate_config(regulator, command)
+        if volt_config['is_linear'] == True:
+            mv = self._calculate_linear_mv(volt_config)
+        else:
+            mv = self._calculate_nonlinear_mv(volt_config)
+        uv = self.mv_to_uv(mv)
+        return uv
+    def _bitshift_by_bitmask(self, regulator, setting,i2c):
+        bitmask = self.board.data['regulators'][regulator]['settings'][setting]['reg_bitmask']
+        shift_count = int(math.log2(bitmask & -bitmask))
+
+        volt_index = i2c >> shift_count
+        return  volt_index
+
+    def _i2c_to_ramprate_config(self, regulator, command):
+        volt_config={
+                'r':            None,
+                'volt_index':   None,
+                'is_linear':    None,
+                'operation':    'add',
+                'start_mV':     None,
+                'step_mV':      None,
+                'list_mV':      None,
+                }
+
+        #   Get limit register value
+        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['settings']['ramprate']['reg_address'])))
+        i2creturn = int(stdout[0],0)
+        volt_config['volt_index'] = i2creturn & self.board.data['regulators'][regulator]['settings']['ramprate']['reg_bitmask']
+
+        #   Get range
+        for key in self.board.data['regulators'][regulator]['settings']['ramprate']['range'].keys():
+            if volt_config['volt_index'] in range(self.board.data['regulators'][regulator]['settings']['ramprate']['range'][key]['start_reg'], self.board.data['regulators'][regulator]['settings']['ramprate']['range'][key]['stop_reg']+1):
+                r=key
+
+        volt_config['volt_index'] = (i2creturn & self.board.data['regulators'][regulator]['settings']['ramprate']['reg_bitmask']) - self.board.data['regulators'][regulator]['settings']['ramprate']['range'][r]['start_reg']
+        volt_config['volt_index'] = self._bitshift_by_bitmask(regulator, 'ramprate', volt_config['volt_index'])
+        #   Gather linear / non-linear info of current range
+        volt_config['is_linear'] = self.board.data['regulators'][regulator]['settings']['ramprate']['range'][r]['is_linear']
+        if self.board.data['regulators'][regulator]['settings']['ramprate']['range'][r]['is_linear'] == True:
+            volt_config['start_mV'] = self.board.data['regulators'][regulator]['settings']['ramprate']['range'][r]['start_mV']
+            volt_config['step_mV'] = self.board.data['regulators'][regulator]['settings']['ramprate']['range'][r]['step_mV']
+        elif self.board.data['regulators'][regulator]['settings']['ramprate']['range'][r]['is_linear'] == False:
+            volt_config['list_mV'] = self.board.data['regulators'][regulator]['settings']['ramprate']['range'][r]['list_mV']
+
+        return volt_config
+
     def _i2c_to_lim_config(self, regulator, setting, command):
         volt_config={
                 'r':            None,
@@ -363,24 +425,24 @@ class pmic:
                 }
 
         #   Get limit register value
-        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['limit_settings'][setting]['reg_address'])))
+        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['settings'][setting]['reg_address'])))
         i2creturn = int(stdout[0],0)
-        volt_config['volt_index'] = i2creturn & self.board.data['regulators'][regulator]['limit_settings'][setting]['reg_bitmask']
-        
+        volt_config['volt_index'] = i2creturn & self.board.data['regulators'][regulator]['settings'][setting]['reg_bitmask']
+
         #   Get range
-        for key in self.board.data['regulators'][regulator]['limit_settings'][setting]['range'].keys():
-            if volt_config['volt_index'] in range(self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][key]['start_reg'], self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][key]['stop_reg']+1):
+        for key in self.board.data['regulators'][regulator]['settings'][setting]['range'].keys():
+            if volt_config['volt_index'] in range(self.board.data['regulators'][regulator]['settings'][setting]['range'][key]['start_reg'], self.board.data['regulators'][regulator]['settings'][setting]['range'][key]['stop_reg']+1):
                 r=key
-        
-        volt_config['volt_index'] = (i2creturn & self.board.data['regulators'][regulator]['limit_settings'][setting]['reg_bitmask']) - self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['start_reg']
-        
+
+        volt_config['volt_index'] = (i2creturn & self.board.data['regulators'][regulator]['settings'][setting]['reg_bitmask']) - self.board.data['regulators'][regulator]['settings'][setting]['range'][r]['start_reg']
+
         #   Gather linear / non-linear info of current range
-        volt_config['is_linear'] = self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['is_linear']
-        if self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['is_linear'] == True:
-            volt_config['start_mV'] = self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['start_mV']
-            volt_config['step_mV'] = self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['step_mV']
-        elif self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['is_linear'] == False:
-            volt_config['list_mV'] = self.board.data['regulators'][regulator]['limit_settings'][setting]['range'][r]['list_mV']
+        volt_config['is_linear'] = self.board.data['regulators'][regulator]['settings'][setting]['range'][r]['is_linear']
+        if self.board.data['regulators'][regulator]['settings'][setting]['range'][r]['is_linear'] == True:
+            volt_config['start_mV'] = self.board.data['regulators'][regulator]['settings'][setting]['range'][r]['start_mV']
+            volt_config['step_mV'] = self.board.data['regulators'][regulator]['settings'][setting]['range'][r]['step_mV']
+        elif self.board.data['regulators'][regulator]['settings'][setting]['range'][r]['is_linear'] == False:
+            volt_config['list_mV'] = self.board.data['regulators'][regulator]['settings'][setting]['range'][r]['list_mV']
 
         return volt_config
 
