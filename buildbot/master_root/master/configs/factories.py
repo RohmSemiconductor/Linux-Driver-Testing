@@ -58,12 +58,12 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
             # create a ShellCommand for each stage and add them to the build
             if self.test_type == "regulator":
                 self.build.addStepsAfterCurrentStep([
-                    steps.ShellCommand(name=self.target+": "+stage, workdir="../tests/driver_tests", command=["pytest","--lg-env="+self.test_board+".yaml",self.target+"/"+stage])
+                    steps.ShellCommand(name=self.target+": "+stage, workdir="../tests/pmic", command=["pytest","--lg-env="+self.test_board+".yaml",self.target+"/"+stage])
                     for stage in self.extract_stages(self.observer.getStdout())
                 ])
             elif self.test_type == "dts":
                 self.build.addStepsAfterCurrentStep([
-                    steps.ShellCommand(name=self.target+": "+stage, workdir="../tests/driver_tests", command=["pytest","--lg-env="+self.test_board+".yaml",self.target+"/dts/"+self.dts+"/"+stage])
+                    steps.ShellCommand(name=self.target+": "+stage, workdir="../tests/pmic", command=["pytest","--lg-env="+self.test_board+".yaml",self.target+"/dts/"+self.dts+"/"+stage])
                     for stage in self.extract_stages(self.observer.getStdout())
                 ])
 
@@ -175,16 +175,16 @@ def upload_test_kernel_modules(project_name):
 
 def download_test_boards(project_name):
     projects[project_name]['factory'].addStep(steps.FileDownload(mastersrc="configs/kernel_modules.py",
-                            workerdest="../../tests/driver_tests/configs/kernel_modules.py",
+                            workerdest="../../tests/pmic/configs/kernel_modules.py",
                             name="Download kernel_modules.py"))
 
 def initialize_driver_test(project_name, test_board, target):
     check_tag_partial=functools.partial(check_tag, target=target)
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],  workdir="../tests/driver_tests",doStepIf=check_tag_partial, name=target+": Login to "+test_boards[test_board]['name']))
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_overlay.py"], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Install overlay merger"))
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_merge_dt_overlay.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Merge device tree overlays"))
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_insmod_tests.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": insmod test modules"))
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_regulator_test.py","--product="+target], workdir="../tests/driver_tests", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": init_regulator_test.py"))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],  workdir="../tests/pmic",doStepIf=check_tag_partial, name=target+": Login to "+test_boards[test_board]['name']))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_overlay.py"], workdir="../tests/pmic", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Install overlay merger"))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_merge_dt_overlay.py","--product="+target], workdir="../tests/pmic", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": Merge device tree overlays"))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_insmod_tests.py","--product="+target], workdir="../tests/pmic", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": insmod test modules"))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_init_regulator_test.py","--product="+target], workdir="../tests/pmic", doStepIf=check_tag_partial, hideStepIf=skipped, name=target+": init_regulator_test.py"))
 
 def generate_driver_tests(project_name,test_board,target, test_type, dts=None):
     check_tag_partial=functools.partial(check_tag, target=target)
@@ -192,13 +192,13 @@ def generate_driver_tests(project_name,test_board,target, test_type, dts=None):
         projects[project_name]['factory'].addStep(GenerateStagesCommand(
             test_board, target, test_type, dts,
             name=target+": Generate "+test_type+" test stages",
-            command=["python3", "generate_steps.py", target, test_type], workdir="../tests/driver_tests",
+            command=["python3", "generate_steps.py", target, test_type], workdir="../tests/pmic",
             haltOnFailure=True, doStepIf=check_tag_partial, hideStepIf=skipped))
     elif test_type == "dts":
         projects[project_name]['factory'].addStep(GenerateStagesCommand(
             test_board, target, test_type, dts,
             name=target+": Generate "+test_type+" test stages",
-            command=["python3", "generate_steps.py", target, test_type, dts], workdir="../tests/driver_tests",
+            command=["python3", "generate_steps.py", target, test_type, dts], workdir="../tests/pmic",
             haltOnFailure=True, doStepIf=check_tag_partial, hideStepIf=skipped))
 
 def check_dts_tests(target):
@@ -209,10 +209,10 @@ def check_dts_tests(target):
     return dts_tests
 
 def copy_generated_dts(project_name, target, dts):
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["cp", "../../../tests/driver_tests/configs/dts_generated/"+target+"/generated_dts_"+dts+".dts", "./"+target], workdir="build/_test-kernel-modules", name=target+": Copy generated dts: "+dts))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["cp", "../../../tests/pmic/configs/dts_generated/"+target+"/generated_dts_"+dts+".dts", "./"+target], workdir="build/_test-kernel-modules", name=target+": Copy generated dts: "+dts))
 
 def generate_dts(project_name, target, dts):
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "generate_dts.py", target, dts], workdir="../tests/driver_tests", name=target+": Generate dts: "+dts))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "generate_dts.py", target, dts], workdir="../tests/pmic", name=target+": Generate dts: "+dts))
     
 
 def run_driver_tests(project_name):
