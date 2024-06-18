@@ -42,28 +42,30 @@ data={
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
 
-        'volt_reg_address':             0x0D,
-        'volt_reg_bitmask':             0b00111111,
-
-        'volt_sel': False,
-        
-        'range':{
-            'values':{
-                'is_linear':    True,
-                'start_mV':     700,
-                'step_mV':      10,
-                'start_reg':    0x00,
-                'stop_reg':     0x3C,
-            },
-            # 'flat':{
-            #     'is_linear':True,
-            #     'start_mV':1300,
-            #     'step_mV':0,
-            #     'start_reg':0x3D,
-            #     'stop_reg':0x7F,
-            # }
-        },
         'settings':{
+            'voltage':{
+                'volt_reg_address':             0x0D,
+                'volt_reg_bitmask':             0b00111111,
+
+                'volt_sel': False,
+
+                'range':{
+                    'values':{
+                        'is_linear':    True,
+                        'start_mV':     700,
+                        'step_mV':      10,
+                        'start_reg':    0x00,
+                        'stop_reg':     0x3C,
+                    },
+                    # 'flat':{
+                    #     'is_linear':True,
+                    #     'start_mV':1300,
+                    #     'step_mV':0,
+                    #     'start_reg':0x3D,
+                    #     'stop_reg':0x7F,
+                    # }
+                },
+            },
             'ramprate':{
                 'of_match': 'regulator-ramp-delay',
                 'reg_address':              0x05,
@@ -79,7 +81,7 @@ data={
             },
         }, 
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -106,28 +108,30 @@ data={
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
 
-        'volt_reg_address':             0x10,
-        'volt_reg_bitmask':             0b00111111,
-
-        'volt_sel': False,
-
-        'range':{
-            'values':{
-                'is_linear':    True,
-                'start_mV':     700,
-                'step_mV':      10,
-                'start_reg':    0x00,
-                'stop_reg':     0x3C,
-            },
-            # 'flat':{
-            #     'is_linear':True,
-            #     'start_mV':1300,
-            #     'step_mV':0,
-            #     'start_reg':0x3D,
-            #     'stop_reg':0x7F,
-            # }
-        },
         'settings':{
+            'voltage':{
+                'volt_reg_address':             0x10,
+                'volt_reg_bitmask':             0b00111111,
+
+                'volt_sel': False,
+
+                'range':{
+                    'values':{
+                        'is_linear':    True,
+                        'start_mV':     700,
+                        'step_mV':      10,
+                        'start_reg':    0x00,
+                        'stop_reg':     0x3C,
+                    },
+                    # 'flat':{
+                    #     'is_linear':True,
+                    #     'start_mV':1300,
+                    #     'step_mV':0,
+                    #     'start_reg':0x3D,
+                    #     'stop_reg':0x7F,
+                    # }
+                },
+            },
             'ramprate':{
                 'of_match': 'regulator-ramp-delay',
                 'reg_address':              0x06,
@@ -139,11 +143,11 @@ data={
                         'start_reg':            0b00000000,
                         'stop_reg':             0b11000000,
                     },
-                },    
+                },
             },
         }, 
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -169,28 +173,30 @@ data={
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
 
-        'volt_reg_address':             0x12,
-        'volt_reg_bitmask':             0b00111111,
-
-        'volt_sel': False,
-
-        'range':{
-            'values':{
-                'is_linear':    True,
-                'start_mV':     700,
-                'step_mV':      10,
-                'start_reg':    0x00,
-                'stop_reg':     0x3C,
-            },
-            # 'flat':{
-            #     'is_linear':True,
-            #     'start_mV':1300,
-            #     'step_mV':0,
-            #     'start_reg':0x3D,
-            #     'stop_reg':0x7F,
-            # }
-        },
         'settings':{
+            'voltage':{
+                'volt_reg_address':             0x12,
+                'volt_reg_bitmask':             0b00111111,
+
+                'volt_sel': False,
+
+                'range':{
+                    'values':{
+                        'is_linear':    True,
+                        'start_mV':     700,
+                        'step_mV':      10,
+                        'start_reg':    0x00,
+                        'stop_reg':     0x3C,
+                    },
+                    # 'flat':{
+                    #     'is_linear':True,
+                    #     'start_mV':1300,
+                    #     'step_mV':0,
+                    #     'start_reg':0x3D,
+                    #     'stop_reg':0x7F,
+                    # }
+                },
+            },
             'ramprate':{
                 'of_match': 'regulator-ramp-delay',
                 'reg_address':              0x07,
@@ -202,11 +208,11 @@ data={
                         'start_reg':            0b00000000,
                         'stop_reg':             0b11000000,
                     },
-                },    
+                },
             },
         }, 
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -232,28 +238,30 @@ data={
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
 
-        'volt_reg_address':             0x13,
-        'volt_reg_bitmask':             0b00111111,
-
-        'volt_sel': False,
-
-        'range':{
-            'values':{
-                'is_linear':    True,
-                'start_mV':     700,
-                'step_mV':      10,
-                'start_reg':    0x00,
-                'stop_reg':     0x3C,
-            },
-            # 'flat':{
-            #     'is_linear':True,
-            #     'start_mV':1300,
-            #     'step_mV':0,
-            #     'start_reg':0x3D,
-            #     'stop_reg':0x7F,
-            # }
-        },
         'settings':{
+            'voltage':{
+                'volt_reg_address':             0x13,
+                'volt_reg_bitmask':             0b00111111,
+
+                'volt_sel': False,
+
+                'range':{
+                    'values':{
+                        'is_linear':    True,
+                        'start_mV':     700,
+                        'step_mV':      10,
+                        'start_reg':    0x00,
+                        'stop_reg':     0x3C,
+                    },
+                    # 'flat':{
+                    #     'is_linear':True,
+                    #     'start_mV':1300,
+                    #     'step_mV':0,
+                    #     'start_reg':0x3D,
+                    #     'stop_reg':0x7F,
+                    # }
+                },
+            },
             'ramprate':{
                 'of_match': 'regulator-ramp-delay',
                 'reg_address':              0x08,
@@ -265,11 +273,11 @@ data={
                         'start_reg':            0b00000000,
                         'stop_reg':             0b11000000,
                     },
-                },    
+                },
             },
         }, 
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -295,52 +303,61 @@ data={
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
 
-        'volt_reg_address':             0x14,
-        'volt_reg_bitmask':             0b00000111,
-
         'volt_change_not_allowed_while_on': True,
-        'volt_sel':True,
-        'volt_sel_address':             0x14,
-        'volt_sel_bitmask':             0b10000000,
 
-        'range':{
-                0b00000000:{
-                'is_linear':False,
-                'list_mV':[700,800,900,1000,1050,1100,1200,1350],
-                'start_reg':0x00,
-                'stop_reg':0x07,
+        'settings':{
+            'voltage':{
+                'volt_reg_address':             0x14,
+                'volt_reg_bitmask':             0b00000111,
+
+                'volt_sel':True,
+                'volt_sel_address':             0x14,
+                'volt_sel_bitmask':             0b10000000,
+
+                'range':{
+                        0b00000000:{
+                        'is_linear':False,
+                        'list_mV':[700,800,900,1000,1050,1100,1200,1350],
+                        'start_reg':0x00,
+                        'stop_reg':0x07,
+                    },
+                        0b10000000:{
+                        'is_linear':False,
+                        'list_mV':[675,775,875,975,1025,1075,1175,1325],
+                        'start_reg':0x00,
+                        'stop_reg':0x07,
+                    }
+                }
             },
-                0b10000000:{
-                'is_linear':False,
-                'list_mV':[675,775,875,975,1025,1075,1175,1325],
-                'start_reg':0x00,
-                'stop_reg':0x07,
-            }
-        } #ranges ok
+	    },
     }, #buck5 END
 
-    'buck6':{   
+    'buck6':{
         'name': 'buck6',
         'of_match':'BUCK6',
 
         'regulator_en_address':     0x0A,
         'regulator_en_bitmask':     0b00000001,
-
-        'volt_reg_address':         0x15,
-        'volt_reg_bitmask':         0b00000011,
-
         'volt_change_not_allowed_while_on': True,
-        'volt_sel':False,
 
-        'range':{
-                'values':{
-                'is_linear':True,
-                'start_mV':3000,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x03,
+        'settings':{
+            'voltage':{
+                'volt_reg_address':         0x15,
+                'volt_reg_bitmask':         0b00000011,
+
+                'volt_sel':False,
+
+                'range':{
+                        'values':{
+                        'is_linear':True,
+                        'start_mV':3000,
+                        'step_mV':100,
+                        'start_reg':0x00,
+                        'stop_reg':0x03,
+                    },
+                }
             },
-        }
+	    },
     }, #buck6 END
 
     'buck7':{
@@ -349,21 +366,25 @@ data={
 
         'regulator_en_address':     0x0B,
         'regulator_en_bitmask':     0b00000001,
-
-        'volt_reg_address':         0x16,
-        'volt_reg_bitmask':         0b00000111,
-
         'volt_change_not_allowed_while_on': True,
-        'volt_sel':False,
 
-        'range':{
-                'values':{
-                'is_linear':False,
-                'list_mV':[1605,1695,1755,1800,1845,1905,1950,1995],
-                'start_reg':0x00,
-                'stop_reg':0x07,
+        'settings':{
+            'voltage':{
+                'volt_reg_address':         0x16,
+                'volt_reg_bitmask':         0b00000111,
+
+                'volt_sel':False,
+
+                'range':{
+                        'values':{
+                        'is_linear':False,
+                        'list_mV':[1605,1695,1755,1800,1845,1905,1950,1995],
+                        'start_reg':0x00,
+                        'stop_reg':0x07,
+                        }
                 }
-        }
+            },
+	    },
     }, #buck7 END
 
     'buck8':{
@@ -371,24 +392,27 @@ data={
         'of_match':'BUCK8',
         'regulator_en_address':     0x0C,
         'regulator_en_bitmask':     0b00000001,
-
-
-        'volt_change_not_allowed_while_on': True,
-        'volt_reg_address':         0x17,
-        'volt_reg_bitmask':         0b00111111,
-
-        'volt_sel':False,
-        'volt_sel_bitmask':         0b00100000,
         'no_regulator_volt':        True,
-        'range':{
-                'values':{
-                'is_linear':    True,
-                'start_mV':     800,
-                'step_mV':      10,
-                'start_reg':    0x00,
-                'stop_reg':     0x3C,
+        'volt_change_not_allowed_while_on': True,
+
+        'settings':{
+            'voltage':{
+                'volt_reg_address':         0x17,
+                'volt_reg_bitmask':         0b00111111,
+
+                'volt_sel':False,
+                'volt_sel_bitmask':         0b00100000,
+                'range':{
+                        'values':{
+                        'is_linear':    True,
+                        'start_mV':     800,
+                        'step_mV':      10,
+                        'start_reg':    0x00,
+                        'stop_reg':     0x3C,
+                    },
+                }
             },
-        }
+	    },
     }, #buck8 END
 
     'ldo1':{       #datasheet: LDO1
@@ -398,33 +422,37 @@ data={
         'regulator_en_bitmask':     0b01000000,
 
         'volt_change_not_allowed_while_on': True,
-        'volt_reg_address':         0x18,
-        'volt_reg_bitmask':         0b00000011,
-        'volt_sel':True,
-        'volt_sel_bitmask':         0b00100000,
-        'range':{
-                0b00000000:{
-                'is_linear':True,
-                'start_mV':3000,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x3,
+        'settings':{
+            'voltage':{	
+                'volt_reg_address':         0x18,
+                'volt_reg_bitmask':         0b00000011,
+                'volt_sel':True,
+                'volt_sel_bitmask':         0b00100000,
+                'range':{
+                        0b00000000:{
+                        'is_linear':True,
+                        'start_mV':3000,
+                        'step_mV':100,
+                        'start_reg':0x00,
+                        'stop_reg':0x3,
+                    },
+                        0b00100000:{
+                        'is_linear':True,
+                        'start_mV':1600,
+                        'step_mV':100,
+                        'start_reg':0x00,
+                        'stop_reg':0x3,
+                    },
+                        #     'flat':{
+                        #     'is_linear':True,
+                        #     'start_mV':1600,
+                        #     'step_mV':100,
+                        #     'start_reg':0x00,
+                        #     'stop_reg':0x03,
+                        # }
+                }
             },
-                0b00100000:{
-                'is_linear':True,
-                'start_mV':1600,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x3,
-            },
-                #     'flat':{
-                #     'is_linear':True,
-                #     'start_mV':1600,
-                #     'step_mV':100,
-                #     'start_reg':0x00,
-                #     'stop_reg':0x03,
-                # }
-        }
+	    },
     }, #ldo1 END
 
     'ldo2':{       #datasheet: LDO2
@@ -434,33 +462,37 @@ data={
         'regulator_en_bitmask':     0b01000000,
 
         'volt_change_not_allowed_while_on': True,
-        'volt_reg_address':         0x19,
-        'volt_reg_bitmask':         0b00000000,
-        'volt_sel':True,
-        'volt_sel_bitmask':         0b00100000,
-        'range':{
-                0b00000000:{
-                'is_linear':True,
-                'start_mV':900,
-                'step_mV':0,
-                'start_reg':0x00,
-                'stop_reg':0x00,
+        'settings':{
+            'voltage':{
+                'volt_reg_address':         0x19,
+                'volt_reg_bitmask':         0b00000000,
+                'volt_sel':True,
+                'volt_sel_bitmask':         0b00100000,
+                'range':{
+                        0b00000000:{
+                        'is_linear':True,
+                        'start_mV':900,
+                        'step_mV':0,
+                        'start_reg':0x00,
+                        'stop_reg':0x00,
+                    },
+                        0b00100000:{
+                        'is_linear':True,
+                        'start_mV':800,
+                        'step_mV':0,
+                        'start_reg':0x00,
+                        'stop_reg':0x00,
+                    },
+                        #     'flat':{
+                        #     'is_linear':True,
+                        #     'start_mV':1600,
+                        #     'step_mV':100,
+                        #     'start_reg':0x00,
+                        #     'stop_reg':0x03,
+                        # }
+                }
             },
-                0b00100000:{
-                'is_linear':True,
-                'start_mV':800,
-                'step_mV':0,
-                'start_reg':0x00,
-                'stop_reg':0x00,
-            },
-                #     'flat':{
-                #     'is_linear':True,
-                #     'start_mV':1600,
-                #     'step_mV':100,
-                #     'start_reg':0x00,
-                #     'stop_reg':0x03,
-                # }
-        }
+	    },
     }, #ldo2 END
 
     'ldo3':{       #datasheet: LDO3
@@ -470,25 +502,29 @@ data={
         'regulator_en_bitmask':     0b01000000,
 
         'volt_change_not_allowed_while_on': True,
-        'volt_reg_address':         0x1A,
-        'volt_reg_bitmask':         0b00001111,
-        'volt_sel':False,
-        'range':{
-                'values':{
-                'is_linear':True,
-                'start_mV':1800,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x0F,
+        'settings':{
+            'voltage':{
+                'volt_reg_address':         0x1A,
+                'volt_reg_bitmask':         0b00001111,
+                'volt_sel':False,
+                'range':{
+                        'values':{
+                        'is_linear':True,
+                        'start_mV':1800,
+                        'step_mV':100,
+                        'start_reg':0x00,
+                        'stop_reg':0x0F,
+                    },
+                         #     'flat':{
+                         #     'is_linear':True,
+                         #     'start_mV':1600,
+                         #     'step_mV':100,
+                         #     'start_reg':0x00,
+                         #     'stop_reg':0x03,
+                         # }
+                }
             },
-                 #     'flat':{
-                 #     'is_linear':True,
-                 #     'start_mV':1600,
-                 #     'step_mV':100,
-                 #     'start_reg':0x00,
-                 #     'stop_reg':0x03,
-                 # }
-        }
+	    },
     }, #ldo3 END
 
     'ldo4':{       #datasheet: LDO4
@@ -498,25 +534,29 @@ data={
         'regulator_en_bitmask':     0b01000000,
 
         'volt_change_not_allowed_while_on': True,
-        'volt_reg_address':         0x1B,
-        'volt_reg_bitmask':         0b00001111,
-        'volt_sel':False,
-        'range':{
-                'values':{
-                'is_linear':True,
-                'start_mV':900,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x09,
+        'settings':{
+            'voltage':{
+                'volt_reg_address':         0x1B,
+                'volt_reg_bitmask':         0b00001111,
+                'volt_sel':False,
+                'range':{
+                        'values':{
+                        'is_linear':True,
+                        'start_mV':900,
+                        'step_mV':100,
+                        'start_reg':0x00,
+                        'stop_reg':0x09,
+                    },
+                         #     'flat':{
+                         #     'is_linear':True,
+                         #     'start_mV':1600,
+                         #     'step_mV':100,
+                         #     'start_reg':0x00,
+                         #     'stop_reg':0x03,
+                         # }
+                }
             },
-                 #     'flat':{
-                 #     'is_linear':True,
-                 #     'start_mV':1600,
-                 #     'step_mV':100,
-                 #     'start_reg':0x00,
-                 #     'stop_reg':0x03,
-                 # }
-        }
+	    },
     }, #ldo4 END
 
     'ldo5':{       #datasheet: LDO5
@@ -526,25 +566,29 @@ data={
         'regulator_en_bitmask':     0b01000000,
 
         'volt_change_not_allowed_while_on': True,
-        'volt_reg_address':         0x1C,
-        'volt_reg_bitmask':         0b00001111,
-        'volt_sel':False,
-        'range':{
-                'values':{
-                'is_linear':True,
-                'start_mV':1800,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x0F,
+        'settings':{
+            'voltage':{
+                'volt_reg_address':         0x1C,
+                'volt_reg_bitmask':         0b00001111,
+                'volt_sel':False,
+                'range':{
+                        'values':{
+                        'is_linear':True,
+                        'start_mV':1800,
+                        'step_mV':100,
+                        'start_reg':0x00,
+                        'stop_reg':0x0F,
+                    },
+                         #     'flat':{
+                         #     'is_linear':True,
+                         #     'start_mV':1600,
+                         #     'step_mV':100,
+                         #     'start_reg':0x00,
+                         #     'stop_reg':0x03,
+                         # }
+                }
             },
-                 #     'flat':{
-                 #     'is_linear':True,
-                 #     'start_mV':1600,
-                 #     'step_mV':100,
-                 #     'start_reg':0x00,
-                 #     'stop_reg':0x03,
-                 # }
-        }
+	    },
     }, #ldo5 END
 
     'ldo6':{       #datasheet: LDO6
@@ -553,29 +597,33 @@ data={
 
         'regulator_en_address':     0x1D,
         'regulator_en_bitmask':     0b01000000,
-
-        'volt_reg_address':         0x1D,
-        'volt_reg_bitmask':         0b00001111,
-
         'volt_change_not_allowed_while_on': True,
-        'volt_sel':False,
 
-        'range':{
-                'values':{
-                'is_linear':True,
-                'start_mV':900,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x09,
+        'settings':{
+            'voltage':{
+                'volt_reg_address':         0x1D,
+                'volt_reg_bitmask':         0b00001111,
+
+                'volt_sel':False,
+
+                'range':{
+                        'values':{
+                        'is_linear':True,
+                        'start_mV':900,
+                        'step_mV':100,
+                        'start_reg':0x00,
+                        'stop_reg':0x09,
+                    },
+                         #     'flat':{
+                         #     'is_linear':True,
+                         #     'start_mV':1600,
+                         #     'step_mV':100,
+                         #     'start_reg':0x00,
+                         #     'stop_reg':0x03,
+                         # }
+                }
             },
-                 #     'flat':{
-                 #     'is_linear':True,
-                 #     'start_mV':1600,
-                 #     'step_mV':100,
-                 #     'start_reg':0x00,
-                 #     'stop_reg':0x03,
-                 # }
-        }
+	    },
     }, #ldo6 END
 
     'ldo7':{       #datasheet: LDO7
@@ -584,29 +632,33 @@ data={
 
         'regulator_en_address':     0x1E,
         'regulator_en_bitmask':     0b01000000,
-
-        'volt_reg_address':         0x1E,
-        'volt_reg_bitmask':         0b00001111,
-
         'volt_change_not_allowed_while_on': True,
-        'volt_sel':False,
 
-        'range':{
-                'values':{
-                'is_linear':True,
-                'start_mV':1800,
-                'step_mV':100,
-                'start_reg':0x00,
-                'stop_reg':0x0F,
+        'settings':{
+            'voltage':{
+                'volt_reg_address':         0x1E,
+                'volt_reg_bitmask':         0b00001111,
+
+                'volt_sel':False,
+
+                'range':{
+                        'values':{
+                        'is_linear':True,
+                        'start_mV':1800,
+                        'step_mV':100,
+                        'start_reg':0x00,
+                        'stop_reg':0x0F,
+                    },
+                         #     'flat':{
+                         #     'is_linear':True,
+                         #     'start_mV':1600,
+                         #     'step_mV':100,
+                         #     'start_reg':0x00,
+                         #     'stop_reg':0x03,
+                         # }
+                }
             },
-                 #     'flat':{
-                 #     'is_linear':True,
-                 #     'start_mV':1600,
-                 #     'step_mV':100,
-                 #     'start_reg':0x00,
-                 #     'stop_reg':0x03,
-                 # }
-        }
+	    },
     } #ldo7 END
 
 } #regulators END    
