@@ -291,7 +291,7 @@ class pmic:
                 max = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV'][-1]
         
             elif (self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == True and self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_offset_bipolar'] == True):
-                min = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_mV']-(self.board.data['regulators'][regulator]['range'][r]['stop_reg'] * self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV'])
+                min = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_mV']-(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['stop_reg'] * self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV'])
                 max = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_mV']+(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['stop_reg'] * self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV'])
         
             elif (self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == False and self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_offset_bipolar'] == True):
