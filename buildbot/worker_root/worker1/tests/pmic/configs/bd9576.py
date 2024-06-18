@@ -15,25 +15,26 @@ data={
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
 
-        'volt_reg_address':             0x50,
-        'volt_reg_bitmask':             0b00000111,
-
-        'volt_sel': False,
-
-        'range':{
-            'values':{
-                'is_linear':            True,
-                'is_offset_bipolar':    True,
-                'offset_sign_bitmask':  0b1000000,
-                'offset_sign_address':  0x50,
-                'start_mV':             5000,
-                'step_mV':              100,
-                'start_reg':            0x00,
-                'stop_reg':             0x05,
-            }
-        },
-
         'settings':{
+            'voltage':{
+                'volt_reg_address':             0x50,
+                'volt_reg_bitmask':             0b00000111,
+
+                'volt_sel': False,
+
+                'range':{
+                    'values':{
+                        'is_linear':            True,
+                        'is_offset_bipolar':    True,
+                        'offset_sign_bitmask':  0b1000000,
+                        'offset_sign_address':  0x50,
+                        'start_mV':             5000,
+                        'step_mV':              100,
+                        'start_reg':            0x00,
+                        'stop_reg':             0x05,
+                    }
+                },
+            },
             'ovd':{
                 'of_match': 'regulator-ov-error-microvolt',
                 'reg_address': 0x51,
@@ -147,25 +148,26 @@ data={
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
 
-        'volt_reg_address':             0x53,
-        'volt_reg_bitmask':             0b00000111,
-
-        'volt_sel': False,
-
-        'range':{
-            'values':{
-                'is_linear':    True,
-                'is_bipolar':   True,
-                'sign_bitmask': 0b1000000,
-                'sign_address': 0x53,
-                'start_mV':     1800,
-                'step_mV':      20,
-                'start_reg':    0x00,
-                'stop_reg':     0x07,
-            },
-        },
-
         'settings':{
+            'voltage':{
+                'volt_reg_address':             0x53,
+                'volt_reg_bitmask':             0b00000111,
+
+                'volt_sel': False,
+
+                'range':{
+                    'values':{
+                        'is_linear':    True,
+                        'is_bipolar':   True,
+                        'sign_bitmask': 0b1000000,
+                        'sign_address': 0x53,
+                        'start_mV':     1800,
+                        'step_mV':      20,
+                        'start_reg':    0x00,
+                        'stop_reg':     0x07,
+                    },
+                },
+            },
             'ovd':{
                 'of_match': 'regulator-ov-error-microvolt',
                 'reg_bitmask':              0b01111111,
@@ -278,25 +280,26 @@ data={
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
 
-        'volt_reg_address':             0x56,
-        'volt_reg_bitmask':             0b00011111,
-
-        'volt_sel': False,
-
-        'range':{
-            'values':{
-                'is_linear':    True,
-                'is_bipolar':   True,
-                'sign_bitmask': 0b1000000,
-                'sign_address': 0x56,
-                'start_mV':     1350,
-                'step_mV':      10,
-                'start_reg':    0x00,
-                'stop_reg':     0x1F,
-            },     
-        },
-        
         'settings':{
+            'voltage':{
+                'volt_reg_address':             0x56,
+                'volt_reg_bitmask':             0b00011111,
+
+                'volt_sel': False,
+
+                'range':{
+                    'values':{
+                        'is_linear':    True,
+                        'is_bipolar':   True,
+                        'sign_bitmask': 0b1000000,
+                        'sign_address': 0x56,
+                        'start_mV':     1350,
+                        'step_mV':      10,
+                        'start_reg':    0x00,
+                        'stop_reg':     0x1F,
+                    },
+                },
+            },
             'ovd':{
                 'of_match': 'regulator-ov-warn-microvolt',
                 'reg_bitmask':              0b01111111,
@@ -405,26 +408,26 @@ data={
         'regulator_en_address':     0x44,
         'regulator_en_bitmask':     0b11111111,
 
-        'volt_reg_address':         0x59,
-        'volt_reg_bitmask':         0b00011111,
-        
-        'volt_sel':False,
-
-        'range':{
-            'values':{
-                'is_linear':    True,
-                'is_bipolar':   True,
-                'sign_bitmask': 0b1000000,
-                'sign_address': 0x59,
-                'start_mV':     1030,
-                'step_mV':      10,
-                'start_reg':    0x00,
-                'stop_reg':     0x1F,
-            },
-             
-        },
-
         'settings':{
+            'voltage':{
+                'volt_reg_address':         0x59,
+                'volt_reg_bitmask':         0b00011111,
+
+                'volt_sel':False,
+
+                'range':{
+                    'values':{
+                        'is_linear':    True,
+                        'is_bipolar':   True,
+                        'sign_bitmask': 0b1000000,
+                        'sign_address': 0x59,
+                        'start_mV':     1030,
+                        'step_mV':      10,
+                        'start_reg':    0x00,
+                        'stop_reg':     0x1F,
+                    },
+                },
+            },
             'ovd':{
                 'of_match': 'regulator-ov-error-microvolt',
                 'reg_bitmask':              0b01111111,
@@ -533,27 +536,27 @@ data={
         'regulator_en_address':     0x45,
         'regulator_en_bitmask':     0b11111111,
 
-
-        'volt_reg_address':         0x5C,
-        'volt_reg_bitmask':         0b00000111,
-
-        'volt_change_not_allowed_while_on': True,
-        'volt_sel':False,
-
-        'range':{
-            'values':{
-                'is_linear':    True,
-                'is_bipolar':   True,
-                'sign_bitmask': 0b1000000,
-                'sign_address': 0x5C,
-                'start_mV':     2500,
-                'step_mV':      40,
-                'start_reg':    0x00,
-                'stop_reg':     0x7,
-            },
-        },
-
         'settings':{
+            'voltage':{
+                'volt_reg_address':         0x5C,
+                'volt_reg_bitmask':         0b00000111,
+
+                'volt_change_not_allowed_while_on': True,
+                'volt_sel':False,
+
+                'range':{
+                    'values':{
+                        'is_linear':    True,
+                        'is_bipolar':   True,
+                        'sign_bitmask': 0b1000000,
+                        'sign_address': 0x5C,
+                        'start_mV':     2500,
+                        'step_mV':      40,
+                        'start_reg':    0x00,
+                        'stop_reg':     0x7,
+                    },
+                },
+            },
             'ovd':{
                 'of_match': 'regulator-ov-error-microvolt',
                 'reg_bitmask':              0b01111111,
@@ -662,26 +665,27 @@ data={
         'regulator_en_address':     0x46,
         'regulator_en_bitmask':     0b11111111,
 
-        'volt_sel':False,
-
-        'range':{
-                'values':{
-                'is_linear':True,
-                'start_mV':3300,
-                'step_mV':0,
-                'start_reg':0x00,
-                'stop_reg':0x00,
-            },
-                #     'flat':{
-                #     'is_linear':True,
-                #     'start_mV':1600,
-                #     'step_mV':100,
-                #     'start_reg':0x00,
-                #     'stop_reg':0x03,
-                # }
-        },
-
         'settings':{
+            'voltage':{
+                'volt_sel':False,
+
+                'range':{
+                        'values':{
+                        'is_linear':True,
+                        'start_mV':3300,
+                        'step_mV':0,
+                        'start_reg':0x00,
+                        'stop_reg':0x00,
+                    },
+                        #     'flat':{
+                        #     'is_linear':True,
+                        #     'start_mV':1600,
+                        #     'step_mV':100,
+                        #     'start_reg':0x00,
+                        #     'stop_reg':0x03,
+                        # }
+                },
+            },
             'ocw':{ #start_mV, step_mV are milliamperes here
                 'of_match': 'regulator-oc-warn-microamp',
                 'reg_bitmask':              0b00111111,
