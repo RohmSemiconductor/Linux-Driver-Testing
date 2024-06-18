@@ -18,7 +18,7 @@ def test_voltage_run(command):
 
             if ("volt_change_not_allowed_while_on" in bd71815.board.data['regulators'][regulator] and regulator_is_on == 1):
                 print("Cannot change regulator: "+regulator+" voltage - Voltage run skipped.")
-            elif 'range' not in bd71815.board.data['regulators'][regulator].keys():
+            elif 'range' not in bd71815.board.data['regulators'][regulator]['settings']['voltage'].keys():
                 print("Not a regulator")
             else:
                 voltage_run=bd71815.regulator_voltage_run(regulator,command)
