@@ -42,6 +42,7 @@ class pmic:
             if "regulator-name =" in line:
                 regulator_list = line.split('"',2)
                 regulator = regulator_list[1]
+                properties_found = []
 
             if  regulator != 0:
                 prop_found=False
@@ -52,29 +53,34 @@ class pmic:
                             x=x+1
                             #if property in line or "//"+property in line:
                             if property in line:
-                                if type(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]) == int:
-                                    prop_found=True
-                                    print(property+" = <"+str(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property])+">;\n", end ='', file = out_dts)
-                                elif type(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]) == bool:
-                                    prop_found=True
-                                    print(property+";\n", end='', file = out_dts)
-                                elif type(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]) == str:
-                                    prop_found=True
-                                    print(property+" = <"+self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]+">;\n", end ='', file = out_dts)
+                                self._print_property_to_dts(regulator, test_dts, property, out_dts)
+                                prop_found=True
+                                properties_found.append(property)
                             # if property was not found, copy line from template
                             if x == len(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties']) and prop_found==False:
                                 print(line, end ='', file = out_dts)
+                            if '};' in line and len(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'])-len(properties_found) != 0:
+                                for property in self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties']:
+                                    if property not in properties_found:
+                                        properties_found.append(property)
+                                        self._print_property_to_dts(regulator, test_dts, property, out_dts)
                     else:
                         print(line, end ='', file = out_dts)
                 else:
                     print(line, end ='', file = out_dts)
-
-
             else:
                 print(line, end ='', file = out_dts)
 
         in_dts.close()
         out_dts.close()
+
+    def _print_property_to_dts(self, regulator, test_dts, property, out_dts):
+        if type(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]) == int:
+            print(property+" = <"+str(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property])+">;\n", end ='', file = out_dts)
+        elif type(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]) == bool:
+            print(property+";\n", end='', file = out_dts)
+        elif type(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]) == str:
+            print(property+" = <"+self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]+">;\n", end ='', file = out_dts)
 
     #### /Device tree functions
 
