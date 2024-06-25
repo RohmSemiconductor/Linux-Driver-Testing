@@ -216,6 +216,8 @@ def generate_dts(project_name, target, dts):
     
 
 def run_driver_tests(project_name):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "initialize_results.py", projects[project_name]['builderNames'][0]], workdir="../tests/pmic", name="Initialize test report" ))
+
     for test_board in test_boards:
         for target in test_boards[test_board]['targets']:
             check_tag_partial=functools.partial(check_tag, target=target)
