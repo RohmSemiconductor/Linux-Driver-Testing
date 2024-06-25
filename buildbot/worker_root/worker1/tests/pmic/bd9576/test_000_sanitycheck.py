@@ -13,3 +13,8 @@ def test_sanitycheck(command):
     for regulator in bd9576.board.data['regulators'].keys():
         dt_buck_check = bd9576.sanity_check(regulator,command)
         assert dt_buck_check == 1
+
+        check_sysfs_en = bd9576.sanity_check_sysfs_en(regulator, command)
+        assert check_sysfs_en == 1
+        check_sysfs_set = bd9576.sanity_check_sysfs_set(regulator, command)
+        assert check_sysfs_set == 1
