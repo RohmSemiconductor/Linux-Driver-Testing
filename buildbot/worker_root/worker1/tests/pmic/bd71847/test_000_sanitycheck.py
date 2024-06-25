@@ -14,6 +14,12 @@ def test_sanitycheck(command):
         dt_buck_check = bd71847.sanity_check(regulator,command)
         assert dt_buck_check == 1
 
+        check_sysfs_en = bd71847.sanity_check_sysfs_en(regulator, command)
+        assert check_sysfs_en == 1
+
+        check_sysfs_set = bd71847.sanity_check_sysfs_set(regulator, command)
+        assert check_sysfs_set == 1
+
     for key in bd71847.board.data['debug']:
         vr_fault_status = bd71847.disable_vr_fault(key,command)
         assert vr_fault_status == bd71847.board.data['debug'][key]['setting']
