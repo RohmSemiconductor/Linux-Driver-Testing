@@ -21,4 +21,6 @@ def test_login(power_port,beagle):
             result = subprocess.run('/bin/bash .././ip-power-control.sh '+power_port+' 1' ,shell=True, capture_output=True, text=True)
             test_shell = subprocess.run('pytest --lg-env '+beagle+'.yaml test_shell.py',shell=True)
 
+    if test_shell.returncode != 0:
+        generic_step_fail(tf='login',power_port=power_port, beagle=beagle)
     assert test_shell.returncode == 0

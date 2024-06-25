@@ -23,4 +23,7 @@ def test_init_overlay(command,product):
     sleep(2)
     lsmod, stderr, returncode = command.run('lsmod')
     for x in range(len(kernel_modules['merged_dt_overlay'][product])):
+        if checkStdOut(lsmod,kernel_modules['merged_dt_overlay'][product][x]) != 0:
+            generic_step_fail(tf='dt_overlay', product=product, dt_overlay=kernel_modules['merged_dt_overlay'][product][x])
+
         assert checkStdOut(lsmod,kernel_modules['merged_dt_overlay'][product][x]) == 0
