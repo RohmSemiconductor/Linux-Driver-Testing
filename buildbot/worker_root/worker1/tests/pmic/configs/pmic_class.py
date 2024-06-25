@@ -12,7 +12,8 @@ pmic_data={}
 @dataclass
 class pmic:
     board: dict
-
+    def write_report(self, stage, command, regulator=None):
+        pass
     #### Device tree functions
     def i2c_read_dt_property(self,command, test_dts, regulator, property):
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.dts['i2c']['bus'])+" "+str(hex(self.board.dts['i2c']['address']))+" "+str(hex(self.board.dts['regulators'][regulator]['test'][test_dts][property]['reg_address'])))
@@ -140,11 +141,33 @@ class pmic:
             validation_fail = 1
         return validation_fail
 
+    def sanity_check_sysfs_en(self, regulator, command):
+#        stdout, stderr, returncode = command.run("test -f /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"/name ;echo $?")
+        if 'regulator_en_address' in self.board.data['regulators'][regulator].keys():
+            stdout, stderr, returncode = command.run("test -f /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_en ;echo $?")
+        print("sanity:")
+        print(self.board.data['regulators'][regulator]['name'])
+        if stdout[0] == '0': #test -f rturns 0 if file is found
+            return 1
+        elif stdout[0] == '1':
+            return 0
+
+    def sanity_check_sysfs_set(self, regulator, command):
+#        stdout, stderr, returncode = command.run("test -f /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"/name ;echo $?")
+        if 'regulator_en_address' in self.board.data['regulators'][regulator].keys():
+            stdout, stderr, returncode = command.run("test -f /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_set ;echo $?")
+        print("sanity:")
+        print(self.board.data['regulators'][regulator]['name'])
+        if stdout[0] == '0': #test -f returns 0 if file is found
+            return 1
+        elif stdout[0] == '1':
+            return 0
+
     def sanity_check(self,regulator,command):
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
         path = self.escape_path(stdout[0])
         stdout, stderr, returncode = command.run("test -f "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/name ;echo $?")
-        if stdout[0] == '0': #test -d returns 0 if file is found
+        if stdout[0] == '0': #test -f returns 0 if file is found
             return 1
         elif stdout[0] == '1':
             return 0
