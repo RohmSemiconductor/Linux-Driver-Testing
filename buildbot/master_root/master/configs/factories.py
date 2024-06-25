@@ -4,7 +4,6 @@ from buildbot.plugins import util, steps
 from buildbot.process import buildstep, logobserver
 from twisted.internet import defer
 
-### HELPERS
 factory_test_linux = util.BuildFactory()
 factory_linux_next = util.BuildFactory()
 factory_linux_mainline = util.BuildFactory()
@@ -123,7 +122,6 @@ def check_tag(step,target):
 #         or re.search('^v('+kernel_modules['linux_ver'][target][0]+'.*$|[6-9]\\.[0-9]|[6-9]\\.[0-9\\].*$){1,2}(-rc[1-9][0-9]?)?$',step.getProperty('commit-description')):
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(repourl=projects[project_name]['repo_git'], mode='incremental', getDescription={'tags':True},name="Update linux source files from git")) #source files
-#    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["echo", util.Property('commit-description')],name="TEST property"))
 
     projects[project_name]['factory'].addStep(steps.FileDownload(mastersrc="../../../compilers/kernel_configs/arm32.config",workerdest=".config",name="Copy kernel config to build directory"))
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "olddefconfig"],name="Update kernel config if needed"))
@@ -137,7 +135,6 @@ def update_test_kernel_modules(project_name):
 def build_overlay_merger(project_name):
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./'}, workdir="build/_test-kernel-modules/overlay_merger", name="Build test kernel module: overlay_merger"))
 
-
 def build_test_kernel_modules(project_name):
     projects[project_name]['factory'].addStep(steps.Git(repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git', branch='test-kernel-modules', alwaysUseLatest=True, mode='full', workdir="build/_test-kernel-modules", name="Update kernel module source files from git"))
     for key in kernel_modules['build']:
@@ -146,32 +143,20 @@ def build_test_kernel_modules(project_name):
         else:
             projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./'}, workdir="build/_test-kernel-modules/"+key, name="Build test kernel modules: "+key))
 
-def upload_kernel_binaries(project_name):
-     projects[project_name]['factory'].addStep(steps.MultipleFileUpload(workersrcs=["arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", "arch/arm/boot/zImage"],
-                                   masterdest=dir_tftpboot,
-                                   mode=0o644,name="Upload compiled kernel binaries to tftp directory"))
+def copy_kernel_binaries_to_tftpboot(project_name):
+     projects[project_name]['factory'].addStep(steps.ShellSequence(commands=[
+         util.ShellArg(command=['cp',"arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", dir_tftpboot], logname='Copy BeagleBone .dtb to tftpboot'),
+         util.ShellArg(command=['cp',"arch/arm/boot/zImage", dir_tftpboot], logname='Copy zImage to tftpboot')
+         ], name="Copy kernel binaries to tftpboot"))
+
+def copy_test_kernel_modules_to_nfs(project_name, target):
+    copy_commands =[]
+    for value in kernel_modules['build'][target]:
+        copy_commands.append(util.ShellArg(command=["cp", "_test-kernel-modules/"+target+"/"+value, dir_nfs], logname="Copy "+value+" to nfs"))
+    projects[project_name]['factory'].addStep(steps.ShellSequence(commands=copy_commands, name=target+": Copy test kernel modules to nfs"))
 
 def build_dts(project_name, target, test_dts):
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make"], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./','DTS_FILE':'generated_dts_'+test_dts+'.dts'}, workdir="build/_test-kernel-modules/"+target, name=target+": Build dts: "+test_dts))
-
-def upload_test_kernel_modules_single_target(project_name,target):
-    files = []
-    for value in kernel_modules['build'][target]:
-        files.append("_test-kernel-modules/"+target+"/"+value)
-    projects[project_name]['factory'].addStep(steps.MultipleFileUpload(workersrcs=files,
-    masterdest=dir_nfs,
-    name=target+": Upload test kernel modules to nfs"
-))
-
-def upload_test_kernel_modules(project_name):
-    files = []
-    for key in kernel_modules['build']:
-        for value in kernel_modules['build'].get(key):
-            files.append("_test-kernel-modules/"+key+"/"+value)
-    projects[project_name]['factory'].addStep(steps.MultipleFileUpload(workersrcs=files,
-    masterdest=dir_nfs,
-    name="Upload test kernel modules to nfs directory"
-))
 
 def download_test_boards(project_name):
     projects[project_name]['factory'].addStep(steps.FileDownload(mastersrc="configs/kernel_modules.py",
@@ -225,36 +210,32 @@ def run_driver_tests(project_name):
             generate_dts(project_name, target, 'default')
             copy_generated_dts(project_name, target, 'default')
             build_dts(project_name, target, 'default')
-            upload_test_kernel_modules_single_target(project_name,target)
+            copy_test_kernel_modules_to_nfs(project_name, target)
 
             initialize_driver_test(project_name, test_board, target)
             generate_driver_tests(project_name,test_boards[test_board]['name'],target, "regulator")
 
             dts_tests = check_dts_tests(target)
+
             for dts in dts_tests:
                 generate_dts(project_name, target, dts)
                 copy_generated_dts(project_name, target, dts)
                 build_dts(project_name, target, dts)
-                upload_test_kernel_modules_single_target(project_name,target)
+                copy_test_kernel_modules_to_nfs(project_name, target)
 
                 initialize_driver_test(project_name, test_board, target)
                 generate_driver_tests(project_name, test_boards[test_board]['name'], target, "dts", dts)
 
-#            check_dts_tests(target)
-
 def linux_driver_test(project_name,beagle_ID,beagle_power_port):
     build_kernel_arm32(project_name)
-    upload_kernel_binaries(project_name)
+    copy_kernel_binaries_to_tftpboot(project_name)
      
     update_test_kernel_modules(project_name)
     build_overlay_merger(project_name)
-    upload_test_kernel_modules_single_target(project_name,'overlay_merger')
+    copy_test_kernel_modules_to_nfs(project_name, 'overlay_merger')
 
-#    build_test_kernel_modules(project_name)
-#    upload_test_kernel_modules(project_name)
     download_test_boards(project_name)
     run_driver_tests(project_name)
-### END OF HELPES ###
 
 ####### FACTORIES #######
 
