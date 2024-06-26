@@ -198,10 +198,9 @@ def copy_generated_dts(project_name, target, dts):
 
 def generate_dts(project_name, target, dts):
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "generate_dts.py", target, dts], workdir="../tests/pmic", name=target+": Generate dts: "+dts))
-    
 
 def run_driver_tests(project_name):
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "initialize_results.py", projects[project_name]['builderNames'][0]], workdir="../tests/pmic", name="Initialize test report" ))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "initialize_results.py", projects[project_name]['builderNames'][0], util.Property('commit-description')], workdir="../tests/pmic", name="Initialize test report" ))
 
     for test_board in test_boards:
         for target in test_boards[test_board]['targets']:
@@ -229,7 +228,6 @@ def run_driver_tests(project_name):
 def linux_driver_test(project_name,beagle_ID,beagle_power_port):
     build_kernel_arm32(project_name)
     copy_kernel_binaries_to_tftpboot(project_name)
-     
     update_test_kernel_modules(project_name)
     build_overlay_merger(project_name)
     copy_test_kernel_modules_to_nfs(project_name, 'overlay_merger')
