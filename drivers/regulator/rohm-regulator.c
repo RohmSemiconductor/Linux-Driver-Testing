@@ -18,9 +18,12 @@ static int set_dvs_level(const struct regulator_desc *desc,
 
 	ret = of_property_read_u32(np, prop, &uv);
 	if (ret) {
-		if (ret != -EINVAL)
+		if (ret != -EINVAL){
+			pr_err("set_dvs_level_ERROR0, %d\n", ret);
 			return ret;
+			}
 		return 0;
+		
 	}
 	/* If voltage is set to 0 => disable */
 	if (uv == 0) {
@@ -31,13 +34,16 @@ static int set_dvs_level(const struct regulator_desc *desc,
 	if (!mask) {
 		if (omask)
 			return regmap_update_bits(regmap, oreg, omask, omask);
-
+		
+		pr_err("set_dvs_level_ERROR1\n");
 		return -EINVAL;
 	}
 	for (i = 0; i < desc->n_voltages; i++) {
 		/* NOTE to next hacker - Does not support pickable ranges */
-		if (desc->linear_range_selectors_bitfield)
+		if (desc->linear_range_selectors_bitfield) {
+			pr_err("set_dvs_level_ERROR2\n");
 			return -EINVAL;
+		}
 		if (desc->n_linear_ranges)
 			ret = regulator_desc_list_voltage_linear_range(desc, i);
 		else
@@ -102,6 +108,7 @@ int rohm_regulator_set_dvs_levels(const struct rohm_dvs_config *dvs,
 				omask = dvs->snvs_on_mask;
 				break;
 			default:
+				pr_err("joku_error");
 				return -EINVAL;
 			}
 			ret = set_dvs_level(desc, np, regmap, prop, reg, mask,
