@@ -129,7 +129,7 @@ int rohm_regulator_set_voltage_sel_restricted(struct regulator_dev *rdev,
 					      unsigned int sel)
 {
 	if (rdev->desc->ops->is_enabled(rdev))
-		pr_err("set_voltage_sel_restricted_(ops->is_enabled)\n")
+		pr_err("set_voltage_sel_restricted_(ops->is_enabled)\n");
 		return -EBUSY;
 
 	return regulator_set_voltage_sel_regmap(rdev, sel);
