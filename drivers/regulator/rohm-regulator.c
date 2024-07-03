@@ -108,7 +108,7 @@ int rohm_regulator_set_dvs_levels(const struct rohm_dvs_config *dvs,
 				omask = dvs->snvs_on_mask;
 				break;
 			default:
-				pr_err("joku_error");
+				pr_err("joku_error\n");
 				return -EINVAL;
 			}
 			ret = set_dvs_level(desc, np, regmap, prop, reg, mask,
@@ -129,6 +129,7 @@ int rohm_regulator_set_voltage_sel_restricted(struct regulator_dev *rdev,
 					      unsigned int sel)
 {
 	if (rdev->desc->ops->is_enabled(rdev))
+		pr_err("set_voltage_sel_restricted_(ops->is_enabled)\n")
 		return -EBUSY;
 
 	return regulator_set_voltage_sel_regmap(rdev, sel);
