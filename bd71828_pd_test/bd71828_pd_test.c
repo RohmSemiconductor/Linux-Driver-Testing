@@ -24,14 +24,14 @@ static ssize_t vdd_en_store (struct kobject *ko, struct kobj_attribute *a, const
 	if (*b == '1') {
 		pr_info("Enabling vdd\n");
 		rval = regulator_enable(r);
-		if (!rval){
+		if (rval){
 			pr_info("Enabling vdd errno: %d\n", rval);
 		}
 	}
 	if (*b == '0') {
 		pr_info("Disabling vdd\n");
 		rval = regulator_disable(r);
-		if (!rval){
+		if (rval){
 			pr_info("Enabling vdd errno: %d\n", rval);
 		}
 	}
