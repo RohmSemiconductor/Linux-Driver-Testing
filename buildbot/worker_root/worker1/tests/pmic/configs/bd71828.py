@@ -63,6 +63,10 @@ data={
                         },
                 },
             },
+            'idle_on':{
+                'reg_address':          0x08,
+                'reg_bitmask':          0b00000010,
+            },
             'ramprate':{
                 'of_match': 'regulator-ramp-delay',
                 'reg_address':              0x0A,
@@ -126,6 +130,10 @@ data={
                         },
                 },
             },
+            'idle_on':{
+                'reg_address':          0x12,
+                'reg_bitmask':          0b00000010,
+            },
             'ramprate':{
                 'of_match': 'regulator-ramp-delay',
                 'reg_address':              0x14,
@@ -188,20 +196,16 @@ data={
                         },
                 },
             },
+            'idle_on':{
+                'reg_address':          0x1C,
+                'reg_bitmask':          0b00000010,
+            },
         }, 
 
         #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
-        'dts':{
-            'default':{
-                'dts_properties':{
-                },
-                'dts_error_comments':{
-                },
-            },
-        }
     }, #buck3 END
 
     'buck4':{
@@ -235,20 +239,16 @@ data={
                         },
                 },
             },
+            'idle_on':{
+                'reg_address':          0x1F,
+                'reg_bitmask':          0b00000010,
+            },
         }, 
 
         #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
-        'dts':{
-            'default':{
-                'dts_properties':{
-                },
-                'dts_error_comments':{
-                },
-            },
-        }
     }, #buck4 END
 
     'buck5':{
@@ -281,6 +281,10 @@ data={
                         'stop_reg':     0x1F,
                         },
                 }
+            },
+            'idle_on':{
+                'reg_address':          0x22,
+                'reg_bitmask':          0b00000010,
             },
 	    },
     }, #buck5 END
@@ -317,6 +321,10 @@ data={
                         },
                 }
             },
+            'idle_on':{
+                'reg_address':          0x25,
+                'reg_bitmask':          0b00000010,
+            },
 	    },
     }, #buck6 END
 
@@ -324,7 +332,7 @@ data={
         'name': 'buck7',
         'of_match':'BUCK7',
 
-        'regulator_en_address':     0x0B,
+        'regulator_en_address':     0x2F,
         'regulator_en_bitmask':     0b00001000,
 
         'settings':{
@@ -351,11 +359,15 @@ data={
                         },
                 }
             },
+            'idle_on':{
+                'reg_address':          0x2F,
+                'reg_bitmask':          0b00000010,
+            },
 	    },
     }, #buck7 END
 
     'ldo1':{
-        'name': 'buck9',
+        'name': 'buck8',
         'of_match':'LDO1',
         'regulator_en_address':     0x39,
         'regulator_en_bitmask':     0b00001000,
@@ -365,6 +377,8 @@ data={
             'voltage':{	
                 'volt_reg_address':         0x3A,
                 'volt_reg_bitmask':         0b00111111,
+
+                'volt_sel': False,
                 
                 'range':{
                     'values':{
@@ -383,11 +397,15 @@ data={
                         },
                 }
             },
+            'idle_on':{
+                'reg_address':          0x39,
+                'reg_bitmask':          0b00000010,
+            },
 	    },
     }, #ldo1 END
 
     'ldo2':{       #datasheet: LDO2
-        'name': 'buck10',
+        'name': 'buck9',
         'of_match':'LDO2',
         'regulator_en_address':     0x3B,
         'regulator_en_bitmask':     0b00001000,
@@ -396,6 +414,8 @@ data={
             'voltage':{
                 'volt_reg_address':         0x3C,
                 'volt_reg_bitmask':         0b00111111,
+
+                'volt_sel': False,
                 
                 'range':{
                     'values':{
@@ -414,11 +434,15 @@ data={
                         },
                 }
             },
+            'idle_on':{
+                'reg_address':          0x3B,
+                'reg_bitmask':          0b00000010,
+            },
 	    },
     }, #ldo2 END
 
     'ldo3':{       #datasheet: LDO3
-        'name': 'buck11',
+        'name': 'buck10',
         'of_match':'LDO3',
         'regulator_en_address':     0x3D,
         'regulator_en_bitmask':     0b00001000,
@@ -427,6 +451,8 @@ data={
             'voltage':{
                 'volt_reg_address':         0x3E,
                 'volt_reg_bitmask':         0b00111111,
+
+                'volt_sel': False,
                 
                 'range':{
                     'values':{
@@ -445,11 +471,15 @@ data={
                         },
                 }
             },
+            'idle_on':{
+                'reg_address':          0x3D,
+                'reg_bitmask':          0b00000010,
+            },
 	    },
     }, #ldo3 END
 
     'ldo4':{       #datasheet: LDO4
-        'name': 'buck12',
+        'name': 'buck11',
         'of_match':'LDO4',
         'regulator_en_address':     0x3F,
         'regulator_en_bitmask':     0b00001000,
@@ -457,7 +487,9 @@ data={
         'settings':{
             'voltage':{
                 'volt_reg_address':         0x40,
-                'volt_reg_bitmask':         0b00001111,
+                'volt_reg_bitmask':         0b00111111,
+
+                'volt_sel': False,
                 
                 'range':{
                     'values':{
@@ -476,11 +508,15 @@ data={
                         },
                 }
             },
+            'idle_on':{
+                'reg_address':          0x3F,
+                'reg_bitmask':          0b00000010,
+            },
 	    },
     }, #ldo4 END
 
     'ldo5':{       #datasheet: LDO5
-        'name': 'buck13',
+        'name': 'buck12',
         'of_match':'LDO5',
         'regulator_en_address':     0x41,
         'regulator_en_bitmask':     0b00001000,
@@ -489,6 +525,8 @@ data={
             'voltage':{
                 'volt_reg_address':         0x43,       #LDO5_VOLT_L
                 'volt_reg_bitmask':         0b00111111,
+
+                'volt_sel': False,
                 
                 'range':{
                     'values':{
@@ -507,47 +545,30 @@ data={
                         },
                 }
             },
+            'idle_on':{
+                'reg_address':          0x41,
+                'reg_bitmask':          0b00000010,
+            },
 	    },
     }, #ldo5 END
 
     'ldo6':{       #datasheet: LDO6
-        'name': 'buck14',
+        'name': 'buck13',
         'of_match':'LDO6',
 
         'regulator_en_address':     0x44,
         'regulator_en_bitmask':     0b00001000,
-
+        'no_voltage_register':      True,
         'settings':{
-            #   NO VOLTAGE REGISTER, FIXED 1.8V OUTPUT
-            #   ADD EXCEPTION TO VOLTAGE TEST SCRIPT
-            'voltage':{
-                'volt_reg_address':         0x1D,
-                'volt_reg_bitmask':         0b00001111,
-
-                'volt_sel':False,
-
-                'range':{
-                        'values':{
-                        'is_linear':True,
-                        'start_mV':1800,
-                        'step_mV':0,
-                        'start_reg':0x00,
-                        'stop_reg':0x00,
-                    },
-                         #     'flat':{
-                         #     'is_linear':True,
-                         #     'start_mV':1600,
-                         #     'step_mV':100,
-                         #     'start_reg':0x00,
-                         #     'stop_reg':0x03,
-                         # }
-                }
+            'idle_on':{
+                'reg_address':          0x44,
+                'reg_bitmask':          0b00000010,
             },
 	    },
     }, #ldo6 END
 
     'ldo7':{       #datasheet: LDO_SNVS
-        'name': 'buck15',
+        'name': 'buck14',
         'of_match':'LDO7',
 
         'regulator_en_address':     0x45,
@@ -556,7 +577,9 @@ data={
         'settings':{
             'voltage':{
                 'volt_reg_address':         0x46,
-                'volt_reg_bitmask':         0b00001111,
+                'volt_reg_bitmask':         0b00111111,
+
+                'volt_sel': False,
                 
                 'range':{
                     'values':{
@@ -576,7 +599,11 @@ data={
                 }
             },
 	    },
+            'idle_on':{
+                'reg_address':          0x45,
+                'reg_bitmask':          0b00000010,
+            },
     } #ldo7 END
 
 } #regulators END    
-} #bd71837 END
+} #bd71828 END

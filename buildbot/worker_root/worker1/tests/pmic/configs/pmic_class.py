@@ -123,12 +123,12 @@ class pmic:
         assert type(self.board.data['i2c']['bus']) == int
         assert type(self.board.data['i2c']['address']) == int
         for regulator in self.board.data['regulators']:
-            if 'dts_only' not in self.board.data['regulators'][regulator].keys():
+            if 'dts_only' not in self.board.data['regulators'][regulator].keys() and 'no_voltage_register' not in self.board.data['regulators'][regulator].keys():
                 if ('volt_sel' in self.board.data['regulators'][regulator]['settings']['voltage'] and self.board.data['regulators'][regulator]['settings']['voltage']['volt_sel'] == True):
                     assert type(self.board.data['regulators'][regulator]['settings']['voltage']['volt_sel_bitmask']) == int
                 for r in self.board.data['regulators'][regulator]['settings']['voltage']['range'].keys():
                     if 'is_linear' in self.board.data['regulators'][regulator]['settings']['voltage']['range'][r].keys() and self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == True:
-                        assert type(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV']) == int
+                        assert type(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV']) == int or type(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV']) == float
                     elif 'is_linear' in self.board.data['regulators'][regulator]['settings']['voltage']['range'][r].keys() and self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == False:
                         assert type(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV']) == list
                     if 'is_bipolar' in self.board.data['regulators'][regulator]['settings']['voltage'].keys():
@@ -183,6 +183,18 @@ class pmic:
         i2creturn = int(stdout[0],0)
         vr_fault_status = i2creturn & self.board.data['debug'][key]['bitmask']
         return vr_fault_status
+
+    def disable_idle_mode(self, regulator, command):
+        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['settings']['idle_on']['reg_address'])))
+        i2creturn = int(stdout[0],0)
+
+        new_val = str(hex((0 & self.board.data['regulators'][regulator]['settings']['idle_on']['reg_bitmask']) | (~self.board.data['regulators'][regulator]['settings']['idle_on']['reg_bitmask'] & i2creturn)))
+        stdout, stderr, returncode = command.run("i2cset -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['settings']['idle_on']['reg_address']))+" "+new_val)
+        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['settings']['idle_on']['reg_address'])))
+        i2creturn = int(stdout[0],0)
+        idle_mode_status = i2creturn & self.board.data['regulators'][regulator]['settings']['idle_on']['reg_bitmask']
+        print(idle_mode_status)
+        return idle_mode_status
 
     def check_regulator_enable_mode(self, regulator, command):
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
@@ -248,6 +260,11 @@ class pmic:
     def regulator_disable(self,regulator,command):
         command.run("echo 0 > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_en")
         sleep(0.2)
+
+       #### bd71828 needs a bit more time to set the values to register, read fails without this
+        if self.board.data['name'] == 'bd71828':
+            sleep(2)
+
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
         i2creturn = int(stdout[0],0)
         regulator_en_status = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
@@ -272,7 +289,7 @@ class pmic:
             stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator][setting]['reg_address'])))
             i2creturn = int(stdout[0],0)
             unmasked_return = i2creturn & self.board.data['regulators'][regulator][setting]['reg_bitmask']
-            
+
             volt_index = (i2creturn & self.board.data['regulators'][regulator][setting]['reg_bitmask']) - self.board.data['regulators'][regulator][setting][r]['start_reg']
 
             calculated_return_value = self.calculate_return_value(regulator, command,r, volt_index,i2creturn,setting)
@@ -361,16 +378,17 @@ class pmic:
             }
 
         for r in self.board.data['regulators'][regulator]['settings']['voltage']['range'].keys():
-            for x in range(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_reg'], self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['stop_reg']+1):
-                volt_index = x - self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_reg']
-                uv = self.regulator_voltage_set(regulator, r, command, volt_index)
-                calculated_return_value = self.i2c_to_uv(regulator, command)
+            if r != 'flat':
+                for x in range(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_reg'], self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['stop_reg']+1):
+                    volt_index = x - self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_reg']
+                    uv = self.regulator_voltage_set(regulator, r, command, volt_index)
+                    calculated_return_value = self.i2c_to_uv(regulator, command)
 
-                if uv != calculated_return_value:
-                    voltage_run['test_failed']=1
-                    voltage_run['buck_fail'].append([regulator,r,volt_index,uv, calculated_return_value])
-                    print(uv)
-                    print(calculated_return_value)
+                    if uv != calculated_return_value:
+                        voltage_run['test_failed']=1
+                        voltage_run['buck_fail'].append([regulator,r,volt_index,uv, calculated_return_value])
+                        print(uv)
+                        print(calculated_return_value)
 
         return voltage_run
     

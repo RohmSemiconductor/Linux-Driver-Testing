@@ -13,7 +13,7 @@ def test_out_of_range_voltages(command):
     failures=[]
     for regulator in bd71828.board.data['regulators'].keys():
         if not 'dts_only' in bd71828.board.data['regulators'][regulator].keys():
-            if regulator != 'wled': #CHANGE THIS!!!!!
+            if 'voltage' in bd71828.board.data['regulators'][regulator]['settings'].keys():
                 print(regulator)
                 regulator_is_on=bd71828.regulator_is_on(regulator,command)
 
