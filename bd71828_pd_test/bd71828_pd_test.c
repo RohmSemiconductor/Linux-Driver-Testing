@@ -38,11 +38,40 @@ static ssize_t vdd_en_store (struct kobject *ko, struct kobj_attribute *a, const
 	rval = c;
 	return rval;
 }
-
 static struct kobj_attribute vdd_en = __ATTR_RW(vdd_en);
+
+static ssize_t vdd_set_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+{
+	int rva;
+	struct regulator *r = g_r[0];
+	int v = regulator_get_voltage(r);
+
+	if (v !=0)
+			rval= pr_info("Regulator_get_voltage errno: %d\n", v);
+	else
+		rval = v;
+
+	return rval;
+}
+
+static ssize_t vdd_set_store (struct kobject *ko, struct kobj_attribute *a, char *b, size_t c)
+{
+	int rval;
+	struct regulator *r = g_r[0];
+	int v=0,l=0;
+
+	sscanf(b, "%i %1",&v,&l);
+	rval = regulator_set_voltage(r, v, l);
+
+	rval = c;
+	return rval;
+}
+
+static struct kobj_attribute vdd_set = __ATTR_RW(vdd_set);
 
 static struct attribute *kalle_pd_reguattrs[] = {
 	&vdd_en.attr,
+	&vdd_set.attr,
 	NULL		
 };
 
@@ -57,24 +86,11 @@ static const struct attribute_group *kalle_pd_attr_groups[] = {
 	kalle_pd_attrs,
 	NULL
 };
-/*
-static struct kobject *g_k = NULL;
-*/
-/*
-static int create_sysfs_kalle_pd(void)
-{
-	int retval;
-	g_k = kobject_create_and_add("kalle_pd", kernel_kobj);
-	retval = sysfs_create_group(g_k, &kalle_pd_attrs[0]);
 
-	return retval;
-}
-*/
 static int kalle_probe(struct platform_device *pdev)
 {
 	int retval = 0;
 	dev_info(&pdev->dev, "Probe print\n");
-/*	retval = create_sysfs_kalle_pd();*/
 	g_r[0] = regulator_get(&pdev->dev, "vdd");
 
 	if (IS_ERR(g_r[0])) {
