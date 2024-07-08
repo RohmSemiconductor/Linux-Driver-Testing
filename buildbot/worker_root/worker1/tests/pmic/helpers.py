@@ -11,7 +11,7 @@ def checkStr(stdout,checkString):
 def initialize_report(bb_project, linux_ver):
     report_file = open('../results/temp_results.txt', 'w+', encoding='utf-8')
     print("BuildBot project: "+bb_project+"\n", end='', file=report_file)
-    print("Linux version: "+linux_ver+"\n", end='', file=report_file)
+    print("Linux version: "+linux_ver+"\n\n", end='', file=report_file)
     report_file.close()
 
 #### Generic steps
