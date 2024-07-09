@@ -325,7 +325,30 @@ data={
                 'reg_address':          0x25,
                 'reg_bitmask':          0b00000010,
             },
+            'ramprate':{
+                'of_match': 'regulator-ramp-delay',
+                'reg_address':              0x27,
+                'reg_bitmask':              0b00000110,
+                'range':{
+                    'values':{
+                        'is_linear':            False,
+                        'list_mV':              [2.5, 5, 10, 20],
+                        'start_reg':            0b00000000,
+                        'stop_reg':             0b00000110,
+                    },
+                },
+            },
 	    },
+        'dts':{
+            'default':{
+                'dts_properties':{
+                    'regulator-ramp-delay': 10000,
+                },
+                'dts_error_comments':{
+                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 10 mV/us'
+                },
+            },
+        },
     }, #buck6 END
 
     'buck7':{
@@ -363,7 +386,30 @@ data={
                 'reg_address':          0x2F,
                 'reg_bitmask':          0b00000010,
             },
+            'ramprate':{
+                'of_match': 'regulator-ramp-delay',
+                'reg_address':              0x31,
+                'reg_bitmask':              0b00000110,
+                'range':{
+                    'values':{
+                        'is_linear':            False,
+                        'list_mV':              [2.5, 5, 10, 20],
+                        'start_reg':            0b00000000,
+                        'stop_reg':             0b00000110,
+                    },
+                },
+            },
 	    },
+        'dts':{
+            'default':{
+                'dts_properties':{
+                    'regulator-ramp-delay': 20000,
+                },
+                'dts_error_comments':{
+                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 20 mV/us'
+                },
+            },
+        },
     }, #buck7 END
 
     'ldo1':{
