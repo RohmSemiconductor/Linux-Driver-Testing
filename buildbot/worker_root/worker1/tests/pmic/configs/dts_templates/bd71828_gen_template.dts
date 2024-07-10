@@ -84,8 +84,8 @@
 				regulators {
 					buck1: BUCK1 {
 						regulator-name = "buck1";
-						regulator-min-microvolt = <500000>;
-						regulator-max-microvolt = <2000000>;
+						regulator-min-microvolt = <400000>;
+						regulator-max-microvolt = <2100000>;
 						regulator-ramp-delay = <2500>;
 						rohm,dvs-runlvl-ctrl;
 						rohm,dvs-runlevel-microvolts =
@@ -97,8 +97,8 @@
 					};
 					buck2: BUCK2 {
 						regulator-name = "buck2";
-						regulator-min-microvolt = <500000>;
-						regulator-max-microvolt = <2000000>;
+						regulator-min-microvolt = <400000>;
+						regulator-max-microvolt = <2100000>;
 						regulator-ramp-delay = <5000>;
 						rohm,dvs-runlvl-ctrl;
 						rohm,dvs-runlevel-microvolts =
@@ -110,26 +110,26 @@
 					};
 					buck3: BUCK3 {
 						regulator-name = "buck3";
-						regulator-min-microvolt = <1200000>;
-						regulator-max-microvolt = <2000000>;
+						regulator-min-microvolt = <1100000>;
+						regulator-max-microvolt = <2100000>;
 						regulator-boot-on;
 					};
 					buck4: BUCK4 {
 						regulator-name = "buck4";
-						regulator-min-microvolt = <1000000>;
-						regulator-max-microvolt = <1800000>;
+						regulator-min-microvolt = <900000>;
+						regulator-max-microvolt = <1900000>;
 						regulator-boot-on;
 					};
 					buck5: BUCK5 {
 						regulator-name = "buck5";
-						regulator-min-microvolt = <2500000>;
-						regulator-max-microvolt = <3300000>;
+						regulator-min-microvolt = <2400000>;
+						regulator-max-microvolt = <3400000>;
 						regulator-boot-on;
 					};
 					buck6: BUCK6 {
 						regulator-name = "buck6";
-						regulator-min-microvolt = <500000>;
-						regulator-max-microvolt = <2000000>;
+						regulator-min-microvolt = <40000>;
+						regulator-max-microvolt = <2100000>;
 						regulator-ramp-delay = <10000>;
 						rohm,dvs-runlvl-ctrl;
 						rohm,dvs-runlevel-microvolts =
@@ -141,8 +141,8 @@
 					};
 					buck7: BUCK7 {
 						regulator-name = "buck7";
-						regulator-min-microvolt = <500000>;
-						regulator-max-microvolt = <2000000>;
+						regulator-min-microvolt = <400000>;
+						regulator-max-microvolt = <2100000>;
 						regulator-ramp-delay = <20000>;
 						rohm,dvs-runlvl-ctrl;
 						rohm,dvs-runlevel-microvolts =
@@ -154,32 +154,32 @@
 					};
 					ldo1: LDO1 {
 						regulator-name = "ldo1";
-						regulator-min-microvolt = <800000>;
-						regulator-max-microvolt = <3300000>;
+						regulator-min-microvolt = <700000>;
+						regulator-max-microvolt = <3400000>;
 						regulator-boot-on;
 					};
 					ldo2: LDO2 {
 						regulator-name = "ldo2";
-						regulator-min-microvolt = <800000>;
-						regulator-max-microvolt = <3300000>;
+						regulator-min-microvolt = <700000>;
+						regulator-max-microvolt = <3400000>;
 						regulator-boot-on;
 					};
 					ldo3: LDO3 {
 						regulator-name = "ldo3";
-						regulator-min-microvolt = <800000>;
-						regulator-max-microvolt = <3300000>;
+						regulator-min-microvolt = <700000>;
+						regulator-max-microvolt = <3400000>;
 						regulator-boot-on;
 					};
 					ldo4: LDO4 {
 						regulator-name = "ldo4";
-						regulator-min-microvolt = <800000>;
-						regulator-max-microvolt = <3300000>;
+						regulator-min-microvolt = <700000>;
+						regulator-max-microvolt = <3400000>;
 						regulator-boot-on;
 					};
 					ldo5: LDO5 {
 						regulator-name = "ldo5";
-						regulator-min-microvolt = <800000>;
-						regulator-max-microvolt = <3300000>;
+						regulator-min-microvolt = <700000>;
+						regulator-max-microvolt = <3400000>;
 						regulator-boot-on;
 					};
 					ldo6: LDO6 {
@@ -190,8 +190,8 @@
 					};
 					ldo7_reg: LDO7 {
 						regulator-name = "ldo7";
-						regulator-min-microvolt = <800000>;
-						regulator-max-microvolt = <3300000>;
+						regulator-min-microvolt = <700000>;
+						regulator-max-microvolt = <3400000>;
 						regulator-boot-on;
 					};
 				};
