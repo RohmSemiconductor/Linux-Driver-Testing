@@ -239,7 +239,7 @@ def run_driver_tests(project_name):
                 initialize_driver_test(project_name, test_board, target, dts, check_make_dts_partial)
                 generate_driver_tests(project_name, test_boards[test_board]['name'], target,check_make_dts_partial, check_tag_partial, "dts", dts )
 
-def linux_driver_test(project_name,beagle_ID,beagle_power_port):
+def linux_driver_test(project_name):
     build_kernel_arm32(project_name)
     copy_kernel_binaries_to_tftpboot(project_name)
     update_test_kernel_modules(project_name)
@@ -252,8 +252,8 @@ def linux_driver_test(project_name,beagle_ID,beagle_power_port):
 
 ####### FACTORIES #######
 
-linux_driver_test('test_linux','beagle1',beagle_power_port1)
-linux_driver_test('linux-next','beagle1',beagle_power_port1)
-linux_driver_test('linux_mainline','beagle1',beagle_power_port1)
-linux_driver_test('linux_stable','beagle1',beagle_power_port1)
-linux_driver_test('linux_rohm_devel','beagle1',beagle_power_port1)
+linux_driver_test('test_linux')
+linux_driver_test('linux-next')
+linux_driver_test('linux_mainline')
+linux_driver_test('linux_stable')
+linux_driver_test('linux_rohm_devel')
