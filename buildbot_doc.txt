@@ -1,0 +1,144 @@
+----
+Summary of what Linux Driver Automation does:
+
+	master.cfg:
+
+1. 	Poll git repository for changes
+2. 	Launch builder when a new tag found ( after stability timer )
+
+	/master.cfg
+
+	factories.py:
+
+3. 	Clone git that contains linux source code
+4. 	Build Linux kernel with old config
+5. 	Install kernel modules
+6. 	Build beagle bone device tree binaries
+7. 	Move kernel binaries to tftpboot
+
+8. 	Update test kernel modules from git
+9. 	Build overlay merger and move it to nfs
+
+10.	Initialize test report: Write which BuildBot project is running and what is the linux version it is testing
+
+	*** for loop targets from test_boards.py:
+		if linux version >= smallest version which supports given test target:
+
+11.	Generate default .dts file using .../pmic/configs/bdxxxxxx.py and pmic_class found in .../pmic/configs/
+12.	Build test kernel modules using generated .dts and move to nfs
+
+13.	Initialize driver tests by:
+		a. Rebooting BeagleBone Black and log in
+		b. Install overlay merger
+		c. Merge device tree overlay
+		d. Install test modules
+
+14.	a. Generate driver test stages for BuildBot, this is achieved with generate_steps.py which parses the given test targets test folder and prints test file names.
+	b. Run the tests
+
+15.	a. Check if there is device tree tests for the test target
+	b. Repeat steps 11 to 14 for the found device tree settings and tests
+	
+	*** /for loop targets from test_boards.py
+
+16.	Generate test report
+
+	/factories.py		
+----
+
+Whole of this works with a bunch of configuration files, which typically contain python dictionaries.
+
+master.cfg:
+
+Here steps 1. and 2. are defined - git pollers are created, what gets build and on which conditions.
+
+Additionally workers are connected to master here, web-interface settings, reporters and such..
+
+To add new projects, its easy to follow the pattern to append:
+c['change_source']
+c['schedulers']
+c['builders']
+
+BuildBot masters configuration files can be found here:
+Linux-Driver-Testing/buildbot/master_root/master/configs
+
+configs/paths.py: !!!
+
+This file contains absolute paths to imporant directories!
+	/!\ These must be defined correctly, and all must be defined /!\
+
+F.Ex:
+dir_compiler_arm32="/home/kale/Linux-Driver-Testing/compilers/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/bin/"
+dir_nfs="/home/kale/nfs/"
+dir_tftpboot="/var/lib/tftpboot/"
+dir_worker_root="/home/kale/Linux-Driver-Testing/buildbot/worker_root/"
+
+configs/projects.py:
+
+If you want to add a git repository to poll, this is the file to do it.
+
+This file contains the repositories / branches that the git poller is periodically checking.
+Git poller settings.
+Which scheduler the project should use ( in master.cfg: scheduler checks if the git update should be built or not )
+Assigned 'workers' for project.
+Which factory they should use.
+
+Example:
+
+projects['linux_mainline']={
+    'name': 'linux_mainline',                                                           # Used in factories.py to add steps to factory
+#    'branches': tag_change,                                                            # It is possible to poll for tag changes, but this proved problematic; some sort of performance issues
+    'branches': ['master'],                                                             # Poll for a list of branches, even single branch needs to be in a list
+    'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git',   # This is the url for the git repository
+    'polling': 480,                                                                     # Polling interval in seconds
+    'treeStableTimer': 1100,                                                            # This is a timer which resets everytime a new change is made, helps during mergewindow so BB doesn't build every change
+    'scheduler_name': 'scheduler-linux_mainline',                                       # Scheduler used for the project, in master.cfg there is regex rules for schedulers: change_commit_is_release(change)
+    'builderNames': ["Linux_Mainline"],                                                 # Separate builder for each projects, these appear separately in the BuildBot Web view
+    'workerNames': ["worker1"],                                                         # List of workers which can build and run this project, worker1 is a local worker
+    'factory': factory_linux_mainline,                                                  # Factory used for this project
+}
+
+configs/test_boards.py:
+
+This file contains list of installed BeagleBones, and which test targets they are connected with, and which IP power port the BeagleBoneBlack is connected to.
+
+To add a new one: copy paste a dictionary, change the 'beagle#' in both fileds, and the power port. Then list which test targets are connected to it.
+'arch' key and its value are not used at the moment, but they were added there in preparation if other architectures will get used later.
+
+configs/kernel_modules.py:
+
+This file contains information about the PMIC drivers and the test kernel modules.
+This file is used by both, BuildBot master and the worker.
+Some dictionaries are deprecated by replaced functions in the factories.py
+
+configs/factories.py:
+
+Here factories are created and defined. This file has most of the BuildBots functionality!
+
+If a new project is added to configs/projects.py, a factory for it should be created here.
+
+To add a new factory for linux 32 bit arm:
+
+Add a line at the top:
+factory_linux_newlinux = util.BuildFactory()						# This must be the same as defined in the configs/projects.py
+
+Add a line at the bottom:
+linux_driver_test('linux_newlinux')							# 'linux_newlinux' <- this must be the same as the 'name' filed in
+											# configs/projects.py
+
+If you are using 64-bit arm or possibly other architectures. You have to develop your own build functions and add compiler paths.
+Most of the functions found in this series of function calls should be reusable for every architecture.
+
+If you need to carry information across the buildsteps, BuildBots properties must be used.
+
+Good example is to check ..." doStepIf=check_tag_partial "..:
+doStepIf accepts a callable that returns True or False, but it only accepts "step" as an argument.
+A function wrapper from 'functools' is used to get a boolean value with more information than step:
+check_tag_partial=functools.partial(check_tag, target=target)
+
+This may seem kind of complicated way to do this, but due to BuildBots modular way of working, the factorysteps are seperate commands sent from master to worker.
+factories.py is not really a python script that can run if statements to skip or add steps as they are exceuted.
+
+##### DRIVER TESTS #####
+
+Linux-Driver-Testing/buildbot/worker_root/worker1/tests/ is the location of the tests
