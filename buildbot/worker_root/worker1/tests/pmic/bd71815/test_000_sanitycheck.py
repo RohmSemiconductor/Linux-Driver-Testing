@@ -14,3 +14,9 @@ def test_sanitycheck(command):
         dt_buck_check = bd71815.sanity_check(regulator,command)
         print(regulator)
         assert dt_buck_check == 1
+        if 'dts_only' not in bd71815.board.data['regulators'][regulator].keys(): 
+            check_sysfs_en = bd71815.sanity_check_sysfs_en(regulator, command)
+            assert check_sysfs_en == 1
+
+            check_sysfs_set = bd71815.sanity_check_sysfs_set(regulator, command)
+            assert check_sysfs_set == 1
