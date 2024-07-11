@@ -1,10 +1,8 @@
 import sys
-import os
-sys.path.append(os.path.abspath("."))
+from pathlib import Path
 
-from helpers import *
-
-from time import sleep
+sys.path.append('..')
+from test_util import *
 
 def test_init_overlay(command):
     stdout, stderr, returncode = command.run('insmod /mva_overlay.ko')

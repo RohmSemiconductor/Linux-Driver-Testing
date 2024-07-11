@@ -1,10 +1,10 @@
 import pytest
 import sys
-import os
-sys.path.append(os.path.abspath("./configs"))
-sys.path.append(os.path.abspath("."))
 
-from helpers import *
+sys.path.append('..')
+sys.path.append('./configs')
+from test_util import *
+
 from time import sleep
 from kernel_modules import *
 

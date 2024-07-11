@@ -1,9 +1,9 @@
 import subprocess
 import sys
-import os
-sys.path.append(os.path.abspath("."))
+from pathlib import Path
 
-from helpers import *
+sys.path.append('..')
+from test_util import *
 
 def test_login(power_port,beagle):
     result = subprocess.run('/bin/bash .././ip-power-control.sh '+power_port+' 0' ,shell=True, capture_output=True, text=True)
