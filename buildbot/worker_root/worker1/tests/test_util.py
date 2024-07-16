@@ -137,7 +137,7 @@ def check_result(result):
     report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
 
-    if result['type'] == 'pmic':
+    if result['type'] == 'PMIC':
         #Sanity check:
         if result['stage'] == 'validate_config':
             _assert_pmic_validate_config(result, report_file)
