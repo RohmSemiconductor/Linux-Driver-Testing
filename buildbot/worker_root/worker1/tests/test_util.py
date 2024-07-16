@@ -71,6 +71,31 @@ def generate_test_report(stage, regulator=None):
     pass
 
 ### Assert functions for PMICs
+def _assert_pmic_regulator_is_on_driver(result, report_file):
+    test_fail = 0
+    if result['expect'] != result['return']:
+        print("Regulator '"+result['regulator']+"' status mismatch! Return: "+str(result['return'])+", Should be "+str(result['expect'])+"\n", end='', file=report_file)
+        test_fail = 1
+
+    if test_fail == 1:
+        report_file.close()
+    assert result['expect'] == result['return']
+
+def _assert_pmic_regulator_en(result, report_file):
+    test_fail = 0
+    if result['stage'] == 'regulator_enable':
+        en_dis = 'enable'
+    elif result['stage'] == 'regulator_disable':
+        en_dis = 'disable'
+
+    if result['expect'] != result['return']:
+        print("Regulator '"+result['regulator']+"' "+en_dis+" failed!\n", end='', file=report_file)
+        test_fail = 1
+
+    if test_fail == 1:
+        report_file.close()
+    assert result['expect'] == result['return']
+
 def _assert_pmic_template(result, report_file):
     if result['expect'] != result['return']:
         pass
@@ -149,4 +174,11 @@ def check_result(result):
             _assert_pmic_sanity_check_sysfs_en(result, report_file)
         elif result['stage'] == 'disable_vr_fault':
             _assert_pmic_disable_vr_fault(result, report_file)
+
+        #Regulator enable / disable:
+        elif result['stage'] == 'regulator_enable' or result['stage'] == 'regulator_disable':
+            _assert_pmic_regulator_en(result, report_file)
+        elif result['stage'] == 'regulator_is_on_driver':
+            _assert_pmic_regulator_is_on_driver(result, report_file)
+
     report_file.close()

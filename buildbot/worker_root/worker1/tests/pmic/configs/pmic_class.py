@@ -13,7 +13,7 @@ pmic_data={}
 class pmic:
     board: dict
     result: dict = field(default_factory=lambda: {
-    'type':         'pmic',
+    'type':         'PMIC',
     'stage':        None,
     'regulator':    None,
     'return':       [],
@@ -246,11 +246,14 @@ class pmic:
             return 0
 
     def regulator_is_on_driver(self, regulator, command):
+        self.result['regulator'] = regulator
+        self.result['stage'] = 'regulator_is_on_driver'
         stdout, stderr, returncode = command.run("cat /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_en")
         if stdout[0] == '0\x00':
-            return 0
+            self.result['return'] = 0
         elif stdout[0] == '1\x00':
-            return 1
+            self.result['return'] = 1
+        return self.result
 
     def regulator_is_on(self, regulator, command):
         regulator_enable_mode = self.check_regulator_enable_mode(regulator,command)
@@ -274,14 +277,22 @@ class pmic:
         return regulator_en_status
 
     def regulator_enable(self,regulator,command):
+        self.result['stage'] = 'regulator_enable'
+        self.result['regulator'] = regulator
+
         command.run("echo 1 > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_en")
         sleep(0.2)
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
         i2creturn = int(stdout[0],0)
         regulator_en_status = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
-        return regulator_en_status
+        self.result['return'] = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
+        self.result['expect'] = self.board.data['regulators'][regulator]['regulator_en_bitmask']
+        return self.result
 
     def regulator_disable(self,regulator,command):
+        self.result['stage'] = 'regulator_disable'
+        self.result['regulator'] = regulator
+
         command.run("echo 0 > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_en")
         sleep(0.2)
 
@@ -291,8 +302,9 @@ class pmic:
 
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
         i2creturn = int(stdout[0],0)
-        regulator_en_status = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
-        return regulator_en_status
+        self.result['return'] = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
+        self.result['expect'] = 0
+        return self.result
 
     def regulator_voltage_driver_get(self, regulator, command):
         stdout, stderr, returncode = command.run("cat /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_set")
