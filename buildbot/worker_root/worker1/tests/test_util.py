@@ -71,18 +71,34 @@ def generate_test_report(stage, regulator=None):
     pass
 
 ### Assert functions for PMICs
+def _assert_pmic_voltage_run(result, report_file):
+    if result['product'] == 'bd9576':
+        if result['expect'] != result['return']:
+            print( "Voltage check mismatch! Regulator "+result['regulator']+": Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
+
+    else:
+        x = 0
+        for i in result['expect']:
+            if result['expect'] != result['return']:
+                    if type(result['expect'][x][0]) == int:
+                        range = str(result['expect'][x][0])
+                    else:
+                        range = result['expect'][x][0]
+
+                    print( "Setting voltage failed! Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=report_file)
+            x = x+1
+
+    report_file.close()
+    assert result['expect'] == result['return']
+
 def _assert_pmic_regulator_is_on_driver(result, report_file):
-    test_fail = 0
     if result['expect'] != result['return']:
         print("Regulator '"+result['regulator']+"' status mismatch! Return: "+str(result['return'])+", Should be "+str(result['expect'])+"\n", end='', file=report_file)
-        test_fail = 1
 
-    if test_fail == 1:
-        report_file.close()
+    report_file.close()
     assert result['expect'] == result['return']
 
 def _assert_pmic_regulator_en(result, report_file):
-    test_fail = 0
     if result['stage'] == 'regulator_enable':
         en_dis = 'enable'
     elif result['stage'] == 'regulator_disable':
@@ -90,39 +106,35 @@ def _assert_pmic_regulator_en(result, report_file):
 
     if result['expect'] != result['return']:
         print("Regulator '"+result['regulator']+"' "+en_dis+" failed!\n", end='', file=report_file)
-        test_fail = 1
 
-    if test_fail == 1:
-        report_file.close()
+    report_file.close()
     assert result['expect'] == result['return']
 
-def _assert_pmic_template(result, report_file):
-    if result['expect'] != result['return']:
-        pass
-    assert result['expect'] == result['return']
-    pass
 def _assert_pmic_disable_vr_fault(result, report_file):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: "+result['stage']+": Expected: "+result['expect']+". Received: "+result['return']+".\n", end='', file=report_file)
+    report_file.close()
     assert result['expect'] == result['return']
 
 def _assert_pmic_sanity_check_sysfs_set(result, report_file):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: "+result['regulator']+": _set file missing in sysfs \n", end='', file=report_file)
+    report_file.close()
     assert result['expect'] == result['return']
 
 def _assert_pmic_sanity_check_sysfs_en(result, report_file):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: "+result['regulator']+": _en file missing in sysfs \n", end='', file=report_file)
+    report_file.close()
     assert result['expect'] == result['return']
 
 def _assert_pmic_sanity_check(result, report_file):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: "+result['regulator']+": device tree node missing for "+result['regulator']+"\n", end='', file=report_file)
+    report_file.close()
     assert result['expect'] == result['return']
 
 def _assert_pmic_validate_config(result, report_file):
-    test_fail = 0
     #Basic info
     if result['target_name'] != result['expect_target_name']:
         print( "Sanitycheck failed: validate config: 'name' mismatch! Read: "+result['target_name']+". Expected: "+result['expect_target_name']+"\n", end='', file=report_file)
@@ -135,24 +147,25 @@ def _assert_pmic_validate_config(result, report_file):
     x = 0
     for i in result['expect']:
         if result['return'][x] != result['expect'][x]:
+
             if result['expect'][x][0] == 'volt_sel_bitmask':
                 print( "Sanitycheck failed: validate config: Key '"+result['expect'][x][0]+"' at 'regulators > '"+str(result['expect'][x][1])+"' type is wrong! Expected "+str(result['expect'][x][2])+", got "+str(result['return'][x][2])+"\n", end='', file=report_file)
-                test_fail = 1
+
             if result['expect'][x][0] == 'step_mV':
-                print( "Sanitycheck failed: validate config: Key '"+result['expect'][x][0]+"' at 'regulators > "+str(result['expect'][x][1])+" > range > "+str(result['expect'][x][2])+"' type is wrong! Expected "+str(result['expect'][x][3])+", got "+str(result['return'][x][3])+"\n", end='', file=report_file)
+                if type(result['expect'][x][2]) == int:
+                    range = str(result['expect'][x][2])
+                else:
+                    range = result['expect'][x][2]
+                print( "Sanitycheck failed: validate config: Key '"+result['expect'][x][0]+"' at 'regulators > "+str(result['expect'][x][1])+" > range > "+range+"' type is wrong! Expected "+str(result['expect'][x][3])+", got "+str(result['return'][x][3])+"\n", end='', file=report_file)
 
             if result['expect'][x][0] == 'list_mV':
                 print( "Sanitycheck failed: validate config: Key '"+result['expect'][x][0]+"' at 'regulators > '"+str(result['expect'][x][1])+"' type is wrong! Expected number: "+str(result['expect'][x][2])+", got "+str(result['return'][x][2])+"\n", end='', file=report_file)
-                test_fail = 1
 
             if result['expect'][x][0] == 'sign_bitmask':
                 print( "Sanitycheck failed: validate config: Key '"+result['expect'][x][0]+"' at 'regulators > '"+str(result['expect'][x][1])+"' type is wrong! Expected "+str(result['expect'][x][2])+", got "+str(result['return'][x][2])+"\n", end='', file=report_file)
-                test_fail = 1
         x = x+1
 
-    if test_fail == 1:
-        report_file.close()
-
+    report_file.close()
     assert result['target_name'] == result['expect_target_name']
     assert result['i2c_bus_type'] == int
     assert result['i2c_address_type'] == int
@@ -181,4 +194,6 @@ def check_result(result):
         elif result['stage'] == 'regulator_is_on_driver':
             _assert_pmic_regulator_is_on_driver(result, report_file)
 
-    report_file.close()
+        #Regulator voltages:
+        elif result['stage'] == 'voltage_run' or result['stage'] == 'regulator_voltage_driver_get':
+            _assert_pmic_voltage_run(result, report_file)

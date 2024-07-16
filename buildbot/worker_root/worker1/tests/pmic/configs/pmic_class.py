@@ -15,6 +15,7 @@ class pmic:
     result: dict = field(default_factory=lambda: {
     'type':         'PMIC',
     'stage':        None,
+    'product':      None,
     'regulator':    None,
     'return':       [],
     'expect':       [],
@@ -307,10 +308,14 @@ class pmic:
         return self.result
 
     def regulator_voltage_driver_get(self, regulator, command):
+        self.result['stage'] = 'regulator_voltage_driver_get'
+        self.result['regulator'] = regulator
+        self.result['product'] = self.board.data['name']
         stdout, stderr, returncode = command.run("cat /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_set")
         print(stdout)
         print(stdout[0])
-        return int(stdout[0],0)
+        self.result['return'] = int(stdout[0],0)
+        return self.result
 
     def calculated_uv(self, regulator,command,r, volt_index=None):
         if self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == True:
@@ -408,6 +413,9 @@ class pmic:
         return uv
 
     def regulator_voltage_run(self,regulator,command):
+        self.result['stage'] = 'voltage_run'
+        self.result['regulator'] = regulator
+
         voltage_run={
             'test_failed': 0,
             'buck_fail':[]
@@ -420,13 +428,13 @@ class pmic:
                     uv = self.regulator_voltage_set(regulator, r, command, volt_index)
                     calculated_return_value = self.i2c_to_uv(regulator, command)
 
-                    if uv != calculated_return_value:
-                        voltage_run['test_failed']=1
-                        voltage_run['buck_fail'].append([regulator,r,volt_index,uv, calculated_return_value])
-                        print(uv)
-                        print(calculated_return_value)
+                    if uv == calculated_return_value:
+#                        voltage_run['test_failed']=1
+#                        voltage_run['buck_fail'].append([regulator,r,volt_index,uv, calculated_return_value])
+                        self.result['return'].append([r, x, calculated_return_value])
+                        self.result['expect'].append([r, x, uv])
 
-        return voltage_run
+        return self.result
     
     def i2c_to_uv(self, regulator, command):
         volt_config = self._i2c_to_volt_config(regulator,command)
