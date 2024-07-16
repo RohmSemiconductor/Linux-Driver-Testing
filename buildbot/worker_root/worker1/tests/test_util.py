@@ -1,5 +1,6 @@
 import operator
-
+from dataclasses import dataclass
+import pytest
 def checkStdOut(stdout,checkString):
     if any(checkString in s for s in stdout):
         return 0
@@ -12,6 +13,12 @@ def initialize_report(bb_project, linux_ver):
     report_file = open('../results/temp_results.txt', 'w+', encoding='utf-8')
     print("BuildBot project: "+bb_project+"\n", end='', file=report_file)
     print("Linux version: "+linux_ver+"\n\n", end='', file=report_file)
+    report_file.close()
+
+def initialize_product(type, product):
+    report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
+    report_file.seek(0,2)
+    print("Test results: "+product+" "+type+"\n", end='', file=report_file)
     report_file.close()
 
 #### Generic steps
@@ -40,6 +47,9 @@ def insmod_fail(product, insmod):
     print(product, ": insmod failed: "+insmod+" module missing (lsmod) \n\n", end='', file=report_file)
     report_file.close()
 
+def sanity_check_fail():
+    pass
+
 def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=None, insmod=None):
     report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
@@ -59,3 +69,84 @@ def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=
 
 def generate_test_report(stage, regulator=None):
     pass
+
+### Assert functions for PMICs
+def _assert_pmic_template(result, report_file):
+    if result['expect'] != result['return']:
+        pass
+    assert result['expect'] == result['return']
+    pass
+def _assert_pmic_disable_vr_fault(result, report_file):
+    if result['expect'] != result['return']:
+        print( "Sanitycheck failed: "+result['stage']+": Expected: "+result['expect']+". Received: "+result['return']+".\n", end='', file=report_file)
+    assert result['expect'] == result['return']
+
+def _assert_pmic_sanity_check_sysfs_set(result, report_file):
+    if result['expect'] != result['return']:
+        print( "Sanitycheck failed: "+result['regulator']+": _set file missing in sysfs \n", end='', file=report_file)
+    assert result['expect'] == result['return']
+
+def _assert_pmic_sanity_check_sysfs_en(result, report_file):
+    if result['expect'] != result['return']:
+        print( "Sanitycheck failed: "+result['regulator']+": _en file missing in sysfs \n", end='', file=report_file)
+    assert result['expect'] == result['return']
+
+def _assert_pmic_sanity_check(result, report_file):
+    if result['expect'] != result['return']:
+        print( "Sanitycheck failed: "+result['regulator']+": device tree node missing for "+result['regulator']+"\n", end='', file=report_file)
+    assert result['expect'] == result['return']
+
+def _assert_pmic_validate_config(result, report_file):
+    test_fail = 0
+    #Basic info
+    if result['target_name'] != result['expect_target_name']:
+        print( "Sanitycheck failed: validate config: 'name' mismatch! Read: "+result['target_name']+". Expected: "+result['expect_target_name']+"\n", end='', file=report_file)
+    if result['i2c_bus_type'] != int:
+        print( "Sanitycheck failed: validate config: i2c bus variable type is wrong! Expected int, got "+str(result['i2c_bus_type'])+"\n", end='', file=report_file)
+    if result['i2c_address_type'] != int:
+        print( "Sanitycheck failed: validate config: i2c address variable type is wrong! Expected int, got "+str(result['i2c_address_type'])+"\n", end='', file=report_file)
+
+    #Regulator setting checks
+    x = 0
+    for i in result['expect']:
+        if result['return'][x] != result['expect'][x]:
+            if result['expect'][x][0] == 'volt_sel_bitmask':
+                print( "Sanitycheck failed: validate config: Key '"+result['expect'][x][0]+"' at 'regulators > '"+str(result['expect'][x][1])+"' type is wrong! Expected "+str(result['expect'][x][2])+", got "+str(result['return'][x][2])+"\n", end='', file=report_file)
+                test_fail = 1
+            if result['expect'][x][0] == 'step_mV':
+                print( "Sanitycheck failed: validate config: Key '"+result['expect'][x][0]+"' at 'regulators > "+str(result['expect'][x][1])+" > range > "+str(result['expect'][x][2])+"' type is wrong! Expected "+str(result['expect'][x][3])+", got "+str(result['return'][x][3])+"\n", end='', file=report_file)
+
+            if result['expect'][x][0] == 'list_mV':
+                print( "Sanitycheck failed: validate config: Key '"+result['expect'][x][0]+"' at 'regulators > '"+str(result['expect'][x][1])+"' type is wrong! Expected number: "+str(result['expect'][x][2])+", got "+str(result['return'][x][2])+"\n", end='', file=report_file)
+                test_fail = 1
+
+            if result['expect'][x][0] == 'sign_bitmask':
+                print( "Sanitycheck failed: validate config: Key '"+result['expect'][x][0]+"' at 'regulators > '"+str(result['expect'][x][1])+"' type is wrong! Expected "+str(result['expect'][x][2])+", got "+str(result['return'][x][2])+"\n", end='', file=report_file)
+                test_fail = 1
+        x = x+1
+
+    if test_fail == 1:
+        report_file.close()
+
+    assert result['target_name'] == result['expect_target_name']
+    assert result['i2c_bus_type'] == int
+    assert result['i2c_address_type'] == int
+    assert result['return'] == result['expect']
+
+def check_result(result):
+    report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
+    report_file.seek(0,2)
+
+    if result['type'] == 'pmic':
+        #Sanity check:
+        if result['stage'] == 'validate_config':
+            _assert_pmic_validate_config(result, report_file)
+        elif result['stage'] == 'sanity_check':
+            _assert_pmic_sanity_check(result, report_file)
+        elif result['stage'] == 'sanity_check_sysfs_set':
+            _assert_pmic_sanity_check_sysfs_set(result, report_file)
+        elif result['stage'] == 'sanity_check_sysfs_en':
+            _assert_pmic_sanity_check_sysfs_en(result, report_file)
+        elif result['stage'] == 'disable_vr_fault':
+            _assert_pmic_disable_vr_fault(result, report_file)
+    report_file.close()

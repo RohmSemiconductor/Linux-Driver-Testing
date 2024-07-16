@@ -9,8 +9,12 @@ def command(target):
 def pytest_addoption(parser):
     parser.addoption("--power_port", action="store", default="type1", help="my option: type1 or type2")
     parser.addoption("--product", action="store", default="type1", help="my option: type1 or type2")
+    parser.addoption("--type", action="store", default="type1", help="my option: type1 or type2")
     parser.addoption("--beagle", action="store", default="type1", help="my option: type1 or type2")
 
+@pytest.fixture
+def type(request):
+    return request.config.getoption("--type")
 @pytest.fixture
 def product(request):
     return request.config.getoption("--product")

@@ -1,25 +1,26 @@
 import pytest
 import sys
-import os
-from pathlib import Path
-sys.path.append(str(Path('./configs').absolute()))
+sys.path.append('..')
+sys.path.append('./configs')
 import bd71847
+from test_util import check_result
 from pmic_class import pmic
 bd71847 = pmic(bd71847)
-print(sys.path)
 
 def test_sanitycheck(command):
-    bd71847.validate_config('bd71847')
+    result = bd71847.validate_config('bd71847')
+    check_result(result)
+
     for regulator in bd71847.board.data['regulators'].keys():
-        dt_buck_check = bd71847.sanity_check(regulator,command)
-        assert dt_buck_check == 1
+        result = bd71847.sanity_check(regulator,command)
+        check_result(result)
 
-        check_sysfs_en = bd71847.sanity_check_sysfs_en(regulator, command)
-        assert check_sysfs_en == 1
+        result = bd71847.sanity_check_sysfs_en(regulator, command)
+        check_result(result)
 
-        check_sysfs_set = bd71847.sanity_check_sysfs_set(regulator, command)
-        assert check_sysfs_set == 1
+        result = bd71847.sanity_check_sysfs_set(regulator, command)
+        check_result(result)
 
     for key in bd71847.board.data['debug']:
-        vr_fault_status = bd71847.disable_vr_fault(key,command)
-        assert vr_fault_status == bd71847.board.data['debug'][key]['setting']
+        result = bd71847.disable_vr_fault(key,command)
+        check_result(result)

@@ -1,17 +1,24 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import pytest
 from time import sleep
 import sys
 import os
 import copy
 import math
-
+import numbers
 sys.path.append(os.path.abspath("."))
 pmic_data={}
 
 @dataclass
 class pmic:
     board: dict
+    result: dict = field(default_factory=lambda: {
+    'type':         'pmic',
+    'stage':        None,
+    'regulator':    None,
+    'return':       [],
+    'expect':       [],
+    })
     def write_report(self, stage, command, regulator=None):
         pass
     #### Device tree functions
@@ -119,20 +126,30 @@ class pmic:
             dts_value = self.read_dt(regulator,property,command)
             
     def validate_config(self, target_name):
-        assert target_name == self.board.data['name']
-        assert type(self.board.data['i2c']['bus']) == int
-        assert type(self.board.data['i2c']['address']) == int
+        self.result['stage'] = 'validate_config'
+        self.result['target_name'] = target_name
+        self.result['expect_target_name'] = self.board.data['name']
+        self.result['i2c_bus_type'] = type(self.board.data['i2c']['bus'])
+        self.result['i2c_address_type'] = type(self.board.data['i2c']['address'])
+
         for regulator in self.board.data['regulators']:
             if 'dts_only' not in self.board.data['regulators'][regulator].keys() and 'no_voltage_register' not in self.board.data['regulators'][regulator].keys():
                 if ('volt_sel' in self.board.data['regulators'][regulator]['settings']['voltage'] and self.board.data['regulators'][regulator]['settings']['voltage']['volt_sel'] == True):
-                    assert type(self.board.data['regulators'][regulator]['settings']['voltage']['volt_sel_bitmask']) == int
+                    self.result['return'].append(['volt_sel_bitmask', regulator, type(self.board.data['regulators'][regulator]['settings']['voltage']['volt_sel_bitmask'])])
+                    self.result['expect'].append(['volt_sel_bitmask', regulator, int])
+
                 for r in self.board.data['regulators'][regulator]['settings']['voltage']['range'].keys():
                     if 'is_linear' in self.board.data['regulators'][regulator]['settings']['voltage']['range'][r].keys() and self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == True:
-                        assert type(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV']) == int or type(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV']) == float
+                        self.result['return'].append(['step_mV', regulator, r, isinstance(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV'], numbers.Number)])
+                        self.result['expect'].append(['step_mV', regulator, r, True])
                     elif 'is_linear' in self.board.data['regulators'][regulator]['settings']['voltage']['range'][r].keys() and self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == False:
-                        assert type(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV']) == list
+                        self.result['return'].append(['list_mV', regulator, type(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV'])])
+                        self.result['expect'].append(['list_mV', regulator, list])
                     if 'is_bipolar' in self.board.data['regulators'][regulator]['settings']['voltage'].keys():
-                        assert type(self.board.data['regulators'][regulator]['settings']['voltage']['sign_bitmask']) == int
+                        self.result['return'].append(['sign_bitmask', regulator, type(self.board.data['regulators'][regulator]['settings']['voltage']['sign_bitmask'])])
+                        self.result['expect'].append(['sign_bitmask', regulator, list])
+
+        return self.result
 
     def validate_config_basic(self):
         pass
@@ -142,37 +159,42 @@ class pmic:
         return validation_fail
 
     def sanity_check_sysfs_en(self, regulator, command):
+        self.result['stage'] = 'sanity_check_sysfs_en'
+        self.result['regulator'] = regulator
 #        stdout, stderr, returncode = command.run("test -f /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"/name ;echo $?")
         if 'regulator_en_address' in self.board.data['regulators'][regulator].keys():
             stdout, stderr, returncode = command.run("test -f /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_en ;echo $?")
         print("sanity:")
         print(self.board.data['regulators'][regulator]['name'])
-        if stdout[0] == '0': #test -f rturns 0 if file is found
-            return 1
-        elif stdout[0] == '1':
-            return 0
+
+        self.result['return'] = stdout[0]
+        self.result['expect'] = '0' #test -f returns 0 if file is found
+        return self.result
 
     def sanity_check_sysfs_set(self, regulator, command):
+        self.result['stage'] = 'sanity_check_sysfs_set'
+        self.result['regulator'] = regulator
 #        stdout, stderr, returncode = command.run("test -f /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"/name ;echo $?")
         if 'regulator_en_address' in self.board.data['regulators'][regulator].keys():
             stdout, stderr, returncode = command.run("test -f /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_set ;echo $?")
-        print("sanity:")
-        print(self.board.data['regulators'][regulator]['name'])
-        if stdout[0] == '0': #test -f returns 0 if file is found
-            return 1
-        elif stdout[0] == '1':
-            return 0
+
+        self.result['return'] = stdout[0]
+        self.result['expect'] = '0' #test -f returns 0 if file is found
+        return self.result
 
     def sanity_check(self,regulator,command):
+        self.result['stage'] = 'sanity_check'
+        self.result['regulator'] = regulator
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
         path = self.escape_path(stdout[0])
         stdout, stderr, returncode = command.run("test -f "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/name ;echo $?")
-        if stdout[0] == '0': #test -f returns 0 if file is found
-            return 1
-        elif stdout[0] == '1':
-            return 0
+
+        self.result['return'] = stdout[0]
+        self.result['expect'] = '0' #test -f returns 0 if file is found
+        return self.result
 
     def disable_vr_fault(self,key,command):
+        self.result['stage'] = 'disable_vr_fault'
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address'])))
         i2creturn = int(stdout[0],0)
 
@@ -181,8 +203,10 @@ class pmic:
         stdout, stderr, returncode = command.run("i2cset -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address']))+" "+new_val)
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address'])))
         i2creturn = int(stdout[0],0)
-        vr_fault_status = i2creturn & self.board.data['debug'][key]['bitmask']
-        return vr_fault_status
+
+        self.result['expect'] = self.board.data['debug'][key]['setting']
+        self.result['return'] = i2creturn & self.board.data['debug'][key]['bitmask']
+        return self.result
 
     def disable_idle_mode(self, regulator, command):
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['settings']['idle_on']['reg_address'])))
