@@ -70,11 +70,16 @@ def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=
 ### Assert functions for PMICs
 
 def _assert_pmic_read_dt_seting(result, report_file):
-    if result['expect'] == result['return']:
+    if result['expect'] != result['return']:
         if result['expect'][1] == 'ramprate':
             if type(result['return'][2]) == float:
                 result['return'][2] = int(result['return'][2])
             print( "Device tree setting failed (dts: '"+result['expect'][0]+"', setting: '"+result['expect'][1]+"'): Regulator "+result['regulator']+": Received: "+str(result['return'][2])+" uV/uS, Expected: "+str(result['expect'][2])+" uV/uS\n", end='', file=report_file)
+
+        if result['expect'][1] == 'ovd' or result['expect'][1] == 'uvd':
+            if type(result['return'][2]) == float:
+                result['return'][2] = int(result['return'][2])
+            print( "Device tree setting failed (dts: '"+result['expect'][0]+"', setting: '"+result['expect'][1]+"'): Regulator "+result['regulator']+": Received: "+str(result['return'][2])+" mV or mA, Expected: "+str(result['expect'][2])+" mV or mA\n", end='', file=report_file)
 
     report_file.close()
     assert result['expect'] == result['return']
