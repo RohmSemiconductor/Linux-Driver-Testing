@@ -68,7 +68,18 @@ def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=
     report_file.close()
 
 ### Assert functions for PMICs
-def  _assert_pmic_out_of_range_voltages(result, report_file):
+
+def _assert_pmic_read_dt_seting(result, report_file):
+    if result['expect'] == result['return']:
+        if result['expect'][1] == 'ramprate':
+            if type(result['return'][2]) == float:
+                result['return'][2] = int(result['return'][2])
+            print( "Device tree setting failed (dts: '"+result['expect'][0]+"', setting: '"+result['expect'][1]+"'): Regulator "+result['regulator']+": Received: "+str(result['return'][2])+" uV/uS, Expected: "+str(result['expect'][2])+" uV/uS\n", end='', file=report_file)
+
+    report_file.close()
+    assert result['expect'] == result['return']
+
+def _assert_pmic_out_of_range_voltages(result, report_file):
     if result['expect'] != result['return']:
         print( "Out of range test fail ("+result['expect'][0]+"): Regulator "+result['regulator']+" voltage changed: Received: "+str(result['return'][1])+", Expected: "+str(result['expect'][1])+"\n", end='', file=report_file)
 
@@ -203,3 +214,5 @@ def check_result(result):
             _assert_pmic_voltage_run(result, report_file)
         elif result['stage'] == 'out_of_range_voltages':
             _assert_pmic_out_of_range_voltages(result, report_file)
+        elif result['stage'] == 'read_dt_setting':
+            _assert_pmic_read_dt_seting(result, report_file)

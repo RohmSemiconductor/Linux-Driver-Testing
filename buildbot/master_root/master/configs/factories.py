@@ -62,7 +62,7 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                 ])
             elif self.test_type == "dts":
                 self.build.addStepsAfterCurrentStep([
-                    steps.ShellCommand(name=self.target+": "+stage, workdir="../tests/pmic", command=["pytest","--lg-env="+self.test_board+".yaml",self.target+"/dts/"+self.dts+"/"+stage])
+                    steps.ShellCommand(name=self.target+": "+stage, workdir="../tests/pmic", command=["pytest","--lg-env="+self.test_board+".yaml",self.target+"/dts/"+self.dts+"/"+stage,"--dts="+self.dts])
                     for stage in self.extract_stages(self.observer.getStdout())
                 ])
 

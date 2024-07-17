@@ -1,19 +1,16 @@
 import pytest
 import sys
-import os
-from pathlib import Path
-sys.path.append(str(Path('./configs').absolute()))
+sys.path.append('..')
+sys.path.append('./configs')
 import bd71828
+from test_util import check_result
 from pmic_class import pmic
 bd71828 = pmic(bd71828)
-print(sys.path)
 
-def test_004_ramprate1(command):
+def test_004_ramprate1(command, dts):
     for regulator in bd71828.board.data['regulators'].keys():
-        print(regulator)
         if 'settings' in bd71828.board.data['regulators'][regulator].keys():
             if 'ramprate' in bd71828.board.data['regulators'][regulator]['settings'].keys():
-                dt_setting = bd71828.read_dt_setting(regulator, 'ramprate', command)
-                print(dt_setting)
-                i2c_read = bd71828.i2c_to_ramprate_uv(regulator, command)
-                assert i2c_read == dt_setting
+                result = bd71828.read_dt_setting(regulator, 'ramprate', dts, command)
+                result['return'] = [dts, 'ramprate', bd71828.i2c_to_ramprate_uv(regulator, command)]
+                check_result(result)

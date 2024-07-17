@@ -11,6 +11,7 @@ def pytest_addoption(parser):
     parser.addoption("--product", action="store", default="type1", help="my option: type1 or type2")
     parser.addoption("--type", action="store", default="type1", help="my option: type1 or type2")
     parser.addoption("--beagle", action="store", default="type1", help="my option: type1 or type2")
+    parser.addoption("--dts", action="store", default="default", help="my option: type1 or type2")
 
 @pytest.fixture
 def type(request):
@@ -24,3 +25,6 @@ def power_port(request):
 @pytest.fixture
 def beagle(request):
     return request.config.getoption("--beagle")
+@pytest.fixture
+def dts(request):
+    return request.config.getoption("--dts")

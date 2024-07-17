@@ -106,13 +106,17 @@ class pmic:
         uV = mV * 1000
         return uV
 
-    def read_dt_setting(self, regulator, setting, command):
+    def read_dt_setting(self, regulator, setting, dts, command):
+        self.result['stage'] = 'read_dt_setting'
+        self.result['regulator'] = regulator
+
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
         path = self.escape_path(stdout[0])
         stdout, stderr, returncode = command.run("xxd -p "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/"+self.board.data['regulators'][regulator]['settings'][setting]['of_match'])
         hex=('0x'+stdout[0])
         int_hex= int(hex,0)
-        return int_hex
+        self.result['expect'] = [dts, setting, int_hex]
+        return self.result
 
     def read_dt(self, regulator, setting_type, setting, command):
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
