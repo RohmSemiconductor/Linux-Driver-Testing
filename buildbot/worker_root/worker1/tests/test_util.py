@@ -67,14 +67,18 @@ def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=
 
     report_file.close()
 
-def generate_test_report(stage, regulator=None):
-    pass
-
 ### Assert functions for PMICs
+def  _assert_pmic_out_of_range_voltages(result, report_file):
+    if result['expect'] != result['return']:
+        print( "Out of range test fail ("+result['expect'][0]+"): Regulator "+result['regulator']+" voltage changed: Received: "+str(result['return'][1])+", Expected: "+str(result['expect'][1])+"\n", end='', file=report_file)
+
+    report_file.close()
+    assert result['expect'] == result['return']
+
 def _assert_pmic_voltage_run(result, report_file):
     if result['product'] == 'bd9576':
         if result['expect'] != result['return']:
-            print( "Voltage check mismatch! Regulator "+result['regulator']+": Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
+            print( "Voltage run failed (voltage check, bd9576 only): Regulator "+result['regulator']+": Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
 
     else:
         x = 0
@@ -85,7 +89,7 @@ def _assert_pmic_voltage_run(result, report_file):
                     else:
                         range = result['expect'][x][0]
 
-                    print( "Setting voltage failed! Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=report_file)
+                    print( "Voltage run failed: Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=report_file)
             x = x+1
 
     report_file.close()
@@ -197,3 +201,5 @@ def check_result(result):
         #Regulator voltages:
         elif result['stage'] == 'voltage_run' or result['stage'] == 'regulator_voltage_driver_get':
             _assert_pmic_voltage_run(result, report_file)
+        elif result['stage'] == 'out_of_range_voltages':
+            _assert_pmic_out_of_range_voltages(result, report_file)

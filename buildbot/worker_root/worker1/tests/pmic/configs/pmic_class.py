@@ -362,6 +362,9 @@ class pmic:
         return calculated_return_value
         
     def get_min_max_volt(self, regulator):
+        self.result['regulator'] = regulator
+        self.result['stage'] = 'out_of_range_voltages'
+
         last_min = 'default'
         last_max = 'default'
         for r in self.board.data['regulators'][regulator]['settings']['voltage']['range'].keys():
@@ -393,7 +396,7 @@ class pmic:
         last_min = self.mv_to_uv(min)
         last_max = self.mv_to_uv(max)
 
-        return last_min, last_max
+        return self.result, last_min, last_max
 
     def regulator_voltage_driver_set(self,regulator,uv,command):
         command.run("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_set")
