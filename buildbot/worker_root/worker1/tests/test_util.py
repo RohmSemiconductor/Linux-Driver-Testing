@@ -69,7 +69,7 @@ def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=
 
 ### Assert functions for PMICs
 
-def _assert_pmic_read_dt_seting(result, report_file):
+def _assert_pmic_read_dt_setting(result, report_file):
     if result['expect'] != result['return']:
         if result['expect'][1] == 'ramprate':
             if type(result['return'][2]) == float:
@@ -220,4 +220,4 @@ def check_result(result):
         elif result['stage'] == 'out_of_range_voltages':
             _assert_pmic_out_of_range_voltages(result, report_file)
         elif result['stage'] == 'read_dt_setting':
-            _assert_pmic_read_dt_seting(result, report_file)
+            _assert_pmic_read_dt_setting(result, report_file)
