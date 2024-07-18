@@ -15,12 +15,12 @@ beagle_power_port2 = "2"
 beagle_power_port3 = "3"
 beagle_power_port4 = "4"
 import math
-import sys 
+import sys
 import os
 sys.path.append(os.path.abspath("./configs"))
 
 from kernel_modules import *
-from projects import * 
+from projects import *
 from paths import *
 from test_boards import *
 import re
@@ -101,7 +101,7 @@ def check_make_dts(step, target, test_dts):
         return True
 
 def check_tag(step,target):
-    if re.search('^next.*', step.getProperty('commit-description')):    #check for linux next 
+    if re.search('^next.*', step.getProperty('commit-description')):    #check for linux next
         print(step.getProperty('commit-description'))
         return True
     elif re.search('^'+target, step.getProperty('commit-description')): #check for driver fix
@@ -209,7 +209,7 @@ def generate_dts(project_name, target, dts, check_tag_partial):
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "generate_dts.py", target, dts], workdir="../tests/pmic", doStepIf=check_tag_partial, name=target+": Generate dts: "+dts))
 
 def run_driver_tests(project_name):
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "initialize_results.py", projects[project_name]['builderNames'][0], util.Property('commit-description')], workdir="../tests/pmic", name="Initialize test report" ))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "report_janitor.py", "initialize_report", projects[project_name]['builderNames'][0], util.Property('commit-description')], workdir="../tests", name="Initialize test report" ))
 
     for test_board in test_boards:
         for target in test_boards[test_board]['targets']:
