@@ -13,7 +13,7 @@ def test_init_overlay(command):
         print(stdout[-1])
     lsmod,stderr, returncode = command.run('lsmod')
 
-    result['debug'] = lsmod
+    result['lsmod'] = lsmod
     result['expect'] = 0
     result['return'] = checkStdOut(lsmod, 'mva_overlay')
     check_result(result)

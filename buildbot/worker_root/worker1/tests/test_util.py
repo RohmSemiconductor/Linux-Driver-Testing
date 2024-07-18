@@ -7,6 +7,7 @@ result = {
     'product':  None,
     'expect':   [],
     'return':   [],
+    'lsmod':    [],
     'debug':    None,
 }
 
@@ -30,6 +31,12 @@ def initialize_product(type, product):
     print("Test results: "+product+" "+type+"\n", end='', file=report_file)
     report_file.close()
 
+def _print_lsmod(result, report_file):
+    print("---- LSMOD ----\n", end='', file=report_file)
+    for line in result['lsmod']:
+        print(line+"\n", end='', file=report_file)
+    print("---- /LSMOD ----\n", end='', file=report_file)
+
 ### Use this at the end of _assert_* functions so the same
 ### assert and report_file.close do not have to be used always
 def _assert_test(result, report_file):
@@ -37,13 +44,25 @@ def _assert_test(result, report_file):
     assert result['expect'] == result['return']
 
 #### Generic steps
-def _assert_generic_init_overlay(result, report_file):
-    if result['expect'] == result['return']:
-        print( "test_001_init_overlay failed: lsmod  did not contain 'mva_overlay'!\n---- LSMOD ----\n", end='', file=report_file)
-        for line in result['debug']:
-            print(line+"\n", end='', file=report_file)
-        print("---- /LSMOD ----\n", end='', file=report_file)
+def _assert_generic_merge_dt_overlay(result, report_file):
+    if result['expect'] != result['return']:
+        print( result['stage']+" failed: lsmod did not contain", end='', file=report_file)
+        x = 0
+        for i in result['expect']:
+            if result['expect'][x][1] == result['return'][x][1]:
+                print(" '"+result['expect'][x][0]+"'", end='', file=report_file)
+            x = x+1
+        print("\n", end='', file=report_file)
+        _print_lsmod(result, report_file)
+    _assert_test(result, report_file)
 
+def _assert_generic_init_overlay(result, report_file):
+    if result['expect'] != result['return']:
+        print( "test_001_init_overlay failed: lsmod  did not contain 'mva_overlay'!\n", end='', file=report_file)
+        #for line in result['debug']:
+        #    print(line+"\n", end='', file=report_file)
+        #print("---- /LSMOD ----\n", end='', file=report_file)
+        _print_lsmod(result, report_file)
     _assert_test(result, report_file)
 
 def _assert_generic_login(result, report_file):
@@ -225,10 +244,12 @@ def check_result(result):
     if result['type'] == 'generic':
         if result['stage'] == 'ip_power':
             _assert_generic_ip_power(result, report_file)
-        if result['stage'] == 'login':
+        elif result['stage'] == 'login':
             _assert_generic_login(result, report_file)
-        if result['stage'] == 'init_overlay':
+        elif result['stage'] == 'init_overlay':
             _assert_generic_init_overlay(result, report_file)
+        elif result['stage'] == 'merge_dt_overlay':
+            _assert_generic_merge_dt_overlay(result, report_file)
 
     elif result['type'] == 'PMIC':
         #Sanity check:

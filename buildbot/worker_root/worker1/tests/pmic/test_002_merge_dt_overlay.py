@@ -8,7 +8,10 @@ from test_util import *
 from time import sleep
 from kernel_modules import *
 
-def test_init_overlay(command,product):
+def test_merge_dt_overlay(command,product):
+    result['type'] = 'generic'
+    result['stage'] = 'merge_dt_overlay'
+
     for x in range(0,len(kernel_modules['dt_overlays'][product])):
         stdout, stderr, returncode = command.run('dd if=/'+kernel_modules['dt_overlays'][product][x]+' of=/sys/kernel/mva_overlay/overlay_add bs=1M')
     if (returncode != 0):
@@ -23,7 +26,12 @@ def test_init_overlay(command,product):
     sleep(2)
     lsmod, stderr, returncode = command.run('lsmod')
     for x in range(len(kernel_modules['merged_dt_overlay'][product])):
-        if checkStdOut(lsmod,kernel_modules['merged_dt_overlay'][product][x]) != 0:
-            generic_step_fail(tf='dt_overlay', product=product, dt_overlay=kernel_modules['merged_dt_overlay'][product][x])
+        result['expect'].append([kernel_modules['merged_dt_overlay'][product][x], 0])
+        result['return'].append([kernel_modules['merged_dt_overlay'][product][x], checkStdOut(lsmod,kernel_modules['merged_dt_overlay'][product][x])])
 
-        assert checkStdOut(lsmod,kernel_modules['merged_dt_overlay'][product][x]) == 0
+    result['lsmod'] = lsmod
+    check_result(result)
+        #if checkStdOut(lsmod,kernel_modules['merged_dt_overlay'][product][x]) != 0:
+        #    generic_step_fail(tf='dt_overlay', product=product, dt_overlay=kernel_modules['merged_dt_overlay'][product][x])
+
+        #assert checkStdOut(lsmod,kernel_modules['merged_dt_overlay'][product][x]) == 0
