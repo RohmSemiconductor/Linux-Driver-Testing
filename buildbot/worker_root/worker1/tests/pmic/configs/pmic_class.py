@@ -129,7 +129,12 @@ class pmic:
     def dt_run(self, regulator, dts, command):
         for property in self.board.data['regulators'][regulator]['dt_properties'][dts]:
             dts_value = self.read_dt(regulator,property,command)
-            
+
+    def find_sysfs_files(self, regulator, command):
+        stdout, stderr, returncode = command.run('find /sys -name "'+self.board.data['regulators'][regulator]['name']+'_en"|'+" sed 's![^/]*$!!'")
+        path = stdout[0]
+        return path
+
     def validate_config(self, target_name):
         self.result['stage'] = 'validate_config'
         self.result['target_name'] = target_name
@@ -231,7 +236,7 @@ class pmic:
         stdout, stderr, returncode = command.run("test -f "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/rohm,no-regulator-enable-control ;echo $?")
         return int(stdout[0])   #test -f returns 1 if regulator can be enabled
 
-    def check_regulator_always_on_mode(self, regulator, command): 
+    def check_regulator_always_on_mode(self, regulator, command):
         stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'")
         path = self.escape_path(stdout[0])
 
@@ -364,7 +369,7 @@ class pmic:
             print("Regulator voltage calculation is not implemented yet!")
 
         return calculated_return_value
-        
+
     def get_min_max_volt(self, regulator):
         self.result['regulator'] = regulator
         self.result['stage'] = 'out_of_range_voltages'
@@ -375,7 +380,7 @@ class pmic:
             if (self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == True and not 'is_offset_bipolar' in self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]):
                 min = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_mV']
                 max = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_mV']+(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['stop_reg'] * self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV'])
-            
+
             elif (self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == False and not 'is_offset_bipolar' in self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]):
                 min = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV'][0]
                 max = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV'][-1]
@@ -383,20 +388,20 @@ class pmic:
             elif (self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == False and not 'is_offset_bipolar' in self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]):
                 min = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV'][0]
                 max = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV'][-1]
-        
+
             elif (self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == True and self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_offset_bipolar'] == True):
                 min = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_mV']-(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['stop_reg'] * self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV'])
                 max = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_mV']+(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['stop_reg'] * self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['step_mV'])
-        
+
             elif (self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_linear'] == False and self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['is_offset_bipolar'] == True):
                 min = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_mV']-(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV'][-1])
                 max = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_mV']+(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV'][-1])
-            
+
             if (last_min == 'default' or min < last_min):
                 last_min = copy.copy(min)
             if (last_max == 'default' or max > last_max):
                 last_max = copy.copy(max)
-        
+
         last_min = self.mv_to_uv(min)
         last_max = self.mv_to_uv(max)
 
@@ -442,7 +447,7 @@ class pmic:
                         self.result['expect'].append([r, x, uv])
 
         return self.result
-    
+
     def i2c_to_uv(self, regulator, command):
         volt_config = self._i2c_to_volt_config(regulator,command)
 
@@ -455,7 +460,7 @@ class pmic:
 
     def i2c_to_lim_uv(self, regulator, setting, command):
         volt_config = self._i2c_to_lim_config(regulator,setting,command)
-        
+
         if volt_config['is_linear'] == True:
             mv = self._calculate_linear_mv(volt_config)
         else:
