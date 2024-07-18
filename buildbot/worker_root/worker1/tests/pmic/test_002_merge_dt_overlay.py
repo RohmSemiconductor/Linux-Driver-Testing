@@ -31,7 +31,3 @@ def test_merge_dt_overlay(command,product):
 
     result['lsmod'] = lsmod
     check_result(result)
-        #if checkStdOut(lsmod,kernel_modules['merged_dt_overlay'][product][x]) != 0:
-        #    generic_step_fail(tf='dt_overlay', product=product, dt_overlay=kernel_modules['merged_dt_overlay'][product][x])
-
-        #assert checkStdOut(lsmod,kernel_modules['merged_dt_overlay'][product][x]) == 0

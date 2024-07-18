@@ -44,8 +44,10 @@ def _assert_test(result, report_file):
     assert result['expect'] == result['return']
 
 #### Generic steps
-def _assert_generic_merge_dt_overlay(result, report_file):
-    if result['expect'] != result['return']:
+def _assert_generic_insmod_tests(result, report_file):
+    pass
+def _assert_generic_merge_dt_overlay_insmod_tests(result, report_file):
+    if result['expect'] == result['return']:
         print( result['stage']+" failed: lsmod did not contain", end='', file=report_file)
         x = 0
         for i in result['expect']:
@@ -59,9 +61,6 @@ def _assert_generic_merge_dt_overlay(result, report_file):
 def _assert_generic_init_overlay(result, report_file):
     if result['expect'] != result['return']:
         print( "test_001_init_overlay failed: lsmod  did not contain 'mva_overlay'!\n", end='', file=report_file)
-        #for line in result['debug']:
-        #    print(line+"\n", end='', file=report_file)
-        #print("---- /LSMOD ----\n", end='', file=report_file)
         _print_lsmod(result, report_file)
     _assert_test(result, report_file)
 
@@ -248,8 +247,8 @@ def check_result(result):
             _assert_generic_login(result, report_file)
         elif result['stage'] == 'init_overlay':
             _assert_generic_init_overlay(result, report_file)
-        elif result['stage'] == 'merge_dt_overlay':
-            _assert_generic_merge_dt_overlay(result, report_file)
+        elif result['stage'] == 'merge_dt_overlay' or result['stage'] == 'insmod_tests':
+            _assert_generic_merge_dt_overlay_insmod_tests(result, report_file)
 
     elif result['type'] == 'PMIC':
         #Sanity check:
