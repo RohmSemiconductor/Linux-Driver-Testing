@@ -2,15 +2,18 @@ import sys
 from pathlib import Path
 
 sys.path.append('..')
-from test_util import *
+from test_util import checkStdOut, check_result, result
 
 def test_init_overlay(command):
+    result['type'] = 'generic'
+    result['stage'] = 'init_overlay'
+
     stdout, stderr, returncode = command.run('insmod /mva_overlay.ko')
     if (returncode != 0):
         print(stdout[-1])
     lsmod,stderr, returncode = command.run('lsmod')
 
-    if checkStdOut(lsmod, 'mva_overlay') != 0:
-        generic_step_fail(tf="init_overlay")
-
-    assert checkStdOut(lsmod,'mva_overlay') == 0
+    result['debug'] = lsmod
+    result['expect'] = 0
+    result['return'] = checkStdOut(lsmod, 'mva_overlay')
+    check_result(result)

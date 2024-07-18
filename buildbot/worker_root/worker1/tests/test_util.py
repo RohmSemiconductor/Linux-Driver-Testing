@@ -7,6 +7,7 @@ result = {
     'product':  None,
     'expect':   [],
     'return':   [],
+    'debug':    None,
 }
 
 def checkStdOut(stdout,checkString):
@@ -29,20 +30,33 @@ def initialize_product(type, product):
     print("Test results: "+product+" "+type+"\n", end='', file=report_file)
     report_file.close()
 
+### Use this at the end of _assert_* functions so the same
+### assert and report_file.close do not have to be used always
+def _assert_test(result, report_file):
+    report_file.close()
+    assert result['expect'] == result['return']
+
 #### Generic steps
+def _assert_generic_init_overlay(result, report_file):
+    if result['expect'] == result['return']:
+        print( "test_001_init_overlay failed: lsmod  did not contain 'mva_overlay'!\n---- LSMOD ----\n", end='', file=report_file)
+        for line in result['debug']:
+            print(line+"\n", end='', file=report_file)
+        print("---- /LSMOD ----\n", end='', file=report_file)
+
+    _assert_test(result, report_file)
+
 def _assert_generic_login(result, report_file):
     if result['expect'] != result['return']:
         print( "Login failed: Power port "+result['expect'][0]+": "+result['expect'][1]+". Returncode: Received: "+str(result['return'][2])+", Expected: "+str(result['expect'][2])+"\n", end='', file=report_file)
 
-    report_file.close()
-    assert result['expect'] == result['return']
+    _assert_test(result, report_file)
 
 def _assert_generic_ip_power(result, report_file):
     if result['expect'] != result['return']:
         print( "Something wrong with controlling IP Power 9850: Received: "+str(result['return'])+", Expected: "+str(result['expect'])+". Check cable?\n", end='', file=report_file)
 
-    report_file.close()
-    assert result['expect'] == result['return']
+    _assert_test(result, report_file)
 
 def login_fail(power_port, beagle):
     report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
@@ -103,15 +117,13 @@ def _assert_pmic_read_dt_setting(result, report_file):
                 result['return'][2] = int(result['return'][2])
             print( "Device tree setting failed (dts: '"+result['expect'][0]+"', setting: '"+result['expect'][1]+"'): Regulator "+result['regulator']+": Received: "+str(result['return'][2])+" mV or mA, Expected: "+str(result['expect'][2])+" mV or mA\n", end='', file=report_file)
 
-    report_file.close()
-    assert result['expect'] == result['return']
+    _assert_test(result, report_file)
 
 def _assert_pmic_out_of_range_voltages(result, report_file):
     if result['expect'] != result['return']:
         print( "Out of range test fail ("+result['expect'][0]+"): Regulator "+result['regulator']+" voltage changed: Received: "+str(result['return'][1])+", Expected: "+str(result['expect'][1])+"\n", end='', file=report_file)
 
-    report_file.close()
-    assert result['expect'] == result['return']
+    _assert_test(result, report_file)
 
 def _assert_pmic_voltage_run(result, report_file):
     if result['product'] == 'bd9576':
@@ -130,15 +142,13 @@ def _assert_pmic_voltage_run(result, report_file):
                     print( "Voltage run failed: Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=report_file)
             x = x+1
 
-    report_file.close()
-    assert result['expect'] == result['return']
+    _assert_test(result, report_file)
 
 def _assert_pmic_regulator_is_on_driver(result, report_file):
     if result['expect'] != result['return']:
         print("Regulator '"+result['regulator']+"' status mismatch! Return: "+str(result['return'])+", Should be "+str(result['expect'])+"\n", end='', file=report_file)
 
-    report_file.close()
-    assert result['expect'] == result['return']
+    _assert_test(result, report_file)
 
 def _assert_pmic_regulator_en(result, report_file):
     if result['stage'] == 'regulator_enable':
@@ -149,32 +159,28 @@ def _assert_pmic_regulator_en(result, report_file):
     if result['expect'] != result['return']:
         print("Regulator '"+result['regulator']+"' "+en_dis+" failed!\n", end='', file=report_file)
 
-    report_file.close()
-    assert result['expect'] == result['return']
+    _assert_test(result, report_file)
 
 def _assert_pmic_disable_vr_fault(result, report_file):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: "+result['stage']+": Expected: "+result['expect']+". Received: "+result['return']+".\n", end='', file=report_file)
-    report_file.close()
-    assert result['expect'] == result['return']
+    _assert_test(result, report_file)
 
 def _assert_pmic_sanity_check_sysfs_set(result, report_file):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: "+result['regulator']+": _set file missing in sysfs \n", end='', file=report_file)
-    report_file.close()
-    assert result['expect'] == result['return']
+
+    _assert_test(result, report_file)
 
 def _assert_pmic_sanity_check_sysfs_en(result, report_file):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: "+result['regulator']+": _en file missing in sysfs \n", end='', file=report_file)
-    report_file.close()
-    assert result['expect'] == result['return']
+    _assert_test(result, report_file)
 
 def _assert_pmic_sanity_check(result, report_file):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: "+result['regulator']+": device tree node missing for "+result['regulator']+"\n", end='', file=report_file)
-    report_file.close()
-    assert result['expect'] == result['return']
+    _assert_test(result, report_file)
 
 def _assert_pmic_validate_config(result, report_file):
     #Basic info
@@ -221,6 +227,8 @@ def check_result(result):
             _assert_generic_ip_power(result, report_file)
         if result['stage'] == 'login':
             _assert_generic_login(result, report_file)
+        if result['stage'] == 'init_overlay':
+            _assert_generic_init_overlay(result, report_file)
 
     elif result['type'] == 'PMIC':
         #Sanity check:
