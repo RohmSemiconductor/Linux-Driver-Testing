@@ -1,6 +1,14 @@
 import operator
-from dataclasses import dataclass
 import pytest
+
+result = {
+    'type' :    None,
+    'stage' :   None,
+    'product':  None,
+    'expect':   [],
+    'return':   [],
+}
+
 def checkStdOut(stdout,checkString):
     if any(checkString in s for s in stdout):
         return 0
@@ -22,6 +30,20 @@ def initialize_product(type, product):
     report_file.close()
 
 #### Generic steps
+def _assert_generic_login(result, report_file):
+    if result['expect'] != result['return']:
+        print( "Login failed: Power port "+result['expect'][0]+": "+result['expect'][1]+". Returncode: Received: "+str(result['return'][2])+", Expected: "+str(result['expect'][2])+"\n", end='', file=report_file)
+
+    report_file.close()
+    assert result['expect'] == result['return']
+
+def _assert_generic_ip_power(result, report_file):
+    if result['expect'] != result['return']:
+        print( "Something wrong with controlling IP Power 9850: Received: "+str(result['return'])+", Expected: "+str(result['expect'])+". Check cable?\n", end='', file=report_file)
+
+    report_file.close()
+    assert result['expect'] == result['return']
+
 def login_fail(power_port, beagle):
     report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
@@ -194,8 +216,13 @@ def _assert_pmic_validate_config(result, report_file):
 def check_result(result):
     report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
+    if result['type'] == 'generic':
+        if result['stage'] == 'ip_power':
+            _assert_generic_ip_power(result, report_file)
+        if result['stage'] == 'login':
+            _assert_generic_login(result, report_file)
 
-    if result['type'] == 'PMIC':
+    elif result['type'] == 'PMIC':
         #Sanity check:
         if result['stage'] == 'validate_config':
             _assert_pmic_validate_config(result, report_file)
