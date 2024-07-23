@@ -31,6 +31,22 @@ def initialize_product(type, product):
     print("Test results: "+product+" "+type+"\n", end='', file=report_file)
     report_file.close()
 
+def dts_error_report(target, dts, stdout):
+    report_file = open('./results/temp_results.txt', 'a', encoding='utf-8')
+    report_file.seek(0,2)
+    print(target+": dts build failed: dts: "+dts+"\n", end='', file=report_file)
+    print(stdout+'\n', end='', file=report_file)
+#    for line in stdout:
+#
+#        print(line+"\n", end='', file=report_file)
+#
+    report_file.close()
+
+def to_str(result):
+    if type(result) != str:
+        result = str(result)
+    return result
+
 def _print_lsmod(result, report_file):
     print("---- LSMOD ----\n", end='', file=report_file)
     for line in result['lsmod']:
@@ -47,7 +63,7 @@ def _assert_test(result, report_file):
 def _assert_generic_insmod_tests(result, report_file):
     pass
 def _assert_generic_merge_dt_overlay_insmod_tests(result, report_file):
-    if result['expect'] == result['return']:
+    if result['expect'] != result['return']:
         print( result['stage']+" failed: lsmod did not contain", end='', file=report_file)
         x = 0
         for i in result['expect']:
@@ -162,6 +178,13 @@ def _assert_pmic_voltage_run(result, report_file):
 
     _assert_test(result, report_file)
 
+def _assert_pmic_regulator_is_on(result, report_file):
+    if result['expect'] == type(result['return']):
+        print("Failed to check regulator enable state: Regulator '"+result['regulator']+"'. Return: "+str(result['return'])+", Should be "+str(result['expect'])+"\n", end='', file=report_file)
+
+    report_file.close()
+    assert result['expect'] == type(result['return'])
+
 def _assert_pmic_regulator_is_on_driver(result, report_file):
     if result['expect'] != result['return']:
         print("Regulator '"+result['regulator']+"' status mismatch! Return: "+str(result['return'])+", Should be "+str(result['expect'])+"\n", end='', file=report_file)
@@ -181,7 +204,7 @@ def _assert_pmic_regulator_en(result, report_file):
 
 def _assert_pmic_disable_vr_fault(result, report_file):
     if result['expect'] != result['return']:
-        print( "Sanitycheck failed: "+result['stage']+": Expected: "+result['expect']+". Received: "+result['return']+".\n", end='', file=report_file)
+        print( "Sanitycheck failed: "+result['stage']+": Expected: "+str(result['expect'])+". Received: "+str(result['return'])+".\n", end='', file=report_file)
     _assert_test(result, report_file)
 
 def _assert_pmic_sanity_check_sysfs_set(result, report_file):
@@ -268,6 +291,8 @@ def check_result(result):
             _assert_pmic_regulator_en(result, report_file)
         elif result['stage'] == 'regulator_is_on_driver':
             _assert_pmic_regulator_is_on_driver(result, report_file)
+        elif result['stage'] == 'regulator_is_on':
+            _assert_pmic_regulator_is_on(result, report_file)
 
         #Regulator voltages:
         elif result['stage'] == 'voltage_run' or result['stage'] == 'regulator_voltage_driver_get':

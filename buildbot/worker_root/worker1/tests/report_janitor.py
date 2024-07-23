@@ -3,12 +3,17 @@ import subprocess
 from datetime import datetime, timezone
 from time import sleep
 sys.path.append('.')
-from test_util import initialize_report
+from test_util import initialize_report, dts_error_report
 
 if sys.argv[1] == 'initialize_report':
     bb_project = sys.argv[2]
     linux_ver = sys.argv[3]
     initialize_report(bb_project, linux_ver)
+elif sys.argv[1] == 'dts_error':
+    target= sys.argv[2]
+    dts = sys.argv[3]
+    stdout = sys.argv[4]
+    dts_error_report(target, dts, stdout)
 
 elif sys.argv[1] == 'finalize':
     bb_project = sys.argv[2]

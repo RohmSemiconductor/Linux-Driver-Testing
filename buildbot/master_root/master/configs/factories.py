@@ -93,12 +93,12 @@ def tagConvert(tagS):
             tagL[e]=int(tagL[e])
     return tagL
 
-def check_make_dts(step, target, test_dts):
-#    if any(" Error " in s for s in step.getProperty('make_dts_stdout')) or step.getProperty('make_dts_stdout') == None:
-    if step.getProperty(target+'_make_dts_'+test_dts) == None:
-        return False
+def check_dts_error(rc, stdout, stderr, target, test_dts):
+    dts_error = stderr
+    if 'Error' in dts_error:
+        return {target+'_'+test_dts+'_dts_error': dts_error, target+'_'+test_dts+'_dts_make_passed': False }
     else:
-        return True
+        return {target+'_'+test_dts+'_dts_error': dts_error, target+'_'+test_dts+'_dts_make_passed': True }
 
 def check_tag(step,target):
     if re.search('^next.*', step.getProperty('commit-description')):    #check for linux next
@@ -159,41 +159,46 @@ def copy_kernel_binaries_to_tftpboot(project_name):
          util.ShellArg(command=['cp',"arch/arm/boot/zImage", dir_tftpboot], logname='Copy zImage to tftpboot')
          ], name="Copy kernel binaries to tftpboot"))
 
-def copy_test_kernel_modules_to_nfs(project_name, target, dts, check_make_dts_partial):
+def copy_test_kernel_modules_to_nfs(project_name, target, test_dts):
     copy_commands =[]
     for value in kernel_modules['build'][target]:
         copy_commands.append(util.ShellArg(command=["cp", "_test-kernel-modules/"+target+"/"+value, dir_nfs], logname="Copy "+value+" to nfs"))
-    projects[project_name]['factory'].addStep(steps.ShellSequence(commands=copy_commands,doStepIf=check_make_dts_partial or target == 'overlay_merger', hideStepIf=skipped, name=target+": Copy test kernel modules to nfs"))
+    projects[project_name]['factory'].addStep(steps.ShellSequence(commands=copy_commands,doStepIf=util.Property(target+'_'+test_dts+'_dts_make_passed') == True or target == 'overlay_merger', hideStepIf=skipped, name=target+": Copy test kernel modules to nfs"))
+
 
 def build_dts(project_name, target, test_dts, check_tag_partial):
-    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=['make'], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./','DTS_FILE':'generated_dts_'+test_dts+'.dts'}, workdir="build/_test-kernel-modules/"+target, property=target+"_make_dts_"+test_dts, doStepIf=check_tag_partial, includeStdout=True, includeStderr=True, name=target+": Build dts: "+test_dts))
+    check_dts_error_partial = functools.partial(check_dts_error, target=target, test_dts=test_dts)
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=['make'], env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./','DTS_FILE':'generated_dts_'+test_dts+'.dts'}, workdir="build/_test-kernel-modules/"+target, doStepIf=check_tag_partial, extract_fn=check_dts_error_partial, name=target+": Build dts: "+test_dts))
+
+def dts_report(project_name, target, test_dts, check_tag_partial):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "report_janitor.py", "dts_error", target, test_dts, util.Property(target+'_'+test_dts+'_dts_error')], workdir="../tests", doStepIf=check_tag_partial and util.Property(target+'_'+test_dts+'_dts_make_passed') != True, hideStepIf=skipped, name=target+" write dts build fail to report"))
 
 def download_test_boards(project_name):
     projects[project_name]['factory'].addStep(steps.FileDownload(mastersrc="configs/kernel_modules.py",
                             workerdest="../../tests/pmic/configs/kernel_modules.py",
                             name="Download kernel_modules.py"))
 
-def initialize_driver_test(project_name, test_board, target, test_dts, check_make_dts_partial):
+def initialize_driver_test(project_name, test_board, target, test_dts):
     check_tag_partial=functools.partial(check_tag, target=target)
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_000_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name'], "--type=PMIC", "--product="+target],  workdir="../tests/pmic",doStepIf=check_tag_partial and check_make_dts_partial, name=target+": Login to "+test_boards[test_board]['name']))
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_001_init_overlay.py"], workdir="../tests/pmic", doStepIf=check_tag_partial and check_make_dts_partial, hideStepIf=skipped, name=target+": Install overlay merger"))
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_002_merge_dt_overlay.py","--product="+target], workdir="../tests/pmic", doStepIf=check_tag_partial and check_make_dts_partial, hideStepIf=skipped, name=target+": Merge device tree overlays"))
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_003_insmod_tests.py","--product="+target], workdir="../tests/pmic", doStepIf=check_tag_partial and check_make_dts_partial, hideStepIf=skipped, name=target+": insmod test modules"))
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_004_init_regulator_test.py","--product="+target], workdir="../tests/pmic", doStepIf=check_tag_partial and check_make_dts_partial, hideStepIf=skipped, name=target+": init_regulator_test.py"))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_000_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name'], "--type=PMIC", "--product="+target],  workdir="../tests/pmic",doStepIf=check_tag_partial and util.Property(target+'_'+test_dts+'_dts_make_passed') == True, name=target+": Login to "+test_boards[test_board]['name']))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning", "--lg-env", test_boards[test_board]['name']+".yaml", "test_001_init_overlay.py"], workdir="../tests/pmic", doStepIf=check_tag_partial and util.Property(target+'_'+test_dts+'_dts_make_passed') == True, hideStepIf=skipped, name=target+": Install overlay merger"))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_002_merge_dt_overlay.py","--product="+target], workdir="../tests/pmic", doStepIf=check_tag_partial and util.Property(target+'_'+test_dts+'_dts_make_passed') == True, hideStepIf=skipped, name=target+": Merge device tree overlays"))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_003_insmod_tests.py","--product="+target], workdir="../tests/pmic", doStepIf=check_tag_partial and util.Property(target+'_'+test_dts+'_dts_make_passed') == True, hideStepIf=skipped, name=target+": insmod test modules"))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-env", test_boards[test_board]['name']+".yaml", "test_004_init_regulator_test.py","--product="+target], workdir="../tests/pmic", doStepIf=check_tag_partial and util.Property(target+'_'+test_dts+'_dts_make_passed') == True, hideStepIf=skipped, name=target+": init_regulator_test.py"))
 
-def generate_driver_tests(project_name,test_board,target, check_make_dts_partial, check_tag_partial, test_type, dts=None):
+def generate_driver_tests(project_name,test_board,target, check_tag_partial, test_type, dts=None):
     if test_type == "regulator":
         projects[project_name]['factory'].addStep(GenerateStagesCommand(
             test_board, target, test_type, dts,
             name=target+": Generate "+test_type+" test stages",
             command=["python3", "generate_steps.py", target, test_type], workdir="../tests/pmic",
-            haltOnFailure=True, doStepIf=check_tag_partial and check_make_dts_partial, hideStepIf=skipped))
+            haltOnFailure=True, doStepIf=check_tag_partial and util.Property(target+'_'+dts+'_dts_make_passed') == True, hideStepIf=skipped))
     elif test_type == "dts":
         projects[project_name]['factory'].addStep(GenerateStagesCommand(
             test_board, target, test_type, dts,
             name=target+": Generate "+test_type+" test stages",
             command=["python3", "generate_steps.py", target, test_type, dts], workdir="../tests/pmic",
-            haltOnFailure=True, doStepIf=check_tag_partial and check_make_dts_partial, hideStepIf=skipped))
+            haltOnFailure=True, doStepIf=check_tag_partial and util.Property(target+'_'+dts+'_dts_make_passed') == True, hideStepIf=skipped))
 
 def check_dts_tests(target):
     dts_tests=[]
@@ -217,14 +222,14 @@ def run_driver_tests(project_name):
 
             generate_dts(project_name, target, 'default', check_tag_partial)
             copy_generated_dts(project_name, target, 'default', check_tag_partial)
+
             build_dts(project_name, target, 'default', check_tag_partial)
+            dts_report(project_name, target, 'default', check_tag_partial)
 
-            check_make_dts_partial=functools.partial(check_make_dts, target=target, test_dts='default')
+            copy_test_kernel_modules_to_nfs(project_name, target, 'default')
 
-            copy_test_kernel_modules_to_nfs(project_name, target, 'default', check_make_dts_partial)
-
-            initialize_driver_test(project_name, test_board, target, 'default', check_make_dts_partial)
-            generate_driver_tests(project_name,test_boards[test_board]['name'],target, check_make_dts_partial, check_tag_partial, "regulator", "default")
+            initialize_driver_test(project_name, test_board, target, 'default')
+            generate_driver_tests(project_name,test_boards[test_board]['name'],target, check_tag_partial, "regulator", "default")
 
             dts_tests = check_dts_tests(target)
 
@@ -232,19 +237,18 @@ def run_driver_tests(project_name):
                 generate_dts(project_name, target, dts, check_tag_partial)
                 copy_generated_dts(project_name, target, dts, check_tag_partial)
                 build_dts(project_name, target, dts, check_tag_partial)
+                dts_report(project_name, target, dts, check_tag_partial)
 
-                check_make_dts_partial=functools.partial(check_make_dts, target=target, test_dts=dts)
-                copy_test_kernel_modules_to_nfs(project_name, target, dts, check_make_dts_partial)
+                copy_test_kernel_modules_to_nfs(project_name, target, dts)
 
-                initialize_driver_test(project_name, test_board, target, dts, check_make_dts_partial)
-                generate_driver_tests(project_name, test_boards[test_board]['name'], target,check_make_dts_partial, check_tag_partial, "dts", dts )
+                initialize_driver_test(project_name, test_board, target, dts)
+                generate_driver_tests(project_name, test_boards[test_board]['name'], target, check_tag_partial, "dts", dts )
 
 def linux_driver_test(project_name):
     build_kernel_arm32(project_name)
     copy_kernel_binaries_to_tftpboot(project_name)
     update_test_kernel_modules(project_name)
     build_overlay_merger(project_name)
-#    copy_test_kernel_modules_to_nfs(project_name, 'overlay_merger')
     copy_overlay_merger_to_nfs(project_name)
 
     download_test_boards(project_name)
