@@ -20,8 +20,7 @@ class pmic:
     'return':       [],
     'expect':       [],
     })
-    def write_report(self, stage, command, regulator=None):
-        pass
+
     #### Device tree functions
     def i2c_read_dt_property(self,command, test_dts, regulator, property):
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.dts['i2c']['bus'])+" "+str(hex(self.board.dts['i2c']['address']))+" "+str(hex(self.board.dts['regulators'][regulator]['test'][test_dts][property]['reg_address'])))
@@ -205,18 +204,24 @@ class pmic:
 
     def disable_vr_fault(self,key,command):
         self.result['stage'] = 'disable_vr_fault'
-        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address'])))
-        i2creturn = int(stdout[0],0)
-
-        # new_val =hex string from bitwise operation: (debug bitmask & debug setting) | (~debug bitmask & read i2c value). This code retains bits in the register that we do not want to touch.
-        new_val = str(hex((self.board.data['debug'][key]['bitmask'] & self.board.data['debug'][key]['setting']) | (~self.board.data['debug'][key]['bitmask'] & i2creturn)))
-        stdout, stderr, returncode = command.run("i2cset -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address']))+" "+new_val)
-        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address'])))
-        i2creturn = int(stdout[0],0)
-
         self.result['expect'] = self.board.data['debug'][key]['setting']
-        self.result['return'] = i2creturn & self.board.data['debug'][key]['bitmask']
-        return self.result
+        stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address'])))
+#        i2creturn = self._i2creturn(stdout[0])
+       # if type(i2creturn) != int:
+       #     return self.result
+        try:
+            i2creturn = int(stdout[0],0)
+            # new_val =hex string from bitwise operation: (debug bitmask & debug setting) | (~debug bitmask & read i2c value). This code retains bits in the register that we do not want to touch.
+            new_val = str(hex((self.board.data['debug'][key]['bitmask'] & self.board.data['debug'][key]['setting']) | (~self.board.data['debug'][key]['bitmask'] & i2creturn)))
+            stdout, stderr, returncode = command.run("i2cset -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address']))+" "+new_val)
+            stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['debug'][key]['address'])))
+            i2creturn = int(stdout[0],0)
+
+            self.result['return'] = i2creturn & self.board.data['debug'][key]['bitmask']
+        except Exception:
+            self.result['return'] = stdout[0]
+        finally:
+            return self.result
 
     def disable_idle_mode(self, regulator, command):
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['settings']['idle_on']['reg_address'])))
@@ -266,42 +271,53 @@ class pmic:
         return self.result
 
     def regulator_is_on(self, regulator, command):
+        self.result['regulator'] = regulator
+        self.result['stage'] = 'regulator_is_on'
+        self.result['expect'] = int
+
         regulator_enable_mode = self.check_regulator_enable_mode(regulator,command)
-
-        if (self.board.data['name'] == 'bd71837' or self.board.data['name'] == 'bd71847') and (regulator_enable_mode == 0):
-            regulator_en_status = 1
-
-        elif (self.board.data['name'] == 'bd9576'):
-            stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
-            i2creturn = int(stdout[0],0)
-            if i2creturn != self.board.data['regulators'][regulator]['regulator_en_bitmask']:
+        try:
+            if (self.board.data['name'] == 'bd71837' or self.board.data['name'] == 'bd71847') and (regulator_enable_mode == 0):
                 regulator_en_status = 1
+
+            elif (self.board.data['name'] == 'bd9576'):
+                stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
+                i2creturn = int(stdout[0],0)
+                if i2creturn != self.board.data['regulators'][regulator]['regulator_en_bitmask']:
+                    self.result['return'] = 1
+                else:
+                    self.result['return'] = 0
+
             else:
-                regulator_en_status = 0
-
-        else:
-            stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
-            i2creturn = int(stdout[0],0)
-            regulator_en_status = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
-
-        return regulator_en_status
+                stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
+                i2creturn = int(stdout[0],0)
+                self.result['return'] = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
+        except Exception:
+            self.result['return'] = stdout[0]
+        finally:
+            return self.result
 
     def regulator_enable(self,regulator,command):
         self.result['stage'] = 'regulator_enable'
         self.result['regulator'] = regulator
+        self.result['expect'] = self.board.data['regulators'][regulator]['regulator_en_bitmask']
 
         command.run("echo 1 > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_en")
         sleep(0.2)
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
-        i2creturn = int(stdout[0],0)
-        regulator_en_status = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
-        self.result['return'] = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
-        self.result['expect'] = self.board.data['regulators'][regulator]['regulator_en_bitmask']
-        return self.result
+        try:
+            i2creturn = int(stdout[0],0)
+            regulator_en_status = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
+            self.result['return'] = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
+        except Exception:
+            self.result['return'] = stdout[0]
+        finally:
+            return self.result
 
     def regulator_disable(self,regulator,command):
         self.result['stage'] = 'regulator_disable'
         self.result['regulator'] = regulator
+        self.result['expect'] = 0
 
         command.run("echo 0 > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_en")
         sleep(0.2)
@@ -311,10 +327,13 @@ class pmic:
             sleep(2)
 
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
-        i2creturn = int(stdout[0],0)
-        self.result['return'] = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
-        self.result['expect'] = 0
-        return self.result
+        try:
+            i2creturn = int(stdout[0],0)
+            self.result['return'] = i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']
+        except Exception:
+            self.result['return'] = stdout[0]
+        finally:
+            return self.result
 
     def regulator_voltage_driver_get(self, regulator, command):
         self.result['stage'] = 'regulator_voltage_driver_get'
@@ -427,11 +446,8 @@ class pmic:
     def regulator_voltage_run(self,regulator,command):
         self.result['stage'] = 'voltage_run'
         self.result['regulator'] = regulator
-
-        voltage_run={
-            'test_failed': 0,
-            'buck_fail':[]
-            }
+        self.result['return'] = []
+        self.result['expect'] = []
 
         for r in self.board.data['regulators'][regulator]['settings']['voltage']['range'].keys():
             if r != 'flat':
@@ -440,23 +456,24 @@ class pmic:
                     uv = self.regulator_voltage_set(regulator, r, command, volt_index)
                     calculated_return_value = self.i2c_to_uv(regulator, command)
 
-                    if uv == calculated_return_value:
-#                        voltage_run['test_failed']=1
-#                        voltage_run['buck_fail'].append([regulator,r,volt_index,uv, calculated_return_value])
-                        self.result['return'].append([r, x, calculated_return_value])
-                        self.result['expect'].append([r, x, uv])
+                    self.result['return'].append([r, x, calculated_return_value])
+                    self.result['expect'].append([r, x, uv])
 
         return self.result
 
     def i2c_to_uv(self, regulator, command):
-        volt_config = self._i2c_to_volt_config(regulator,command)
+        try:
+            volt_config = self._i2c_to_volt_config(regulator,command)
 
-        if volt_config['is_linear'] == True:
-            mv = self._calculate_linear_mv(volt_config)
-        else:
-            mv = self._calculate_nonlinear_mv(volt_config)
-        uv = self.mv_to_uv(mv)
-        return uv
+            if volt_config['is_linear'] == True:
+                mv = self._calculate_linear_mv(volt_config)
+            else:
+                mv = self._calculate_nonlinear_mv(volt_config)
+            uv = self.mv_to_uv(mv)
+        except Exception:
+            uv = 'Cannot get uv!! Most likely i2c read failed'
+        finally:
+            return uv
 
     def i2c_to_lim_uv(self, regulator, setting, command):
         volt_config = self._i2c_to_lim_config(regulator,setting,command)
