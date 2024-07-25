@@ -15,7 +15,7 @@ def test_sanitycheck(command):
         result = bd71815.sanity_check(regulator,command)
         check_result(result)
 
-        if 'dts_only' not in bd71815.board.data['regulators'][regulator].keys(): 
+        if 'dts_only' not in bd71815.board.data['regulators'][regulator].keys():
             check_sysfs_en = bd71815.sanity_check_sysfs_en(regulator, command)
             check_result(result)
 
