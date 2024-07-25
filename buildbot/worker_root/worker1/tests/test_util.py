@@ -67,7 +67,7 @@ def _assert_generic_merge_dt_overlay_insmod_tests(result, report_file):
         print( result['stage']+" failed: lsmod did not contain", end='', file=report_file)
         x = 0
         for i in result['expect']:
-            if result['expect'][x][1] == result['return'][x][1]:
+            if result['expect'][x][1] != result['return'][x][1]:
                 print(" '"+result['expect'][x][0]+"'", end='', file=report_file)
             x = x+1
         print("\n", end='', file=report_file)
@@ -179,7 +179,7 @@ def _assert_pmic_voltage_run(result, report_file):
     _assert_test(result, report_file)
 
 def _assert_pmic_regulator_is_on(result, report_file):
-    if result['expect'] == type(result['return']):
+    if result['expect'] != type(result['return']):
         print("Failed to check regulator enable state: Regulator '"+result['regulator']+"'. Return: "+str(result['return'])+", Should be "+str(result['expect'])+"\n", end='', file=report_file)
 
     report_file.close()
