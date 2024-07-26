@@ -21,13 +21,29 @@ class pmic:
     'expect':       [],
     })
 
+    def escape_path(self, path_str):
+        path = path_str.translate(str.maketrans({'@':'\\@'}))
+        return path
+
+    def mv_to_uv(self, mV):
+        uV = mV * 1000
+        return uV
+
     #### Device tree functions
+
+    #Unused
     def i2c_read_dt_property(self,command, test_dts, regulator, property):
         stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.dts['i2c']['bus'])+" "+str(hex(self.board.dts['i2c']['address']))+" "+str(hex(self.board.dts['regulators'][regulator]['test'][test_dts][property]['reg_address'])))
         i2creturn = int(stdout[0],0)
         ret_register_value = i2creturn & self.board.dts['regulators'][regulator]['test'][test_dts][property]['bitmask']
         return ret_register_value
-
+    #Unused
+    def test_property(self, command, test_dts, regulator, property):
+        i2c_return = self.i2c_read_dt_property(command, test_dts, regulator, property)
+        print(i2c_return)
+        print(self.board.dts['regulators'][regulator]['test'][test_dts][property]['register_value'])
+        assert i2c_return == self.board.dts['regulators'][regulator]['test'][test_dts][property]['register_value']
+    #Unused
     def test_dts_properties(self, command, test_dts, property):
         for regulator in self.board.dts['regulators'].keys():
             if 'test' in self.board.dts['regulators'][regulator]:
@@ -35,11 +51,6 @@ class pmic:
                     if property in self.board.dts['regulators'][regulator]['test'][test_dts].keys():
                         self.test_property(command, test_dts, regulator, property)
 
-    def test_property(self, command, test_dts, regulator, property):
-        i2c_return = self.i2c_read_dt_property(command, test_dts, regulator, property)
-        print(i2c_return)
-        print(self.board.dts['regulators'][regulator]['test'][test_dts][property]['register_value'])
-        assert i2c_return == self.board.dts['regulators'][regulator]['test'][test_dts][property]['register_value']
 
     def generate_dts(self, test_dts, source_file, target_file):
         in_dts = open(source_file)
@@ -90,20 +101,6 @@ class pmic:
         elif type(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]) == str:
             print(property+" = <"+self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'][property]+">;\n", end ='', file = out_dts)
 
-    #### /Device tree functions
-
-    def print_failures(self,failures):
-        print("Regulator, Range, Index, Sent uV, Received uV")
-        for i in range(len(failures[0])):
-            print(failures[0][i])
-
-    def escape_path(self, path_str):
-        path = path_str.translate(str.maketrans({'@':'\\@'}))
-        return path
-
-    def mv_to_uv(self, mV):
-        uV = mV * 1000
-        return uV
 
     def read_dt_setting(self, regulator, setting, dts, command):
         self.result['stage'] = 'read_dt_setting'
@@ -124,10 +121,12 @@ class pmic:
         hex=('0x'+stdout[0])
         int_hex= int(hex,0)
         return int_hex
-
+    #Unused
     def dt_run(self, regulator, dts, command):
         for property in self.board.data['regulators'][regulator]['dt_properties'][dts]:
             dts_value = self.read_dt(regulator,property,command)
+
+    #### /Device tree functions
 
     def find_sysfs_files(self, regulator, command):
         stdout, stderr, returncode = command.run('find /sys -name "'+self.board.data['regulators'][regulator]['name']+'_en"|'+" sed 's![^/]*$!!'")
@@ -476,23 +475,32 @@ class pmic:
             return uv
 
     def i2c_to_lim_uv(self, regulator, setting, command):
-        volt_config = self._i2c_to_lim_config(regulator,setting,command)
+        try:
+            volt_config = self._i2c_to_lim_config(regulator,setting,command)
 
-        if volt_config['is_linear'] == True:
-            mv = self._calculate_linear_mv(volt_config)
-        else:
-            mv = self._calculate_nonlinear_mv(volt_config)
-        uv = self.mv_to_uv(mv)
-        return uv
+            if volt_config['is_linear'] == True:
+                mv = self._calculate_linear_mv(volt_config)
+            else:
+                mv = self._calculate_nonlinear_mv(volt_config)
+            uv = self.mv_to_uv(mv)
+        except Exception:
+            uv = 'Cannot get uv!! Most likely i2c read failed'
+        finally:
+            return uv
 
     def i2c_to_ramprate_uv(self, regulator, command):
-        volt_config = self._i2c_to_ramprate_config(regulator, command)
-        if volt_config['is_linear'] == True:
-            mv = self._calculate_linear_mv(volt_config)
-        else:
-            mv = self._calculate_nonlinear_mv(volt_config)
-        uv = self.mv_to_uv(mv)
-        return uv
+        try:
+            volt_config = self._i2c_to_ramprate_config(regulator, command)
+            if volt_config['is_linear'] == True:
+                mv = self._calculate_linear_mv(volt_config)
+            else:
+                mv = self._calculate_nonlinear_mv(volt_config)
+            uv = self.mv_to_uv(mv)
+        except Exception:
+            uv = 'Cannot get uv!! Most likely i2c read failed'
+        finally:
+            return uv
+
     def _bitshift_by_bitmask(self, regulator, setting,i2c):
         bitmask = self.board.data['regulators'][regulator]['settings'][setting]['reg_bitmask']
         shift_count = int(math.log2(bitmask & -bitmask))
