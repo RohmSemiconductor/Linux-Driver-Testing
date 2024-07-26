@@ -322,6 +322,22 @@ def dts_report(project_name, target, test_dts, check_dts_make_partial):
         hideStepIf=skipped,
         name=target+" write dts build fail to report"))
 
+def initialize_product(project_name, target, check_tag_partial):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["python3", "report_janitor.py", "initialize_product", "pmic", target],
+        workdir="../tests",
+        name="Initialize test report: "+target,
+        doStepIf=check_tag_partial,
+        hideStepIf=skipped))
+
+def finalize_product(project_name, target, check_tag_partial):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["python3", "report_janitor.py", "finalize_product", "pmic", target, util.Property(target+'_do_steps')],
+        workdir="../tests",
+        name="Finalize test report: "+target,
+        doStepIf=check_tag_partial,
+        hideStepIf=skipped))
+
 def run_driver_tests(project_name):
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["python3", "report_janitor.py", "initialize_report", projects[project_name]['builderNames'][0], util.Property('commit-description')],
@@ -331,7 +347,7 @@ def run_driver_tests(project_name):
     for test_board in test_boards:
         for target in test_boards[test_board]['targets']:
             check_tag_partial=functools.partial(check_tag, target=target)
-
+            initialize_product(project_name, target, check_tag_partial)
             generate_dts(project_name, target, 'default', check_tag_partial)
             copy_generated_dts(project_name, target, 'default', check_tag_partial)
 
@@ -360,6 +376,7 @@ def run_driver_tests(project_name):
 
                 initialize_driver_test(project_name, test_board, target, dts)
                 generate_driver_tests(project_name, test_boards[test_board]['name'], target, check_tag_partial, "dts", dts )
+            finalize_product(project_name, target, check_tag_partial)
 
 def linux_driver_test(project_name):
     build_kernel_arm32(project_name)

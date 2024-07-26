@@ -6,7 +6,7 @@ sys.path.append('..')
 from test_util import initialize_product, checkStr, check_result, result
 result = result
 def test_login(power_port, beagle, type, product):
-    initialize_product(type, product)
+#    initialize_product(type, product)
 
     result['type'] = 'generic'
     result['stage'] = 'ip_power'

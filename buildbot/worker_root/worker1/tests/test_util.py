@@ -26,9 +26,19 @@ def initialize_report(bb_project, linux_ver):
     report_file.close()
 
 def initialize_product(type, product):
-    report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('./results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
-    print("Test results: "+product+" "+type+"\n", end='', file=report_file)
+    print("Testing: "+product+" "+type+"\n", end='', file=report_file)
+    report_file.close()
+
+def finalize_product(product, do_steps):
+    if do_steps == 'True':
+        result = "PASSED"
+    else:
+        result = "FAILED"
+    report_file = open('./results/temp_results.txt', 'a', encoding='utf-8')
+    report_file.seek(0,2)
+    print("Test results: "+product+": "+result+"\n\n", end='', file=report_file)
     report_file.close()
 
 def dts_error_report(target, dts, stdout):
