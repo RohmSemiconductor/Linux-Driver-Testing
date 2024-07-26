@@ -10,8 +10,9 @@ bd9576 = pmic(bd9576)
 def test_out_of_range_voltages(command):
     for regulator in bd9576.board.data['regulators'].keys():
         regulator_is_on=bd9576.regulator_is_on(regulator,command)
+        check_result(regulator_is_on)
 
-        if ("volt_change_not_allowed_while_on" in bd9576.board.data['regulators'][regulator] and regulator_is_on == 1):
+        if ("volt_change_not_allowed_while_on" in bd9576.board.data['regulators'][regulator] and regulator_is_on['return'] == 1):
             print("Cannot change regulator: "+regulator+" voltage - out of range tests skipped")
 
         elif 'volt_reg_bitmask' in bd9576.board.data['regulators'][regulator]['settings']['voltage']:

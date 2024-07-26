@@ -12,8 +12,9 @@ def test_out_of_range_voltages(command):
         if not 'dts_only' in bd71828.board.data['regulators'][regulator].keys():
             if 'voltage' in bd71828.board.data['regulators'][regulator]['settings'].keys():
                 regulator_is_on=bd71828.regulator_is_on(regulator,command)
+                check_result(regulator_is_on)
 
-                if ("volt_change_not_allowed_while_on" in bd71828.board.data['regulators'][regulator] and regulator_is_on == 1):
+                if ("volt_change_not_allowed_while_on" in bd71828.board.data['regulators'][regulator] and regulator_is_on['return'] == 1):
                     print("Cannot change regulator: "+regulator+" voltage - out of range tests skipped")
 
                 else:

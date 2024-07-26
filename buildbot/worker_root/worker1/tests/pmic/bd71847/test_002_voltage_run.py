@@ -10,8 +10,9 @@ bd71847 = pmic(bd71847)
 def test_voltage_run(command):
     for regulator in bd71847.board.data['regulators'].keys():
         regulator_is_on=bd71847.regulator_is_on(regulator,command)
-        
-        if ("volt_change_not_allowed_while_on" in bd71847.board.data['regulators'][regulator] and regulator_is_on == 1):
+        check_result(regulator_is_on)
+
+        if ("volt_change_not_allowed_while_on" in bd71847.board.data['regulators'][regulator] and regulator_is_on['return'] == 1):
             print("Cannot change regulator: "+regulator+" voltage - Voltage run skipped.")
 
         else:

@@ -9,7 +9,6 @@ bd71828 = pmic(bd71828)
 
 def test_regulator_en(command):
     for regulator in bd71828.board.data['regulators'].keys():
-        print(regulator)
         if not 'dts_only' in bd71828.board.data['regulators'][regulator].keys():
 
            # if 'idle_on' in bd71828.board.data['regulators'][regulator]['settings'].keys():

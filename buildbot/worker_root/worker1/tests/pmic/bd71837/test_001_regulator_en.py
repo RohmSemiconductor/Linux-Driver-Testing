@@ -12,7 +12,7 @@ def test_regulator_en(command):
         if bd71837.check_regulator_enable_mode(regulator,command) == 1:
             result = bd71837.regulator_enable(regulator,command)
             check_result(result)
-        
+
         if ((bd71837.check_regulator_enable_mode(regulator,command) == 1) and (bd71837.check_regulator_always_on_mode(regulator,command) == 0)):
             result = bd71837.regulator_disable(regulator,command)
             check_result(result)
