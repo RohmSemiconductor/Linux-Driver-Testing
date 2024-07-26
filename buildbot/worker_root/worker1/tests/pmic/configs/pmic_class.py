@@ -277,7 +277,7 @@ class pmic:
         regulator_enable_mode = self.check_regulator_enable_mode(regulator,command)
         try:
             if (self.board.data['name'] == 'bd71837' or self.board.data['name'] == 'bd71847') and (regulator_enable_mode == 0):
-                regulator_en_status = 1
+                self.result['return'] = 1
 
             elif (self.board.data['name'] == 'bd9576'):
                 stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
