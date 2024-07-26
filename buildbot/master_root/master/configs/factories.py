@@ -212,22 +212,9 @@ def download_test_boards(project_name):
                             workerdest="../../tests/pmic/configs/kernel_modules.py",
                             name="Download kernel_modules.py"))
 
-def do_init_steps(step, check_tag_partial, target, test_dts):
-    make_passed = util.Property(target+'_'+test_dts+'_dts_make_passed')
-    skip_dts_tests = util.Property(target+'_skip_dts_tests')
-    if check_tag_partial:
-        if make_passed == True:
-            #        if (make_passed == True and skip_dts_tests != True):
-            return True
-        else:
-            return False
-    else:
-        return False
-
 def initialize_driver_test(project_name, test_board, target, test_dts):
     check_tag_partial=functools.partial(check_tag, target=target)
     check_init_driver_test_partial= functools.partial(check_init_driver_test, target=target)
-    do_init_steps_partial= functools.partial(do_init_steps, check_tag_partial=check_tag_partial, target=target, test_dts=test_dts)
 
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
         command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_000_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name'], "--type=PMIC", "--product="+target],
