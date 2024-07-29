@@ -11,6 +11,8 @@ result = {
     'debug':    None,
 }
 
+report_files = ['temp_results', 'summary']
+
 def checkStdOut(stdout,checkString):
     if any(checkString in s for s in stdout):
         return 0
@@ -20,36 +22,35 @@ def checkStr(stdout,checkString):
         return 0
 
 def initialize_report(bb_project, linux_ver):
-    report_file = open('./results/temp_results.txt', 'w+', encoding='utf-8')
-    print("BuildBot project: "+bb_project+"\n", end='', file=report_file)
-    print("Linux version: "+linux_ver+"\n\n", end='', file=report_file)
-    report_file.close()
+    for report_file in report_files:
+        report_file = open('./results/'+report_file+'.txt', 'w+', encoding='utf-8')
+        print("BuildBot project: "+bb_project+"\n", end='', file=report_file)
+        print("Linux version: "+linux_ver+"\n\n", end='', file=report_file)
+        report_file.close()
 
 def initialize_product(type, product):
-    report_file = open('./results/temp_results.txt', 'a', encoding='utf-8')
-    report_file.seek(0,2)
-    print("Testing: "+product+" "+type+"\n", end='', file=report_file)
-    report_file.close()
+    for report_file in report_files:
+        report_file = open('./results/'+report_file+'.txt', 'a', encoding='utf-8')
+        report_file.seek(0,2)
+        print("Testing: "+product+" "+type+"\n", end='', file=report_file)
+        report_file.close()
 
 def finalize_product(product, do_steps):
     if do_steps == 'True':
         result = "PASSED"
     else:
         result = "FAILED"
-    report_file = open('./results/temp_results.txt', 'a', encoding='utf-8')
-    report_file.seek(0,2)
-    print("Test results: "+product+": "+result+"\n\n", end='', file=report_file)
-    report_file.close()
+    for report_file in report_files:
+        report_file = open('./results/'+report_file+'.txt', 'a', encoding='utf-8')
+        report_file.seek(0,2)
+        print("Test results: "+product+": "+result+"\n\n", end='', file=report_file)
+        report_file.close()
 
-def dts_error_report(target, dts, stdout):
+def dts_error_report(product, dts, stdout):
     report_file = open('./results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
-    print(target+": dts build failed: dts: "+dts+"\n", end='', file=report_file)
+    print(product+": dts build failed: dts: "+dts+"\n", end='', file=report_file)
     print(stdout+'\n', end='', file=report_file)
-#    for line in stdout:
-#
-#        print(line+"\n", end='', file=report_file)
-#
     report_file.close()
 
 def to_str(result):
@@ -235,8 +236,8 @@ def _assert_pmic_sanity_check(result, report_file):
 
 def _assert_pmic_validate_config(result, report_file):
     #Basic info
-    if result['target_name'] != result['expect_target_name']:
-        print( "Sanitycheck failed: validate config: 'name' mismatch! Read: "+result['target_name']+". Expected: "+result['expect_target_name']+"\n", end='', file=report_file)
+    if result['product_name'] != result['expect_product_name']:
+        print( "Sanitycheck failed: validate config: 'name' mismatch! Read: "+result['product_name']+". Expected: "+result['expect_product_name']+"\n", end='', file=report_file)
     if result['i2c_bus_type'] != int:
         print( "Sanitycheck failed: validate config: i2c bus variable type is wrong! Expected int, got "+str(result['i2c_bus_type'])+"\n", end='', file=report_file)
     if result['i2c_address_type'] != int:
@@ -265,7 +266,7 @@ def _assert_pmic_validate_config(result, report_file):
         x = x+1
 
     report_file.close()
-    assert result['target_name'] == result['expect_target_name']
+    assert result['product_name'] == result['expect_product_name']
     assert result['i2c_bus_type'] == int
     assert result['i2c_address_type'] == int
     assert result['return'] == result['expect']

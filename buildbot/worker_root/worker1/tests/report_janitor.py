@@ -21,16 +21,11 @@ elif sys.argv[1] == 'finalize_product':
     do_steps = sys.argv[4]
     finalize_product(product, do_steps)
 
-elif sys.argv[1] == 'initialize_product':
-    type = sys.argv[2]
-    product = sys.argv[3]
-    initialize_product(type, product)
-
 elif sys.argv[1] == 'dts_error':
-    target= sys.argv[2]
+    product= sys.argv[2]
     dts = sys.argv[3]
     stdout = sys.argv[4]
-    dts_error_report(target, dts, stdout)
+    dts_error_report(product, dts, stdout)
 
 elif sys.argv[1] == 'finalize':
     bb_project = sys.argv[2]
@@ -38,9 +33,9 @@ elif sys.argv[1] == 'finalize':
     date = datetime.now()
     date = date.strftime('%Y_%m_%d_%H%M%S')
     if len(sys.argv)>3:
-        target = sys.argv[4]
-        stdout = subprocess.run('rm -rf ./results/'+target, shell=True)
-        stdout = subprocess.run('mkdir ./results/'+target, shell=True)
-        stdout = subprocess.run('cp ./results/temp_results.txt ./results/'+target, shell=True)
-        stdout = subprocess.run('mv ./results/'+target+'/temp_results.txt ./results/'+target+'/'+date+'_'+bb_project+'_'+target+'.txt', shell=True)
+        product = sys.argv[4]
+        stdout = subprocess.run('rm -rf ./results/'+product, shell=True)
+        stdout = subprocess.run('mkdir ./results/'+product, shell=True)
+        stdout = subprocess.run('cp ./results/temp_results.txt ./results/'+product, shell=True)
+        stdout = subprocess.run('mv ./results/'+product+'/temp_results.txt ./results/'+product+'/'+date+'_'+bb_project+'_'+product+'.txt', shell=True)
         print(date)

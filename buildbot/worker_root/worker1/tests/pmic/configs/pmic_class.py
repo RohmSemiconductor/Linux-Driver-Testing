@@ -133,10 +133,10 @@ class pmic:
         path = stdout[0]
         return path
 
-    def validate_config(self, target_name):
+    def validate_config(self, product_name):
         self.result['stage'] = 'validate_config'
-        self.result['target_name'] = target_name
-        self.result['expect_target_name'] = self.board.data['name']
+        self.result['product_name'] = product_name
+        self.result['expect_product_name'] = self.board.data['name']
         self.result['i2c_bus_type'] = type(self.board.data['i2c']['bus'])
         self.result['i2c_address_type'] = type(self.board.data['i2c']['address'])
 

@@ -3,10 +3,9 @@ import sys
 from pathlib import Path
 
 sys.path.append('..')
-from test_util import initialize_product, checkStr, check_result, result
+from test_util import checkStr, check_result, result
 result = result
-def test_login(power_port, beagle, type, product):
-#    initialize_product(type, product)
+def test_login(power_port, beagle):
 
     result['type'] = 'generic'
     result['stage'] = 'ip_power'

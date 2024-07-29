@@ -9,14 +9,11 @@ from datetime import date
 sys.path.append(str(Path('./configs').absolute()))
 from pmic_class import pmic
 
-today = date.today()
-todaystr = today.strftime("%d-%m-%Y")
-target = sys.argv[1]
+product = sys.argv[1]
 test_dts = sys.argv[2]
-target_dts = target
 
-imported_dts = __import__(target_dts)
-target = pmic(imported_dts)
+imported_dts = __import__(product)
+product = pmic(imported_dts)
 
-template = 'configs/dts_templates/'+target.board.data['name']+'_gen_template.dts'
-target.generate_dts(test_dts, template,'configs/dts_generated/'+target.board.data['name']+'/generated_dts_'+test_dts+'.dts')
+template = 'configs/dts_templates/'+product.board.data['name']+'_gen_template.dts'
+product.generate_dts(test_dts, template,'configs/dts_generated/'+product.board.data['name']+'/generated_dts_'+test_dts+'.dts')
