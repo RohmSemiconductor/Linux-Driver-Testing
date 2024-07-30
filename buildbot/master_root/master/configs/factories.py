@@ -270,6 +270,8 @@ def generate_driver_tests(project_name,test_board,product, check_tag_partial, te
             #            doStepIf=check_tag_partial and util.Property(product+'_'+dts+'_dts_make_passed') == True and util.Property(product+'_sanitycheck_passed') == True, hideStepIf=skipped))
             doStepIf=util.Property(product+'_do_steps') == True))
 
+        collect_dmesg_and_dts(project_name, test_board, product, check_tag_partial, test_dts=dts)
+
     elif test_type == "dts":
         projects[project_name]['factory'].addStep(GenerateStagesCommand(
             test_board, product, test_type, dts, check_driver_tests_partial,
@@ -277,6 +279,8 @@ def generate_driver_tests(project_name,test_board,product, check_tag_partial, te
             command=["python3", "generate_steps.py", product, test_type, dts], workdir="../tests/pmic",
             haltOnFailure=True,
             doStepIf=util.Property(product+'_do_steps') == True))
+
+        collect_dmesg_and_dts(project_name, test_board, product, check_tag_partial, test_dts=dts)
 
 def check_dts_tests(product):
     dts_tests=[]
@@ -312,13 +316,22 @@ def build_dts(project_name, product, test_dts, check_tag_partial):
         extract_fn=check_dts_error_partial,
         name=product+": Build dts: "+test_dts))
 
-def dts_report(project_name, product, test_dts, check_dts_make_partial):
-    projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["python3", "report_janitor.py", "dts_error", product, test_dts, util.Property(product+'_'+test_dts+'_dts_error')],
-        workdir="../tests",
-        doStepIf=check_dts_make_partial,
-        hideStepIf=skipped,
-        name=product+" write dts build fail to report"))
+def dts_report(project_name, product, test_dts, check_dts_make_partial=None, check_tag_partial=None):
+    if test_dts == 'default':
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["python3", "report_janitor.py", "dts_error", product, 'default', util.Property(product+'_default_dts_error')],
+            workdir="../tests",
+            doStepIf=check_tag_partial and util.Property(product+'_default_dts_make_passed') != True,
+            hideStepIf=skipped,
+            name=product+": write dts build fail to report"))
+
+    elif test_dts != 'default':
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["python3", "report_janitor.py", "dts_error", product, test_dts, util.Property(product+'_'+test_dts+'_dts_error')],
+            workdir="../tests",
+            doStepIf=check_dts_make_partial,
+            hideStepIf=skipped,
+            name=product+": write dts build fail to report"))
 
 def initialize_product(project_name, product, check_tag_partial):
     projects[project_name]['factory'].addStep(steps.ShellCommand(
@@ -328,10 +341,20 @@ def initialize_product(project_name, product, check_tag_partial):
         doStepIf=check_tag_partial,
         hideStepIf=skipped))
 
+def collect_dmesg_and_dts(project_name, test_board, product, check_tag_partial, test_dts='default'):
+    projects[project_name]['factory'].addStep(steps.ShellSequence(
+        commands=[
+            util.ShellArg(command=['pytest', '--lg-env='+test_boards[test_board]['name']+'.yaml', 'test_get_dmesg.py', '--product='+product]),
+            util.ShellArg(command=['cp','../../'+projects[project_name]['builderNames'][0]+'/build/_test-kernel-modules/'+product+'/generated_dts_'+test_dts+'.dts', '../results/'+product+'/'])],
+        workdir="../tests/pmic/",
+        doStepIf=check_tag_partial and util.Property(product+'_do_steps') != True,
+        hideStepIf=skipped,
+        name=product+": Collect dmesg and .dts"
+    ))
+
 def finalize_product(project_name, product, check_tag_partial):
-    #TODO: DMESG print with LabGrid (doStepIf=util.Property(product+_do_steps) == False)
     projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["python3", "report_janitor.py", "finalize_product", "PMIC", product, util.Property(product+'_do_steps')],
+        command=["python3", "report_janitor.py", "finalize_product", projects[project_name]['builderNames'][0], util.Property('commit-description'), "PMIC", product, util.Property(product+'_do_steps')],
         workdir="../tests",
         name="Finalize test report: "+product,
         doStepIf=check_tag_partial,
@@ -351,14 +374,11 @@ def run_driver_tests(project_name):
             copy_generated_dts(project_name, product, 'default', check_tag_partial)
 
             build_dts(project_name, product, 'default', check_tag_partial)
-            projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "report_janitor.py", "dts_error", product, 'default', util.Property(product+'_default_dts_error')], workdir="../tests", doStepIf=check_tag_partial and util.Property(product+'_default_dts_make_passed') != True, hideStepIf=skipped, name=product+" write dts build fail to report"))
- #           check_dts_make_partial=functools.partial(check_dts_make, product=product, dts='default')
-#            dts_report(project_name, product, 'default', check_dts_make_partial)
+            dts_report(project_name, product, 'default', check_tag_partial=check_tag_partial)
 
             copy_test_kernel_modules_to_nfs(project_name, product, 'default')
 
             initialize_driver_test(project_name, test_board, product, 'default')
-
 
             generate_driver_tests(project_name,test_boards[test_board]['name'],product, check_tag_partial, "regulator", "default")
 
@@ -369,7 +389,6 @@ def run_driver_tests(project_name):
                 copy_generated_dts(project_name, product, dts, check_tag_partial)
                 build_dts(project_name, product, dts, check_tag_partial)
                 dts_report(project_name, product, dts, check_dts_make_partial)
-#                projects[project_name]['factory'].addStep(steps.ShellCommand(command=["python3", "report_janitor.py", "dts_error", product, dts, util.Property(product+'_'+dts+'_dts_error')], workdir="../tests", doStepIf=check_dts_make_partial, hideStepIf=skipped, name=product+" write dts build fail to report"))
 
                 copy_test_kernel_modules_to_nfs(project_name, product, dts)
 

@@ -53,6 +53,16 @@ def dts_error_report(product, dts, stdout):
     print(stdout+'\n', end='', file=report_file)
     report_file.close()
 
+def report_dmesg(product, stdout):
+    report_file = open('../results/'+product+'/dmesg.txt', 'w+', encoding='utf-8')
+    print(type(stdout))
+    print(len(stdout))
+    x = 0
+    for line in stdout:
+        print(stdout[x]+'\n', end='',file=report_file)
+        x = x+1
+    report_file.close()
+
 def to_str(result):
     if type(result) != str:
         result = str(result)
@@ -71,8 +81,11 @@ def _assert_test(result, report_file):
     assert result['expect'] == result['return']
 
 #### Generic steps
-def _assert_generic_insmod_tests(result, report_file):
-    pass
+def _assert_generic_get_dmesg(result, report_file):
+    if result['expect'] != result['return']:
+        print( "Getting dmesg failed! Returncode: Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
+    _assert_test(result, report_file)
+
 def _assert_generic_merge_dt_overlay_insmod_tests(result, report_file):
     if result['expect'] != result['return']:
         print( result['stage']+" failed: lsmod did not contain", end='', file=report_file)
@@ -283,6 +296,8 @@ def check_result(result):
             _assert_generic_init_overlay(result, report_file)
         elif result['stage'] == 'merge_dt_overlay' or result['stage'] == 'insmod_tests':
             _assert_generic_merge_dt_overlay_insmod_tests(result, report_file)
+        elif result['stage'] == 'get_dmesg':
+            _assert_generic_get_dmesg(result, report_file)
 
     elif result['type'] == 'PMIC':
         #Sanity check:

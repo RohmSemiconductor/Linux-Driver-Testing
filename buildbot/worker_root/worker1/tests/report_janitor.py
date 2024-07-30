@@ -13,13 +13,23 @@ if sys.argv[1] == 'initialize_report':
 elif sys.argv[1] == 'initialize_product':
     type = sys.argv[2]
     product = sys.argv[3]
+    stdout = subprocess.run('rm -rf ./results/'+product, shell=True)
+    stdout = subprocess.run('mkdir ./results/'+product, shell=True)
     initialize_product(type, product)
 
 elif sys.argv[1] == 'finalize_product':
-    type = sys.argv[2]
-    product = sys.argv[3]
-    do_steps = sys.argv[4]
+    date = datetime.now()
+    date = date.strftime('%Y_%m_%d_%H%M%S')
+    bb_project = sys.argv[2]
+    linux_ver = sys.argv[3]
+
+    type = sys.argv[4]
+    product = sys.argv[5]
+    do_steps = sys.argv[6]
     finalize_product(product, do_steps)
+
+    stdout = subprocess.run('cp ./results/temp_results.txt ./results/'+product, shell=True)
+    stdout = subprocess.run('mv ./results/'+product+'/temp_results.txt ./results/'+product+'/'+date+'_'+bb_project+'_'+product+'.txt', shell=True)
 
 elif sys.argv[1] == 'dts_error':
     product= sys.argv[2]
@@ -32,10 +42,6 @@ elif sys.argv[1] == 'finalize':
     linux_ver = sys.argv[3]
     date = datetime.now()
     date = date.strftime('%Y_%m_%d_%H%M%S')
-    if len(sys.argv)>3:
-        product = sys.argv[4]
-        stdout = subprocess.run('rm -rf ./results/'+product, shell=True)
-        stdout = subprocess.run('mkdir ./results/'+product, shell=True)
-        stdout = subprocess.run('cp ./results/temp_results.txt ./results/'+product, shell=True)
-        stdout = subprocess.run('mv ./results/'+product+'/temp_results.txt ./results/'+product+'/'+date+'_'+bb_project+'_'+product+'.txt', shell=True)
-        print(date)
+    product = sys.argv[4]
+    stdout = subprocess.run('cp ./results/temp_results.txt ./results/'+product, shell=True)
+    stdout = subprocess.run('mv ./results/'+product+'/temp_results.txt ./results/'+product+'/'+date+'_'+bb_project+'_'+product+'.txt', shell=True)
