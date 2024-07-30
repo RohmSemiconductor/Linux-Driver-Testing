@@ -110,9 +110,9 @@ def check_sanitycheck_error(rc, stdout, stderr, product):
 
 def check_driver_tests(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
-        return {product+'_skip_dts_tests': True, product+'_do_steps': False}
+        return {product+'_skip_dts_tests': True, product+'_do_steps': False, 'git_bisect': True}
     else:
-        return {product+'_skip_dts_tests': False, product+'_do_steps' : True}
+        return {product+'_skip_dts_tests': False, product+'_do_steps' : True, 'git_bisect': False}
 
 class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
 
@@ -168,7 +168,19 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
 
 #         or re.search('^v('+kernel_modules['linux_ver'][product][0]+'.*$|[6-9]\\.[0-9]|[6-9]\\.[0-9\\].*$){1,2}(-rc[1-9][0-9]?)?$',step.getProperty('commit-description')):
 def build_kernel_arm32(project_name):
-    projects[project_name]['factory'].addStep(steps.Git(repourl=projects[project_name]['repo_git'], mode='incremental', getDescription={'tags':True},name="Update linux source files from git")) #source files
+    projects[project_name]['factory'].addStep(steps.Git(
+        repourl=projects[project_name]['repo_git'],
+        mode='incremental',
+        getDescription={'tags':True},
+        name="Update linux source files from git",
+        doStepIf=util.Property('git_bisecting') != True)) #source files
+
+#    projects[project_name]['factory'].addStep(steps.ShellSequence(commands=[
+#        util.ShellArg(command=['git', 'bisect', 'start']),
+#        util.ShellArg(command=['git', 'bisect', 'bad'])],
+#        name="Start git bisect"))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=['git','bisect','start'],name="Git bisect1",doStepIf=util.Property('git_bisecting')==True))
+    projects[project_name]['factory'].addStep(steps.ShellCommand(command=['git','bisect','bad'],name="Git bisect2", doStepIf=util.Property('git_bisecting')==True))
 
     projects[project_name]['factory'].addStep(steps.FileDownload(mastersrc="../../../compilers/kernel_configs/arm32.config",workerdest=".config",name="Copy kernel config to build directory"))
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "olddefconfig"],name="Update kernel config if needed"))
@@ -360,6 +372,17 @@ def finalize_product(project_name, product, check_tag_partial):
         doStepIf=check_tag_partial,
         hideStepIf=skipped))
 
+def bisect_trigger(project_name, product, check_tag_partial):
+    projects[project_name]['factory'].addStep(steps.Trigger(
+        schedulerNames=['git_bisect_'+projects[project_name]['scheduler_name']],
+        updateSourceStamp=True,
+        name=product+": trigger bisecting",
+        set_properties= {'git_bisecting':True},
+        doStepIf=check_tag_partial and util.Property(product+'_do_steps')!= True,))
+
+def git_bisect(project_name, products, check_tag_partial):
+
+
 def run_driver_tests(project_name):
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["python3", "report_janitor.py", "initialize_report", projects[project_name]['builderNames'][0], util.Property('commit-description')],
@@ -395,6 +418,7 @@ def run_driver_tests(project_name):
                 initialize_driver_test(project_name, test_board, product, dts)
                 generate_driver_tests(project_name, test_boards[test_board]['name'], product, check_tag_partial, "dts", dts )
             finalize_product(project_name, product, check_tag_partial)
+            bisect_trigger(project_name, product, check_tag_partial)
 
 def linux_driver_test(project_name):
     build_kernel_arm32(project_name)
@@ -406,8 +430,17 @@ def linux_driver_test(project_name):
     download_test_boards(project_name)
     run_driver_tests(project_name)
 
-####### FACTORIES #######
 
+def git_bisect(project_name, product):
+    build_kernel_arm32(project_name)
+    copy_kernel_binaries_to_tftpboot(project_name)
+    update_test_kernel_modules(project_name)
+    build_overlay_merger(project_name)
+    copy_overlay_merger_to_nfs(project_name)
+
+    download_test_boards(project_name)
+    run_driver_tests(project_name)
+####### FACTORIES #######
 linux_driver_test('test_linux')
 linux_driver_test('linux-next')
 linux_driver_test('linux_mainline')
