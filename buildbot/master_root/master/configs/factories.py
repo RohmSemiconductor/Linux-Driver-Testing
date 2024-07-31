@@ -96,11 +96,18 @@ def check_dts_make(step, product, dts):
         else:
             return True
 
+def dts_collected(rc, stdout, stderr, product):
+    return {product+'_dts_not_collected' : False}
+def dmesg_collected(rc, stdout, stderr, product):
+    return {product+'_dmesg_not_collected' : False}
+
 def check_init_driver_test(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
         return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False }
+#        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False, 'single_test_failed': True } #### FOR TESTING! REMOVE LATER
     else:
         return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True }
+#        return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True, 'single_test_passed': True } #### FOR TESTING! REMOVE LATER
 
 def check_sanitycheck_error(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
@@ -110,9 +117,9 @@ def check_sanitycheck_error(rc, stdout, stderr, product):
 
 def check_driver_tests(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
-        return {product+'_skip_dts_tests': True, product+'_do_steps': False, 'git_bisect': True}
+        return {product+'_skip_dts_tests': True, product+'_do_steps': False, product+'_dts_not_collected':True, product+'_mesg_not_collected':True, 'single_test_failed': True}
     else:
-        return {product+'_skip_dts_tests': False, product+'_do_steps' : True, 'git_bisect': False}
+        return {product+'_skip_dts_tests': False, product+'_do_steps' : True, 'single_test_passed': True}
 
 class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
 
@@ -166,6 +173,10 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
 
         return result
 
+def git_bisect_start_switch(rc, stdout, stderr):
+    return {'git_bisect_start_switch' : True }
+
+
 #         or re.search('^v('+kernel_modules['linux_ver'][product][0]+'.*$|[6-9]\\.[0-9]|[6-9]\\.[0-9\\].*$){1,2}(-rc[1-9][0-9]?)?$',step.getProperty('commit-description')):
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(
@@ -173,13 +184,17 @@ def build_kernel_arm32(project_name):
         mode='incremental',
         getDescription={'tags':True},
         name="Update linux source files from git",
-        doStepIf=util.Property('git_bisecting') != True)) #source files
+        doStepIf=util.Property('git_bisect_start_switch') != True and util.Property('git_bisecting') != True)) #source files
 
 #    projects[project_name]['factory'].addStep(steps.ShellSequence(commands=[
 #        util.ShellArg(command=['git', 'bisect', 'start']),
 #        util.ShellArg(command=['git', 'bisect', 'bad'])],
 #        name="Start git bisect"))
-    projects[project_name]['factory'].addStep(steps.ShellCommand(command=['git','bisect','start'],name="Git bisect1",doStepIf=util.Property('git_bisecting')==True))
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+        command=['git','bisect','start'],
+        name="Git bisect1",
+        extract_fn=git_bisect_start_switch,
+        doStepIf=util.Property('git_bisect_start_switch')==True))
     projects[project_name]['factory'].addStep(steps.ShellCommand(command=['git','bisect','bad'],name="Git bisect2", doStepIf=util.Property('git_bisecting')==True))
 
     projects[project_name]['factory'].addStep(steps.FileDownload(mastersrc="../../../compilers/kernel_configs/arm32.config",workerdest=".config",name="Copy kernel config to build directory"))
@@ -354,14 +369,26 @@ def initialize_product(project_name, product, check_tag_partial):
         hideStepIf=skipped))
 
 def collect_dmesg_and_dts(project_name, test_board, product, check_tag_partial, test_dts='default'):
-    projects[project_name]['factory'].addStep(steps.ShellSequence(
-        commands=[
-            util.ShellArg(command=['pytest', '--lg-env='+test_boards[test_board]['name']+'.yaml', 'test_get_dmesg.py', '--product='+product]),
-            util.ShellArg(command=['cp','../../'+projects[project_name]['builderNames'][0]+'/build/_test-kernel-modules/'+product+'/generated_dts_'+test_dts+'.dts', '../results/'+product+'/'])],
+
+    dmesg_collected_partial = functools.partial(dmesg_collected, product=product)
+    dts_collected_partial = functools.partial(dts_collected, product=product)
+
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+        command=['pytest', '--lg-env='+test_boards[test_board]['name']+'.yaml', 'test_get_dmesg.py', '--product='+product],
         workdir="../tests/pmic/",
-        doStepIf=check_tag_partial and util.Property(product+'_do_steps') != True,
+        doStepIf=check_tag_partial and util.Property(product+'_dmesg_not_collected') == True,
+        extract_fn=dmesg_collected_partial,
         hideStepIf=skipped,
-        name=product+": Collect dmesg and .dts"
+        name=product+": Collect dmesg"
+    ))
+
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+        command=['cp','../../'+projects[project_name]['builderNames'][0]+'/build/_test-kernel-modules/'+product+'/generated_dts_'+test_dts+'.dts', '../results/'+product+'/'],
+        workdir="../tests/pmic/",
+        doStepIf=check_tag_partial and util.Property(product+'_dts_not_collected') == True,
+        hideStepIf=skipped,
+        extract_fn=dts_collected_partial,
+        name=product+": Collect "+test_dts+".dts"
     ))
 
 def finalize_product(project_name, product, check_tag_partial):
@@ -377,11 +404,30 @@ def bisect_trigger(project_name, product, check_tag_partial):
         schedulerNames=['git_bisect_'+projects[project_name]['scheduler_name']],
         updateSourceStamp=True,
         name=product+": trigger bisecting",
-        set_properties= {'git_bisecting':True},
+        set_properties= {
+            'git_bisecting':True,
+            product+'_failed': True,
+            },
+#        doStepIf=check_tag_partial and util.Property('git_bisect')== True,))
         doStepIf=check_tag_partial and util.Property(product+'_do_steps')!= True,))
 
-def git_bisect(project_name, products, check_tag_partial):
+#def git_bisect(project_name, products, check_tag_partial):
 
+def git_bisect_good(project_name):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=['pwd'],
+        workdir="build",
+        name="Git bisect: good",
+        doStepIf=util.Property('single_test_passed') == True and util.Property('single_test_failed') != True
+        ))
+
+def git_bisect_bad(project_name):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=['pwd'],
+        workdir="build",
+        name="Git bisect: bad",
+        doStepIf=util.Property('single_test_failed') == True
+        ))
 
 def run_driver_tests(project_name):
     projects[project_name]['factory'].addStep(steps.ShellCommand(
@@ -418,6 +464,7 @@ def run_driver_tests(project_name):
                 initialize_driver_test(project_name, test_board, product, dts)
                 generate_driver_tests(project_name, test_boards[test_board]['name'], product, check_tag_partial, "dts", dts )
             finalize_product(project_name, product, check_tag_partial)
+
             bisect_trigger(project_name, product, check_tag_partial)
 
 def linux_driver_test(project_name):
@@ -429,7 +476,8 @@ def linux_driver_test(project_name):
 
     download_test_boards(project_name)
     run_driver_tests(project_name)
-
+    git_bisect_good(project_name)
+    git_bisect_bad(project_name)
 
 def git_bisect(project_name, product):
     build_kernel_arm32(project_name)
