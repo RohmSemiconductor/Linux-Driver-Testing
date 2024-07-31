@@ -117,7 +117,7 @@ def check_sanitycheck_error(rc, stdout, stderr, product):
 
 def check_driver_tests(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
-        return {product+'_skip_dts_tests': True, product+'_do_steps': False, product+'_dts_not_collected':True, product+'_mesg_not_collected':True, 'single_test_failed': True}
+        return {product+'_skip_dts_tests': True, product+'_do_steps': False, product+'_dts_not_collected':True, product+'_dmesg_not_collected':True, 'single_test_failed': True}
     else:
         return {product+'_skip_dts_tests': False, product+'_do_steps' : True, 'single_test_passed': True}
 
