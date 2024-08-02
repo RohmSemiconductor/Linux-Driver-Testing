@@ -297,7 +297,7 @@ static const unsigned int bd71837_buck5_volt_range_sel[] = {
  */
 static const struct linear_range bd71847_buck3_volts[] = {
 	/* Ranges when VOLT_SEL bits are 00 */
-	REGULATOR_LINEAR_RANGE(700000, 0x00, 0x02, 100000),
+	REGULATOR_LINEAR_RANGE(700000, 0x00, 0x03, 100000),
 	REGULATOR_LINEAR_RANGE(1050000, 0x04, 0x05, 50000),
 	REGULATOR_LINEAR_RANGE(1200000, 0x06, 0x07, 150000),
 	/* Ranges when VOLT_SEL bits are 01 */
