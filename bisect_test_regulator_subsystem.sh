@@ -10,7 +10,7 @@ echo '-------'
 
 echo 'Push 2'
 echo '-------'
-cp ../bugged2_driver.h include/linux/regulator/driver.h
+cp ../bugged_driver.h include/linux/regulator/driver.h
 git add .
 git commit -m "bugged driver.h"
 git push origin test_linux
