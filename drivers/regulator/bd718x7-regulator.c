@@ -297,7 +297,7 @@ static const unsigned int bd71837_buck5_volt_range_sel[] = {
  */
 static const struct linear_range bd71847_buck3_volts[] = {
 	/* Ranges when VOLT_SEL bits are 00 */
-	REGULATOR_LINEAR_RANGE(700000, 0x00, 0x03, 100000),
+	REGULATOR_LINEAR_RANGE(500000, 0x00, 0x02, 100000),
 	REGULATOR_LINEAR_RANGE(1050000, 0x04, 0x05, 50000),
 	REGULATOR_LINEAR_RANGE(1200000, 0x06, 0x07, 150000),
 	/* Ranges when VOLT_SEL bits are 01 */
@@ -763,7 +763,7 @@ static struct bd718xx_regulator_data bd71847_regulators[] = {
 		},
 		.init = {
 			.reg = BD718XX_REG_BUCK1_CTRL,
-			.mask = BD718XX_BUCK_SEL,
+			.mask = 0x05,
 			.val = BD718XX_BUCK_SEL,
 		},
 	},
@@ -1091,7 +1091,7 @@ static struct bd718xx_regulator_data bd71837_regulators[] = {
 			.vsel_reg = BD718XX_REG_BUCK1_VOLT_RUN,
 			.vsel_mask = DVS_BUCK_RUN_MASK,
 			.enable_reg = BD718XX_REG_BUCK1_CTRL,
-			.enable_mask = BD718XX_BUCK_EN,
+			.enable_mask = 0x02,
 			.enable_time = BD71837_BUCK1_STARTUP_TIME,
 			.ramp_delay_table = bd718xx_ramp_delay,
 			.n_ramp_values = ARRAY_SIZE(bd718xx_ramp_delay),
