@@ -1,0 +1,9 @@
+good_commits={
+    'linux_mainline':{
+        'master':'256abd8e550ce977b728be79a74e1729438b4948',
+},
+    'test_linux':{
+        'master':'98bec23f09fa68e94b2ce2549188a3a366826b1d',
+},
+#EOF
+}
