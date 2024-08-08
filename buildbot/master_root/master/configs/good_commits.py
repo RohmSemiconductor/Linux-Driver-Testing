@@ -1,3 +1,0 @@
-good_commits={
-#EOF
-}

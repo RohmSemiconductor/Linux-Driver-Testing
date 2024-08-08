@@ -1,7 +1,6 @@
 import sys
 import subprocess
 sys.path.append('.')
-sys.path.append('./configs')
 mode = sys.argv[1]
 
 if sys.argv[1] == 'read':
@@ -26,8 +25,8 @@ elif sys.argv[1] == 'write':
     commit = sys.argv[4]
     commit = commit.split('\n')
     commit = commit[0]
-    good_commits = open('./configs/good_commits.py')
-    temp_good_commits = open('./configs/temp_good_commits.py', 'w+', encoding="utf-8")
+    good_commits = open('./bisect_good_commits.py')
+    temp_good_commits = open('./bisect_temp_good_commits.py', 'w+', encoding="utf-8")
     branch_written = 0
     branch_found = 0
     project_flag = 0
@@ -70,7 +69,7 @@ elif sys.argv[1] == 'write':
     good_commits.close()
     temp_good_commits.close()
 
-    stdout = subprocess.run('mv ./configs/temp_good_commits.py ./configs/good_commits.py', shell=True)
+    stdout = subprocess.run('mv ./bisect_temp_good_commits.py ./bisect_good_commits.py', shell=True)
 else:
-    print("Unknown mode, use good_commit.py read/write!")
+    print("Unknown mode, use bisect_good_commit.py read/write!")
     sys.exit(1)
