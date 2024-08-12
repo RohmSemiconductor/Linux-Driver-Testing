@@ -21,16 +21,17 @@ def checkStr(stdout,checkString):
     if checkString in stdout:
         return 0
 
-def initialize_report(bb_project, linux_ver):
+def initialize_report(bb_project, linux_ver, revision):
     for report_file in report_files:
-        report_file = open('./results/'+report_file+'.txt', 'w+', encoding='utf-8')
+        report_file = open('./temp_results/'+report_file+'.txt', 'w+', encoding='utf-8')
         print("BuildBot project: "+bb_project+"\n", end='', file=report_file)
-        print("Linux version: "+linux_ver+"\n\n", end='', file=report_file)
+        print("Linux version: "+linux_ver+"\n", end='', file=report_file)
+        print("Commit hash: "+revision+"\n\n", end='', file=report_file)
         report_file.close()
 
 def initialize_product(type, product):
     for report_file in report_files:
-        report_file = open('./results/'+report_file+'.txt', 'a', encoding='utf-8')
+        report_file = open('./temp_results/'+report_file+'.txt', 'a', encoding='utf-8')
         report_file.seek(0,2)
         print("Testing: "+product+" "+type+"\n", end='', file=report_file)
         report_file.close()
@@ -41,20 +42,34 @@ def finalize_product(product, do_steps):
     else:
         result = "FAILED"
     for report_file in report_files:
-        report_file = open('./results/'+report_file+'.txt', 'a', encoding='utf-8')
+        report_file = open('./temp_results/'+report_file+'.txt', 'a', encoding='utf-8')
         report_file.seek(0,2)
         print("Test results: "+product+": "+result+"\n\n", end='', file=report_file)
         report_file.close()
 
+def bisect_result(timestamped_dir, final_output):
+    report_file = open('./'+timestamped_dir+'/summary.txt', 'a', encoding='utf-8')
+    report_file.seek(0,2)
+    print("Git bisect output:\n", end='', file=report_file)
+    print(final_output+"\n", end='', file=report_file)
+    report_file.close()
+
+def kernel_error_report(stderr):
+    report_file = open('./temp_results/summary.txt', 'a', encoding='utf-8')
+    report_file.seek(0,2)
+    print("Building kernel failed!\nstderr:\n\n", end='', file=report_file)
+    print(stderr+'\n', end='', file=report_file)
+    report_file.close()
+
 def dts_error_report(product, dts, stdout):
-    report_file = open('./results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('./temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print(product+": dts build failed: dts: "+dts+"\n", end='', file=report_file)
     print(stdout+'\n', end='', file=report_file)
     report_file.close()
 
 def report_dmesg(product, stdout):
-    report_file = open('../results/'+product+'/dmesg.txt', 'w+', encoding='utf-8')
+    report_file = open('../temp_results/'+product+'/dmesg.txt', 'w+', encoding='utf-8')
     print(type(stdout))
     print(len(stdout))
     x = 0
@@ -117,26 +132,26 @@ def _assert_generic_ip_power(result, report_file):
     _assert_test(result, report_file)
 
 def login_fail(power_port, beagle):
-    report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print("Login failed: Power port:"+power_port+" BeagleBone: "+beagle+"\n\n", end='', file=report_file)
     report_file.close()
 
 def init_overlay_fail():
-    report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print("Installing overlay merger failed! This step is common to all PMICs.\n\n", end='', file=report_file)
     print("\n", end='', file=report_file)
     report_file.close()
 
 def merge_dt_overlay_fail(product, dt_overlay):
-    report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print(product, ": Merge device tree overlay failed: "+dt_overlay+" module missing (lsmod) \n\n", end='', file=report_file)
     report_file.close()
 
 def insmod_fail(product, insmod):
-    report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print(product, ": insmod failed: "+insmod+" module missing (lsmod) \n\n", end='', file=report_file)
     report_file.close()
@@ -145,7 +160,7 @@ def sanity_check_fail():
     pass
 
 def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=None, insmod=None):
-    report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     if tf == "login":
         print("Login failed: Power port:"+power_port+" BeagleBone: "+beagle+"\n\n", end='', file=report_file)
@@ -191,7 +206,7 @@ def _assert_pmic_voltage_run(result, report_file):
     else:
         x = 0
         for i in result['expect']:
-            if result['expect'] != result['return']:
+            if result['expect'][x][2] != result['return'][x][2]:
                     if type(result['expect'][x][0]) == int:
                         range = str(result['expect'][x][0])
                     else:
@@ -285,7 +300,7 @@ def _assert_pmic_validate_config(result, report_file):
     assert result['return'] == result['expect']
 
 def check_result(result):
-    report_file = open('../results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     if result['type'] == 'generic':
         if result['stage'] == 'ip_power':
