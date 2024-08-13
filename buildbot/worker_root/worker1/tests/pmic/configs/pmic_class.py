@@ -114,18 +114,6 @@ class pmic:
         self.result['expect'] = [dts, setting, int_hex]
         return self.result
 
-    def read_dt(self, regulator, setting_type, setting, command):
-        stdout, stderr, returncode = command.run("grep -r -l rohm,"+self.board.data['name']+" /proc/device-tree | sed 's![^/]*$!!'") #sed removes everything from end until first"/", returning only the path instead of path/file
-        path = self.escape_path(stdout[0])
-        stdout, stderr, returncode = command.run("xxd -p "+path+"regulators/"+self.board.data['regulators'][regulator]['of_match']+"/"+self.board.data['regulators'][regulator][setting_type][setting]['of_match'])
-        hex=('0x'+stdout[0])
-        int_hex= int(hex,0)
-        return int_hex
-    #Unused
-    def dt_run(self, regulator, dts, command):
-        for property in self.board.data['regulators'][regulator]['dt_properties'][dts]:
-            dts_value = self.read_dt(regulator,property,command)
-
     #### /Device tree functions
 
     def find_sysfs_files(self, regulator, command):
