@@ -379,7 +379,7 @@ struct regulator_desc {
 	unsigned int ramp_delay;
 	int min_dropout_uV;
 
-	const struct linear_range *linear_ranges;
+	const struct regulator_linear_range *linear_ranges;
 	const unsigned int *linear_range_selectors_bitfield;
 
 	int n_linear_ranges;
