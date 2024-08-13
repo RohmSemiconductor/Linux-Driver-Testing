@@ -23,5 +23,7 @@ git add .
 git commit -m "bad commit"
 git push origin test_linux
 echo '-------'
+git tag $1
+git push origin $1
 
 cp ../driver.h include/linux/regulator/driver.h

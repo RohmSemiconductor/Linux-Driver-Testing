@@ -6,8 +6,6 @@ echo 'x' >> README
 git add .
 git commit -m "clean commit"
 git push origin test_linux
-git tag $1
-git push origin $1
 echo '-------'
 
 echo 'Push 2'
@@ -25,5 +23,7 @@ git add .
 git commit -m "bad commit"
 git push origin test_linux
 echo '-------'
+git tag $1
+git push origin $1
 
 cp ../bd718x7-regulator.c drivers/regulator/
