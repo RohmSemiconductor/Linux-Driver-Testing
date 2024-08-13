@@ -4,7 +4,7 @@ sys.path.append('.')
 mode = sys.argv[1]
 
 if sys.argv[1] == 'read':
-    saved = __import__('good_commits')
+    saved = __import__('bisect_good_commits')
     if (len(sys.argv) <4):
         print("You must give BuildBot project['name'] and branch!")
     else:

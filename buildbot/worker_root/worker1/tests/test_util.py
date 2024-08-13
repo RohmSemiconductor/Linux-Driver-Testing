@@ -61,6 +61,13 @@ def kernel_error_report(stderr):
     print(stderr+'\n', end='', file=report_file)
     report_file.close()
 
+def overlay_merger_error_report(stderr):
+    report_file = open('./temp_results/summary.txt', 'a', encoding='utf-8')
+    report_file.seek(0,2)
+    print("Building overlay merger failed!\nstderr:\n\n", end='', file=report_file)
+    print(stderr+'\n', end='', file=report_file)
+    report_file.close()
+
 def dts_error_report(product, dts, stdout):
     report_file = open('./temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
