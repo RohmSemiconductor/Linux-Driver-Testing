@@ -9,12 +9,13 @@ if sys.argv[1] == 'initialize_report':
     bb_project = sys.argv[2]
     linux_ver = sys.argv[3]
     revision = sys.argv[4]
+    stdout = subprocess.run('rm -rf temp_results/', shell=True)
+    stdout = subprocess.run('mkdir temp_results', shell=True)
     initialize_report(bb_project, linux_ver, revision)
 
 elif sys.argv[1] == 'initialize_product':
     type = sys.argv[2]
     product = sys.argv[3]
-    stdout = subprocess.run('rm -rf ./temp_results/'+product, shell=True)
     stdout = subprocess.run('mkdir ./temp_results/'+product, shell=True)
     initialize_product(type, product)
 
@@ -29,8 +30,9 @@ elif sys.argv[1] == 'finalize_product':
     do_steps = sys.argv[6]
     finalize_product(product, do_steps)
 
-    stdout = subprocess.run('cp ./temp_results/temp_results.txt ./temp_results/'+product, shell=True)
-    stdout = subprocess.run('mv ./temp_results/'+product+'/temp_results.txt ./temp_results/'+product+'/'+date+'_'+bb_project+'_'+product+'.txt', shell=True)
+    #stdout = subprocess.run('cp ./temp_results/temp_results.txt ./temp_results/'+product, shell=True)
+    #stdout = subprocess.run('mv ./temp_results/'+product+'/temp_results.txt ./temp_results/'+product+'/'+date+'_'+bb_project+'_'+product+'.txt', shell=True)
+    stdout = subprocess.run('mv ./temp_results/temp_results.txt ./temp_results/'+product+'/'+product+'_results.txt', shell=True)
 
 elif sys.argv[1] == 'kernel_error':
     stderr = sys.argv[2]
@@ -46,19 +48,18 @@ elif sys.argv[1] == 'dts_error':
     stdout = sys.argv[4]
     dts_error_report(product, dts, stdout)
 
-elif sys.argv[1] == 'finalize':
-    bb_project = sys.argv[2]
-    linux_ver = sys.argv[3]
-    date = datetime.now()
-    date = date.strftime('%Y_%m_%d_%H%M%S')
-    product = sys.argv[4]
-    stdout = subprocess.run('cp ./temp_results/temp_results.txt ./temp_results/'+product, shell=True)
-    stdout = subprocess.run('mv ./temp_results/'+product+'/temp_results.txt ./temp_results/'+product+'/'+date+'_'+bb_project+'_'+product+'.txt', shell=True)
+elif sys.argv[1] == 'copy_results':
+    timestamped_dir = sys.argv[2]
+    bb_project = sys.argv[3]
+
+    stdout = subprocess.run('cp -r temp_results/ results/', shell=True)
+    stdout = subprocess.run('mv results/temp_results '+timestamped_dir+'_'+bb_project, shell=True)
 
 elif sys.argv[1] == 'bisect_result':
     timestamped_dir = sys.argv[2]
-    final_output = sys.argv[3]
-    bisect_result(timestamped_dir, final_output)
+    bb_project = sys.argv[3]
+    final_output = sys.argv[4]
+    bisect_result(timestamped_dir, bb_project, final_output)
 
 elif sys.argv[1] == 'get_timestamp':
     date = datetime.now()
