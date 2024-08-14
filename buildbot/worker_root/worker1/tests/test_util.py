@@ -47,8 +47,8 @@ def finalize_product(product, do_steps):
         print("Test results: "+product+": "+result+"\n\n", end='', file=report_file)
         report_file.close()
 
-def bisect_result(timestamped_dir, final_output):
-    report_file = open('./'+timestamped_dir+'/summary.txt', 'a', encoding='utf-8')
+def bisect_result(timestamped_dir,bb_project, final_output):
+    report_file = open('./'+timestamped_dir+'_'+bb_project+'/summary.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print("Git bisect output:\n", end='', file=report_file)
     print(final_output+"\n", end='', file=report_file)
