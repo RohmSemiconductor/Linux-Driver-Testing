@@ -138,6 +138,8 @@ def doStepIf_copy_overlay_merger_to_nfs(step):
 def extract_init_driver_test(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
         return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False }
+    elif rc != 0:
+        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False }
 #        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False, 'single_test_failed': True } #### FOR TESTING! REMOVE LATER
     else:
         return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True }
@@ -145,6 +147,8 @@ def extract_init_driver_test(rc, stdout, stderr, product):
 
 def extract_sanitycheck_error(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
+        return {product+'_sanitycheck_passed': False ,product+'_do_steps' : False }
+    elif rc != 0:
         return {product+'_sanitycheck_passed': False ,product+'_do_steps' : False }
     else:
         return {product+'_sanitycheck_passed': True , product+'_do_steps' : True }
@@ -346,13 +350,15 @@ def initialize_driver_test(project_name, test_board, product, test_dts):
 def extract_driver_tests(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
         return {product+'_skip_dts_tests': True, product+'_do_steps': False, product+'_dts_collected':False, product+'_dmesg_collected':False, 'single_test_failed': True, 'git_bisect_trigger': True}
+    elif rc != 0:
+        return {product+'_skip_dts_tests': True, product+'_do_steps': False, product+'_dts_collected':False, product+'_dmesg_collected':False, 'single_test_failed': True, 'git_bisect_trigger': True}
     else:
         return {product+'_skip_dts_tests': False, product+'_do_steps' : True, 'single_test_passed': True}
 
 def doStepIf_generate_driver_tests(step, product, dts):
     if check_tag(step, product) == True:
         if step.getProperty(product+'_'+dts+'_dts_make_passed') == True:
-            if util.Property(product+'_do_steps') == True:
+            if step.getProperty(product+'_do_steps') == True:
                 return True
             else:
                 return False
@@ -623,11 +629,13 @@ def get_timestamp(project_name):
         ))
 
 def copy_temp_results(project_name):
-    projects[project_name]['factory'].addStep(steps.ShellSequence(
-        commands=[
-        util.ShellArg(command=["cp", "-r", "temp_results/", "results/"]),
-        util.ShellArg(command=["mv", "results/temp_results", util.Property('timestamped_dir')]),
-        ],
+#    projects[project_name]['factory'].addStep(steps.ShellSequence(
+#        commands=[
+#        util.ShellArg(command=["cp", "-r", "temp_results/", "results/"]),
+#        util.ShellArg(command=["mv", "results/temp_results", util.Property('timestamped_dir')]),
+#        ],
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["python3", "report_janitor.py", "copy_results", util.Property('timestamped_dir'), projects[project_name]['builderNames'][0]],
         workdir="../tests",
         name="Copy temp_results/ to results/",
         doStepIf=util.Property('git_bisecting') != True
@@ -709,6 +717,16 @@ def doStepIf_git_bisect_trigger(step):
     else:
         return False
 
+def doStepIf_git_bisect_report(step):
+    if step.getProperty('git_bisect_state') == 'success':
+        return True
+    elif step.getProperty('git_bisect_state') == 'cannot_start':
+        return True
+    elif step.getProperty('git_bisect_state') == 'failed':
+        return True
+    else:
+        return False
+
 def extract_fn_read_good_commit(rc, stdout, stderr):
     if rc == 0:
         stdout = stdout.split('\n')
@@ -718,7 +736,7 @@ def extract_fn_read_good_commit(rc, stdout, stderr):
 
 def extract_git_bisect_output(rc, stdout, stderr):
     if rc != 0:
-        return {'git_bisecting': False, 'git_bisect_failed':True, 'git_bisect_final_output':stdout, 'git_bisect_state':'failed'}
+        return {'git_bisecting': False, 'git_bisect_failed':True, 'git_bisect_output':stdout, 'git_bisect_state':'failed'}
     elif rc == 0:
         # Git bisect needs atleast 1 good and bad commit for the command to start returning commits to test
         if (('waiting for both good and bad commits' in stdout) or ('waiting for bad commit' in stdout) or ('waiting for good commit' in stdout)):
@@ -728,9 +746,9 @@ def extract_git_bisect_output(rc, stdout, stderr):
             return {'git_bisecting': True , 'git_bisect_output':stdout, 'git_bisect_state': 'running'}
         # '...is the first bad commit' is printed after final 'git bisect good/bad'
         elif 'is the first bad commit' in stdout:
-            return {'git_bisecting': False, 'git_bisect_final_output':stdout, 'git_bisect_state': 'success'}
+            return {'git_bisecting': False, 'git_bisect_output':stdout, 'git_bisect_state': 'success'}
         else:
-            return {'git_bisect_wtf_stdout': stdout, 'git_bisect_wtf_rc':rc,'git_bisect_wtf_stder':stderr}
+            return {'git_bisect_wtf_stdout': stdout, 'git_bisect_wtf_rc':rc,'git_bisect_wtf_stder':stderr, 'git_bisect_output':stdout, 'git_bisect_state':'failed'}
 #### /Git bisect helpers
 
 def git_bisect(project_name):
@@ -788,17 +806,17 @@ def git_bisect(project_name):
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["python3", "report_janitor.py", "bisect_result", util.Property('timestamped_dir'), util.Property("git_bisect_final_output")],
+        command=["python3", "report_janitor.py", "bisect_result", util.Property('timestamped_dir'), util.Property("git_bisect_output")],
         name="Report git bisect results",
         workdir="../tests",
-        doStepIf=util.Property("git_bisect_state") == "success"
+        doStepIf=doStepIf_git_bisect_report
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["git", "bisect", "reset"],
         name="Git bisect reset",
         workdir="build",
-        doStepIf=util.Property("git_bisect_state") == "success"
+        doStepIf=doStepIf_git_bisect_report
         ))
 
 def linux_driver_test(project_name):
