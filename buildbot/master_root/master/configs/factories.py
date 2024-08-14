@@ -135,15 +135,6 @@ def doStepIf_copy_overlay_merger_to_nfs(step):
     else:
         return True
 
-def extract_init_driver_test(rc, stdout, stderr, product):
-    if 'FAILURES' in stdout:
-        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False }
-    elif rc != 0:
-        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False }
-#        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False, 'single_test_failed': True } #### FOR TESTING! REMOVE LATER
-    else:
-        return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True }
-#        return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True, 'single_test_passed': True } #### FOR TESTING! REMOVE LATER
 
 def extract_sanitycheck_error(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
@@ -304,13 +295,40 @@ def download_test_boards(project_name):
         doStepIf=util.Property('preparation_step_failed') != True
         ))
 
+def extract_init_driver_test(rc, stdout, stderr, product):
+    if 'FAILURES' in stdout:
+        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False }
+    elif rc != 0:
+        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False }
+    else:
+        return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True }
+
+def extract_init_driver_test_login(rc, stdout, stderr, product):
+    if 'FAILURES' in stdout:
+        return {product+'_init_driver_tests_passed': False,product+'_login_failed': True,  product+'_do_steps' : False }
+    elif rc != 0:
+        return {product+'_init_driver_tests_passed': False, product+'_login_failed': True, product+'_do_steps' : False }
+    else:
+        return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True }
+
+def doStepIf_login(step, product):
+    if step.getProperty(product+'_init_driver_test_passed') == False:
+        return False
+    elif step.getProperty(product+'_do_steps') == True:
+        return True
+    else:
+        return False
+
 def initialize_driver_test(project_name, test_board, product, test_dts):
     extract_init_driver_test_partial= functools.partial(extract_init_driver_test, product=product)
+    extract_init_driver_test_login_partial= functools.partial(extract_init_driver_test_login, product=product)
+    doStepIf_login_partial = functools.partial(doStepIf_login, product=product)
+
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
         command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_000_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],
         workdir="../tests/pmic",
-        extract_fn=extract_init_driver_test_partial,
-        doStepIf=util.Property(product+'_do_steps') == True,
+        extract_fn=extract_init_driver_test_login_partial,
+        doStepIf=doStepIf_login_partial,
         name=product+": Login to "+test_boards[test_board]['name']
         ))
 
@@ -414,6 +432,8 @@ def doStepIf_dts_test_preparation(step, product):
         return False
     elif step.getProperty('overlay_merger_build_failed') == True:
         return False
+    elif step.getProperty(product+'_do_steps') == False:
+        return False
     elif check_tag(step, product) == True:
         if step.getProperty(product+'_skip_dts_tests') != True:
             return True
@@ -461,7 +481,7 @@ def doStepIf_dts_report(step, product, test_dts):
     if step.getProperty('preparation_step_failed') == True:
         return False
     elif check_tag(step, product) == True:
-        if step.getProperty(product+'_'+test_dts+'_dts_make_passed') != True:
+        if step.getProperty(product+'_'+test_dts+'_dts_make_passed') == False:
             return True
     else:
         return False
@@ -516,6 +536,8 @@ def doStepIf_collect_dmesg(step, product):
             return False
         elif step.getProperty('git_bisecting'):
             return False
+        elif step.getProperty(product+'_login_failed') == True:
+            return False
         elif step.getProperty(product+'_do_steps') == False:
             if not step.getProperty(product+'_dmesg_collected'):
                 return True
@@ -531,6 +553,8 @@ def doStepIf_collect_dts(step,  product):
         if step.getProperty('preparation_step_failed') == True:
             return False
         elif step.getProperty('git_bisecting'):
+            return False
+        elif step.getProperty(product+'_login_failed') == True:
             return False
         elif step.getProperty(product+'_do_steps') == False:
             if not step.getProperty(product+'_dts_collected'):
@@ -806,7 +830,7 @@ def git_bisect(project_name):
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["python3", "report_janitor.py", "bisect_result", util.Property('timestamped_dir'), util.Property("git_bisect_output")],
+        command=["python3", "report_janitor.py", "bisect_result", util.Property('timestamped_dir'), projects[project_name]['builderNames'][0], util.Property("git_bisect_output")],
         name="Report git bisect results",
         workdir="../tests",
         doStepIf=doStepIf_git_bisect_report
