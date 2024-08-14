@@ -384,10 +384,17 @@ def doStepIf_generate_driver_tests(step, product, dts):
             return False
     else:
         return False
+def doStepIf_powerdown_beagle(step, product):
+    if check_tag(step, product) == True:
+        return True
+    else:
+        return False
 
 def generate_driver_tests(project_name,test_board,product, test_type, dts=None):
     extract_driver_tests_partial = functools.partial(extract_driver_tests, product=product)
     doStepIf_generate_driver_tests_partial = functools.partial(doStepIf_generate_driver_tests, product=product, dts=dts)
+    doStepIf_powerdown_beagle_partial = functools.partial(doStepIf_powerdown_beagle, product=product)
+
     if test_type == "regulator":
         extract_sanitycheck_error_partial = functools.partial(extract_sanitycheck_error, product=product)
         projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=[
@@ -419,6 +426,14 @@ def generate_driver_tests(project_name,test_board,product, test_type, dts=None):
             ))
 
         collect_dmesg_and_dts(project_name, test_board, product, test_dts=dts)
+
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_005_powerdown_beagle.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],
+        workdir="../tests/pmic/",
+        doStepIf=doStepIf_powerdown_beagle_partial,
+        hideStepIf=skipped,
+        name=product+": power down beagle"
+        ))
 
 def check_dts_tests(product):
     dts_tests=[]
