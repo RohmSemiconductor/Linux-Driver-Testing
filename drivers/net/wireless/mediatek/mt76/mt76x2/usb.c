@@ -57,7 +57,7 @@ static int mt76x2u_probe(struct usb_interface *intf,
 	usb_set_intfdata(intf, dev);
 
 	mt76x02u_init_mcu(mdev);
-	err = mt76u_init(mdev, intf, false);
+	err = mt76u_init(mdev, intf);
 	if (err < 0)
 		goto err;
 
@@ -147,4 +147,5 @@ static struct usb_driver mt76x2u_driver = {
 module_usb_driver(mt76x2u_driver);
 
 MODULE_AUTHOR("Lorenzo Bianconi <lorenzo.bianconi83@gmail.com>");
+MODULE_DESCRIPTION("MediaTek MT76x2U (USB) wireless driver");
 MODULE_LICENSE("Dual BSD/GPL");

@@ -464,7 +464,7 @@ static void dmc520_init_csrow(struct mem_ctl_info *mci)
 			dimm->grain	= pvt->mem_width_in_bytes;
 			dimm->dtype	= dt;
 			dimm->mtype	= mt;
-			dimm->edac_mode	= EDAC_FLAG_SECDED;
+			dimm->edac_mode	= EDAC_SECDED;
 			dimm->nr_pages	= pages_per_rank / csi->nr_channels;
 		}
 	}
@@ -489,7 +489,7 @@ static int dmc520_edac_probe(struct platform_device *pdev)
 	dev = &pdev->dev;
 
 	for (idx = 0; idx < NUMBER_OF_IRQS; idx++) {
-		irq = platform_get_irq_byname(pdev, dmc520_irq_configs[idx].name);
+		irq = platform_get_irq_byname_optional(pdev, dmc520_irq_configs[idx].name);
 		irqs[idx] = irq;
 		masks[idx] = dmc520_irq_configs[idx].mask;
 		if (irq >= 0) {
@@ -602,7 +602,7 @@ err:
 	return ret;
 }
 
-static int dmc520_edac_remove(struct platform_device *pdev)
+static void dmc520_edac_remove(struct platform_device *pdev)
 {
 	u32 reg_val, idx, irq_mask_all = 0;
 	struct mem_ctl_info *mci;
@@ -626,8 +626,6 @@ static int dmc520_edac_remove(struct platform_device *pdev)
 
 	edac_mc_del_mc(&pdev->dev);
 	edac_mc_free(mci);
-
-	return 0;
 }
 
 static const struct of_device_id dmc520_edac_driver_id[] = {
@@ -644,7 +642,7 @@ static struct platform_driver dmc520_edac_driver = {
 	},
 
 	.probe = dmc520_edac_probe,
-	.remove = dmc520_edac_remove
+	.remove_new = dmc520_edac_remove
 };
 
 module_platform_driver(dmc520_edac_driver);

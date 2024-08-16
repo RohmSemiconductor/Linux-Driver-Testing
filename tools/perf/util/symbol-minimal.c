@@ -159,9 +159,10 @@ int filename__read_build_id(const char *filename, struct build_id *bid)
 				goto out_free;
 
 			ret = read_build_id(buf, buf_size, bid, need_swap);
-			if (ret == 0)
+			if (ret == 0) {
 				ret = bid->size;
-			break;
+				break;
+			}
 		}
 	} else {
 		Elf64_Ehdr ehdr;
@@ -210,9 +211,10 @@ int filename__read_build_id(const char *filename, struct build_id *bid)
 				goto out_free;
 
 			ret = read_build_id(buf, buf_size, bid, need_swap);
-			if (ret == 0)
+			if (ret == 0) {
 				ret = bid->size;
-			break;
+				break;
+			}
 		}
 	}
 out_free:
@@ -384,4 +386,9 @@ char *dso__demangle_sym(struct dso *dso __maybe_unused,
 			const char *elf_name __maybe_unused)
 {
 	return NULL;
+}
+
+bool filename__has_section(const char *filename __maybe_unused, const char *sec __maybe_unused)
+{
+	return false;
 }

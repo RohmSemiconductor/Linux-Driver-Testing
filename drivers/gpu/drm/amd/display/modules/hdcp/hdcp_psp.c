@@ -105,6 +105,7 @@ static enum mod_hdcp_status remove_display_from_topology_v3(
 	dtm_cmd->dtm_status = TA_DTM_STATUS__GENERIC_FAILURE;
 
 	psp_dtm_invoke(psp, dtm_cmd->cmd_id);
+	mutex_unlock(&psp->dtm_context.mutex);
 
 	if (dtm_cmd->dtm_status != TA_DTM_STATUS__SUCCESS) {
 		status = remove_display_from_topology_v2(hdcp, index);
@@ -114,8 +115,6 @@ static enum mod_hdcp_status remove_display_from_topology_v3(
 		display->state = MOD_HDCP_DISPLAY_ACTIVE;
 		HDCP_TOP_REMOVE_DISPLAY_TRACE(hdcp, display->index);
 	}
-
-	mutex_unlock(&psp->dtm_context.mutex);
 
 	return status;
 }
@@ -203,8 +202,13 @@ static enum mod_hdcp_status add_display_to_topology_v3(
 	dtm_cmd->dtm_status = TA_DTM_STATUS__GENERIC_FAILURE;
 	dtm_cmd->dtm_in_message.topology_update_v3.phy_id = link->phy_idx;
 	dtm_cmd->dtm_in_message.topology_update_v3.link_hdcp_cap = link->hdcp_supported_informational;
+	dtm_cmd->dtm_in_message.topology_update_v3.dio_output_type = link->dp.usb4_enabled ?
+			TA_DTM_DIO_OUTPUT_TYPE__DPIA :
+			TA_DTM_DIO_OUTPUT_TYPE__DIRECT;
+	dtm_cmd->dtm_in_message.topology_update_v3.dio_output_id = link->dio_output_id;
 
 	psp_dtm_invoke(psp, dtm_cmd->cmd_id);
+	mutex_unlock(&psp->dtm_context.mutex);
 
 	if (dtm_cmd->dtm_status != TA_DTM_STATUS__SUCCESS) {
 		status = add_display_to_topology_v2(hdcp, display);
@@ -213,8 +217,6 @@ static enum mod_hdcp_status add_display_to_topology_v3(
 	} else {
 		HDCP_TOP_ADD_DISPLAY_TRACE(hdcp, display->index);
 	}
-
-	mutex_unlock(&psp->dtm_context.mutex);
 
 	return status;
 }
@@ -441,7 +443,7 @@ enum mod_hdcp_status mod_hdcp_hdcp1_enable_dp_stream_encryption(struct mod_hdcp 
 	for (i = 0; i < MAX_NUM_OF_DISPLAYS; i++) {
 
 		if (hdcp->displays[i].adjust.disable || hdcp->displays[i].state != MOD_HDCP_DISPLAY_ACTIVE)
-				continue;
+			continue;
 
 		memset(hdcp_cmd, 0, sizeof(struct ta_hdcp_shared_memory));
 
@@ -924,7 +926,7 @@ enum mod_hdcp_status mod_hdcp_hdcp2_enable_dp_stream_encryption(struct mod_hdcp 
 
 	for (i = 0; i < MAX_NUM_OF_DISPLAYS; i++) {
 		if (hdcp->displays[i].adjust.disable || hdcp->displays[i].state != MOD_HDCP_DISPLAY_ACTIVE)
-				continue;
+			continue;
 
 		hdcp_cmd->in_msg.hdcp2_enable_dp_stream_encryption.display_handle = hdcp->displays[i].index;
 		hdcp_cmd->in_msg.hdcp2_enable_dp_stream_encryption.session_handle = hdcp->auth.id;

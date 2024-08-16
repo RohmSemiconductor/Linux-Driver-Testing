@@ -85,6 +85,7 @@ static const struct ieee80211_ops mt76x0e_ops = {
 	.set_rts_threshold = mt76x02_set_rts_threshold,
 	.get_antenna = mt76_get_antenna,
 	.reconfig_complete = mt76x02_reconfig_complete,
+	.set_sar_specs = mt76x0_set_sar_specs,
 };
 
 static int mt76x0e_init_hardware(struct mt76x02_dev *dev, bool resume)
@@ -176,7 +177,7 @@ mt76x0e_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 
 	pci_set_master(pdev);
 
-	ret = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
+	ret = dma_set_mask(&pdev->dev, DMA_BIT_MASK(32));
 	if (ret)
 		return ret;
 
@@ -276,6 +277,7 @@ static int mt76x0e_resume(struct pci_dev *pdev)
 
 	mt76_worker_enable(&mdev->tx_worker);
 
+	local_bh_disable();
 	mt76_for_each_q_rx(mdev, i) {
 		mt76_queue_rx_reset(dev, i);
 		napi_enable(&mdev->napi[i]);
@@ -284,6 +286,7 @@ static int mt76x0e_resume(struct pci_dev *pdev)
 
 	napi_enable(&mdev->tx_napi);
 	napi_schedule(&mdev->tx_napi);
+	local_bh_enable();
 
 	return mt76x0e_init_hardware(dev, true);
 }
@@ -299,6 +302,7 @@ static const struct pci_device_id mt76x0e_device_table[] = {
 MODULE_DEVICE_TABLE(pci, mt76x0e_device_table);
 MODULE_FIRMWARE(MT7610E_FIRMWARE);
 MODULE_FIRMWARE(MT7650E_FIRMWARE);
+MODULE_DESCRIPTION("MediaTek MT76x0E (PCIe) wireless driver");
 MODULE_LICENSE("Dual BSD/GPL");
 
 static struct pci_driver mt76x0e_driver = {

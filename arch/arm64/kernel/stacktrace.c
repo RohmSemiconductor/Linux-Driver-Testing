@@ -5,6 +5,7 @@
  * Copyright (C) 2012 ARM Ltd.
  */
 #include <linux/kernel.h>
+#include <linux/efi.h>
 #include <linux/export.h>
 #include <linux/ftrace.h>
 #include <linux/kprobes.h>
@@ -13,47 +14,117 @@
 #include <linux/sched/task_stack.h>
 #include <linux/stacktrace.h>
 
+#include <asm/efi.h>
 #include <asm/irq.h>
-#include <asm/pointer_auth.h>
 #include <asm/stack_pointer.h>
 #include <asm/stacktrace.h>
 
 /*
- * AArch64 PCS assigns the frame pointer to x29.
+ * Kernel unwind state
  *
- * A simple function prologue looks like this:
- * 	sub	sp, sp, #0x10
- *   	stp	x29, x30, [sp]
- *	mov	x29, sp
- *
- * A simple function epilogue looks like this:
- *	mov	sp, x29
- *	ldp	x29, x30, [sp]
- *	add	sp, sp, #0x10
+ * @common:      Common unwind state.
+ * @task:        The task being unwound.
+ * @kr_cur:      When KRETPROBES is selected, holds the kretprobe instance
+ *               associated with the most recently encountered replacement lr
+ *               value.
  */
-
-
-void start_backtrace(struct stackframe *frame, unsigned long fp,
-		     unsigned long pc)
-{
-	frame->fp = fp;
-	frame->pc = pc;
-#ifdef CONFIG_FUNCTION_GRAPH_TRACER
-	frame->graph = 0;
+struct kunwind_state {
+	struct unwind_state common;
+	struct task_struct *task;
+#ifdef CONFIG_KRETPROBES
+	struct llist_node *kr_cur;
 #endif
+};
 
-	/*
-	 * Prime the first unwind.
-	 *
-	 * In unwind_frame() we'll check that the FP points to a valid stack,
-	 * which can't be STACK_TYPE_UNKNOWN, and the first unwind will be
-	 * treated as a transition to whichever stack that happens to be. The
-	 * prev_fp value won't be used, but we set it to 0 such that it is
-	 * definitely not an accessible stack address.
-	 */
-	bitmap_zero(frame->stacks_done, __NR_STACK_TYPES);
-	frame->prev_fp = 0;
-	frame->prev_type = STACK_TYPE_UNKNOWN;
+static __always_inline void
+kunwind_init(struct kunwind_state *state,
+	     struct task_struct *task)
+{
+	unwind_init_common(&state->common);
+	state->task = task;
+}
+
+/*
+ * Start an unwind from a pt_regs.
+ *
+ * The unwind will begin at the PC within the regs.
+ *
+ * The regs must be on a stack currently owned by the calling task.
+ */
+static __always_inline void
+kunwind_init_from_regs(struct kunwind_state *state,
+		       struct pt_regs *regs)
+{
+	kunwind_init(state, current);
+
+	state->common.fp = regs->regs[29];
+	state->common.pc = regs->pc;
+}
+
+/*
+ * Start an unwind from a caller.
+ *
+ * The unwind will begin at the caller of whichever function this is inlined
+ * into.
+ *
+ * The function which invokes this must be noinline.
+ */
+static __always_inline void
+kunwind_init_from_caller(struct kunwind_state *state)
+{
+	kunwind_init(state, current);
+
+	state->common.fp = (unsigned long)__builtin_frame_address(1);
+	state->common.pc = (unsigned long)__builtin_return_address(0);
+}
+
+/*
+ * Start an unwind from a blocked task.
+ *
+ * The unwind will begin at the blocked tasks saved PC (i.e. the caller of
+ * cpu_switch_to()).
+ *
+ * The caller should ensure the task is blocked in cpu_switch_to() for the
+ * duration of the unwind, or the unwind will be bogus. It is never valid to
+ * call this for the current task.
+ */
+static __always_inline void
+kunwind_init_from_task(struct kunwind_state *state,
+		       struct task_struct *task)
+{
+	kunwind_init(state, task);
+
+	state->common.fp = thread_saved_fp(task);
+	state->common.pc = thread_saved_pc(task);
+}
+
+static __always_inline int
+kunwind_recover_return_address(struct kunwind_state *state)
+{
+#ifdef CONFIG_FUNCTION_GRAPH_TRACER
+	if (state->task->ret_stack &&
+	    (state->common.pc == (unsigned long)return_to_handler)) {
+		unsigned long orig_pc;
+		orig_pc = ftrace_graph_ret_addr(state->task, NULL,
+						state->common.pc,
+						(void *)state->common.fp);
+		if (WARN_ON_ONCE(state->common.pc == orig_pc))
+			return -EINVAL;
+		state->common.pc = orig_pc;
+	}
+#endif /* CONFIG_FUNCTION_GRAPH_TRACER */
+
+#ifdef CONFIG_KRETPROBES
+	if (is_kretprobe_trampoline(state->common.pc)) {
+		unsigned long orig_pc;
+		orig_pc = kretprobe_find_ret_addr(state->task,
+						  (void *)state->common.fp,
+						  &state->kr_cur);
+		state->common.pc = orig_pc;
+	}
+#endif /* CONFIG_KRETPROBES */
+
+	return 0;
 }
 
 /*
@@ -63,112 +134,152 @@ void start_backtrace(struct stackframe *frame, unsigned long fp,
  * records (e.g. a cycle), determined based on the location and fp value of A
  * and the location (but not the fp value) of B.
  */
-int notrace unwind_frame(struct task_struct *tsk, struct stackframe *frame)
+static __always_inline int
+kunwind_next(struct kunwind_state *state)
 {
-	unsigned long fp = frame->fp;
-	struct stack_info info;
-
-	if (!tsk)
-		tsk = current;
+	struct task_struct *tsk = state->task;
+	unsigned long fp = state->common.fp;
+	int err;
 
 	/* Final frame; nothing to unwind */
 	if (fp == (unsigned long)task_pt_regs(tsk)->stackframe)
 		return -ENOENT;
 
-	if (fp & 0x7)
-		return -EINVAL;
+	err = unwind_next_frame_record(&state->common);
+	if (err)
+		return err;
 
-	if (!on_accessible_stack(tsk, fp, 16, &info))
-		return -EINVAL;
+	state->common.pc = ptrauth_strip_kernel_insn_pac(state->common.pc);
 
-	if (test_bit(info.type, frame->stacks_done))
-		return -EINVAL;
-
-	/*
-	 * As stacks grow downward, any valid record on the same stack must be
-	 * at a strictly higher address than the prior record.
-	 *
-	 * Stacks can nest in several valid orders, e.g.
-	 *
-	 * TASK -> IRQ -> OVERFLOW -> SDEI_NORMAL
-	 * TASK -> SDEI_NORMAL -> SDEI_CRITICAL -> OVERFLOW
-	 *
-	 * ... but the nesting itself is strict. Once we transition from one
-	 * stack to another, it's never valid to unwind back to that first
-	 * stack.
-	 */
-	if (info.type == frame->prev_type) {
-		if (fp <= frame->prev_fp)
-			return -EINVAL;
-	} else {
-		set_bit(frame->prev_type, frame->stacks_done);
-	}
-
-	/*
-	 * Record this frame record's values and location. The prev_fp and
-	 * prev_type are only meaningful to the next unwind_frame() invocation.
-	 */
-	frame->fp = READ_ONCE_NOCHECK(*(unsigned long *)(fp));
-	frame->pc = READ_ONCE_NOCHECK(*(unsigned long *)(fp + 8));
-	frame->prev_fp = fp;
-	frame->prev_type = info.type;
-
-#ifdef CONFIG_FUNCTION_GRAPH_TRACER
-	if (tsk->ret_stack &&
-		(ptrauth_strip_insn_pac(frame->pc) == (unsigned long)return_to_handler)) {
-		struct ftrace_ret_stack *ret_stack;
-		/*
-		 * This is a case where function graph tracer has
-		 * modified a return address (LR) in a stack frame
-		 * to hook a function return.
-		 * So replace it to an original value.
-		 */
-		ret_stack = ftrace_graph_get_ret_stack(tsk, frame->graph++);
-		if (WARN_ON_ONCE(!ret_stack))
-			return -EINVAL;
-		frame->pc = ret_stack->ret;
-	}
-#endif /* CONFIG_FUNCTION_GRAPH_TRACER */
-
-	frame->pc = ptrauth_strip_insn_pac(frame->pc);
-
-	return 0;
+	return kunwind_recover_return_address(state);
 }
-NOKPROBE_SYMBOL(unwind_frame);
 
-void notrace walk_stackframe(struct task_struct *tsk, struct stackframe *frame,
-			     bool (*fn)(void *, unsigned long), void *data)
+typedef bool (*kunwind_consume_fn)(const struct kunwind_state *state, void *cookie);
+
+static __always_inline void
+do_kunwind(struct kunwind_state *state, kunwind_consume_fn consume_state,
+	   void *cookie)
 {
+	if (kunwind_recover_return_address(state))
+		return;
+
 	while (1) {
 		int ret;
 
-		if (!fn(data, frame->pc))
+		if (!consume_state(state, cookie))
 			break;
-		ret = unwind_frame(tsk, frame);
+		ret = kunwind_next(state);
 		if (ret < 0)
 			break;
 	}
 }
-NOKPROBE_SYMBOL(walk_stackframe);
 
-static void dump_backtrace_entry(unsigned long where, const char *loglvl)
+/*
+ * Per-cpu stacks are only accessible when unwinding the current task in a
+ * non-preemptible context.
+ */
+#define STACKINFO_CPU(name)					\
+	({							\
+		((task == current) && !preemptible())		\
+			? stackinfo_get_##name()		\
+			: stackinfo_get_unknown();		\
+	})
+
+/*
+ * SDEI stacks are only accessible when unwinding the current task in an NMI
+ * context.
+ */
+#define STACKINFO_SDEI(name)					\
+	({							\
+		((task == current) && in_nmi())			\
+			? stackinfo_get_sdei_##name()		\
+			: stackinfo_get_unknown();		\
+	})
+
+#define STACKINFO_EFI						\
+	({							\
+		((task == current) && current_in_efi())		\
+			? stackinfo_get_efi()			\
+			: stackinfo_get_unknown();		\
+	})
+
+static __always_inline void
+kunwind_stack_walk(kunwind_consume_fn consume_state,
+		   void *cookie, struct task_struct *task,
+		   struct pt_regs *regs)
 {
+	struct stack_info stacks[] = {
+		stackinfo_get_task(task),
+		STACKINFO_CPU(irq),
+#if defined(CONFIG_VMAP_STACK)
+		STACKINFO_CPU(overflow),
+#endif
+#if defined(CONFIG_VMAP_STACK) && defined(CONFIG_ARM_SDE_INTERFACE)
+		STACKINFO_SDEI(normal),
+		STACKINFO_SDEI(critical),
+#endif
+#ifdef CONFIG_EFI
+		STACKINFO_EFI,
+#endif
+	};
+	struct kunwind_state state = {
+		.common = {
+			.stacks = stacks,
+			.nr_stacks = ARRAY_SIZE(stacks),
+		},
+	};
+
+	if (regs) {
+		if (task != current)
+			return;
+		kunwind_init_from_regs(&state, regs);
+	} else if (task == current) {
+		kunwind_init_from_caller(&state);
+	} else {
+		kunwind_init_from_task(&state, task);
+	}
+
+	do_kunwind(&state, consume_state, cookie);
+}
+
+struct kunwind_consume_entry_data {
+	stack_trace_consume_fn consume_entry;
+	void *cookie;
+};
+
+static __always_inline bool
+arch_kunwind_consume_entry(const struct kunwind_state *state, void *cookie)
+{
+	struct kunwind_consume_entry_data *data = cookie;
+	return data->consume_entry(data->cookie, state->common.pc);
+}
+
+noinline noinstr void arch_stack_walk(stack_trace_consume_fn consume_entry,
+			      void *cookie, struct task_struct *task,
+			      struct pt_regs *regs)
+{
+	struct kunwind_consume_entry_data data = {
+		.consume_entry = consume_entry,
+		.cookie = cookie,
+	};
+
+	kunwind_stack_walk(arch_kunwind_consume_entry, &data, task, regs);
+}
+
+static bool dump_backtrace_entry(void *arg, unsigned long where)
+{
+	char *loglvl = arg;
 	printk("%s %pSb\n", loglvl, (void *)where);
+	return true;
 }
 
 void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
 		    const char *loglvl)
 {
-	struct stackframe frame;
-	int skip = 0;
-
 	pr_debug("%s(regs = %p tsk = %p)\n", __func__, regs, tsk);
 
-	if (regs) {
-		if (user_mode(regs))
-			return;
-		skip = 1;
-	}
+	if (regs && user_mode(regs))
+		return;
 
 	if (!tsk)
 		tsk = current;
@@ -176,36 +287,8 @@ void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
 	if (!try_get_task_stack(tsk))
 		return;
 
-	if (tsk == current) {
-		start_backtrace(&frame,
-				(unsigned long)__builtin_frame_address(0),
-				(unsigned long)dump_backtrace);
-	} else {
-		/*
-		 * task blocked in __switch_to
-		 */
-		start_backtrace(&frame,
-				thread_saved_fp(tsk),
-				thread_saved_pc(tsk));
-	}
-
 	printk("%sCall trace:\n", loglvl);
-	do {
-		/* skip until specified stack frame */
-		if (!skip) {
-			dump_backtrace_entry(frame.pc, loglvl);
-		} else if (frame.fp == regs->regs[29]) {
-			skip = 0;
-			/*
-			 * Mostly, this is the case where this function is
-			 * called in panic/abort. As exception handler's
-			 * stack frame does not contain the corresponding pc
-			 * at which an exception has taken place, use regs->pc
-			 * instead.
-			 */
-			dump_backtrace_entry(regs->pc, loglvl);
-		}
-	} while (!unwind_frame(tsk, &frame));
+	arch_stack_walk(dump_backtrace_entry, (void *)loglvl, tsk, regs);
 
 	put_task_stack(tsk);
 }
@@ -215,26 +298,3 @@ void show_stack(struct task_struct *tsk, unsigned long *sp, const char *loglvl)
 	dump_backtrace(NULL, tsk, loglvl);
 	barrier();
 }
-
-#ifdef CONFIG_STACKTRACE
-
-noinline notrace void arch_stack_walk(stack_trace_consume_fn consume_entry,
-			      void *cookie, struct task_struct *task,
-			      struct pt_regs *regs)
-{
-	struct stackframe frame;
-
-	if (regs)
-		start_backtrace(&frame, regs->regs[29], regs->pc);
-	else if (task == current)
-		start_backtrace(&frame,
-				(unsigned long)__builtin_frame_address(1),
-				(unsigned long)__builtin_return_address(0));
-	else
-		start_backtrace(&frame, thread_saved_fp(task),
-				thread_saved_pc(task));
-
-	walk_stackframe(task, &frame, consume_entry, cookie);
-}
-
-#endif

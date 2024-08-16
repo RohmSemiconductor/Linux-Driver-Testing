@@ -20,7 +20,9 @@
 #include <linux/pci_ids.h>
 #include <linux/types.h>
 #include <linux/watchdog.h>
+#ifdef CONFIG_HPWDT_NMI_DECODING
 #include <asm/nmi.h>
+#endif
 #include <linux/crash_dump.h>
 
 #define HPWDT_VERSION			"2.0.4"
@@ -31,7 +33,6 @@
 #define DEFAULT_MARGIN			30
 #define PRETIMEOUT_SEC			9
 
-static bool ilo5;
 static unsigned int soft_margin = DEFAULT_MARGIN;	/* in seconds */
 static bool nowayout = WATCHDOG_NOWAYOUT;
 static bool pretimeout = IS_ENABLED(CONFIG_HPWDT_NMI_DECODING);
@@ -176,10 +177,7 @@ static int hpwdt_pretimeout(unsigned int ulReason, struct pt_regs *regs)
 		"3. OA Forward Progress Log\n"
 		"4. iLO Event Log";
 
-	if (ilo5 && ulReason == NMI_UNKNOWN && !mynmi)
-		return NMI_DONE;
-
-	if (ilo5 && !pretimeout && !mynmi)
+	if (ulReason == NMI_UNKNOWN && !mynmi)
 		return NMI_DONE;
 
 	if (kdumptimeout < 0)
@@ -360,9 +358,6 @@ static int hpwdt_init_one(struct pci_dev *dev,
 	dev_info(&dev->dev, "pretimeout: %s.\n",
 				pretimeout ? "on" : "off");
 	dev_info(&dev->dev, "kdumptimeout: %d.\n", kdumptimeout);
-
-	if (dev->subsystem_vendor == PCI_VENDOR_ID_HP_3PAR)
-		ilo5 = true;
 
 	return 0;
 

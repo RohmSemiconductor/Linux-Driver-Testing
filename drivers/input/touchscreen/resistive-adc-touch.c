@@ -71,19 +71,22 @@ static int grts_cb(const void *data, void *private)
 		unsigned int z2 = touch_info[st->ch_map[GRTS_CH_Z2]];
 		unsigned int Rt;
 
-		Rt = z2;
-		Rt -= z1;
-		Rt *= st->x_plate_ohms;
-		Rt = DIV_ROUND_CLOSEST(Rt, 16);
-		Rt *= x;
-		Rt /= z1;
-		Rt = DIV_ROUND_CLOSEST(Rt, 256);
-		/*
-		 * On increased pressure the resistance (Rt) is decreasing
-		 * so, convert values to make it looks as real pressure.
-		 */
-		if (Rt < GRTS_DEFAULT_PRESSURE_MAX)
-			press = GRTS_DEFAULT_PRESSURE_MAX - Rt;
+		if (likely(x && z1)) {
+			Rt = z2;
+			Rt -= z1;
+			Rt *= st->x_plate_ohms;
+			Rt = DIV_ROUND_CLOSEST(Rt, 16);
+			Rt *= x;
+			Rt /= z1;
+			Rt = DIV_ROUND_CLOSEST(Rt, 256);
+			/*
+			 * On increased pressure the resistance (Rt) is
+			 * decreasing so, convert values to make it looks as
+			 * real pressure.
+			 */
+			if (Rt < GRTS_DEFAULT_PRESSURE_MAX)
+				press = GRTS_DEFAULT_PRESSURE_MAX - Rt;
+		}
 	}
 
 	if ((!x && !y) || (st->pressure && (press < st->pressure_min))) {
@@ -207,12 +210,8 @@ static int grts_probe(struct platform_device *pdev)
 
 	/* get the channels from IIO device */
 	st->iio_chans = devm_iio_channel_get_all(dev);
-	if (IS_ERR(st->iio_chans)) {
-		error = PTR_ERR(st->iio_chans);
-		if (error != -EPROBE_DEFER)
-			dev_err(dev, "can't get iio channels.\n");
-		return error;
-	}
+	if (IS_ERR(st->iio_chans))
+		return dev_err_probe(dev, PTR_ERR(st->iio_chans), "can't get iio channels\n");
 
 	if (!device_property_present(dev, "io-channel-names"))
 		return -ENODEV;

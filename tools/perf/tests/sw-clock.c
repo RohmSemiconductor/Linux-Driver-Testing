@@ -13,6 +13,7 @@
 #include "util/evlist.h"
 #include "util/cpumap.h"
 #include "util/mmap.h"
+#include "util/sample.h"
 #include "util/thread_map.h"
 #include <perf/evlist.h>
 #include <perf/mmap.h>
@@ -61,7 +62,7 @@ static int __test__sw_clock_freq(enum perf_sw_ids clock_id)
 	}
 	evlist__add(evlist, evsel);
 
-	cpus = perf_cpu_map__dummy_new();
+	cpus = perf_cpu_map__new_any_cpu();
 	threads = thread_map__new_by_tid(getpid());
 	if (!cpus || !threads) {
 		err = -ENOMEM;
@@ -133,7 +134,7 @@ out_delete_evlist:
 	return err;
 }
 
-int test__sw_clock_freq(struct test *test __maybe_unused, int subtest __maybe_unused)
+static int test__sw_clock_freq(struct test_suite *test __maybe_unused, int subtest __maybe_unused)
 {
 	int ret;
 
@@ -143,3 +144,5 @@ int test__sw_clock_freq(struct test *test __maybe_unused, int subtest __maybe_un
 
 	return ret;
 }
+
+DEFINE_SUITE("Software clock events period values", sw_clock_freq);
