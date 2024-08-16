@@ -278,6 +278,7 @@ struct arm_smmu_device {
 	struct device			*dev;
 
 	void __iomem			*base;
+	phys_addr_t			ioaddr;
 	unsigned int			numpage;
 	unsigned int			pgshift;
 
@@ -318,11 +319,10 @@ struct arm_smmu_device {
 	unsigned long			pa_size;
 	unsigned long			pgsize_bitmap;
 
-	u32				num_global_irqs;
-	u32				num_context_irqs;
+	int				num_context_irqs;
+	int				num_clks;
 	unsigned int			*irqs;
 	struct clk_bulk_data		*clks;
-	int				num_clks;
 
 	spinlock_t			global_sync_lock;
 
@@ -361,7 +361,6 @@ enum arm_smmu_domain_stage {
 	ARM_SMMU_DOMAIN_S1 = 0,
 	ARM_SMMU_DOMAIN_S2,
 	ARM_SMMU_DOMAIN_NESTED,
-	ARM_SMMU_DOMAIN_BYPASS,
 };
 
 struct arm_smmu_domain {

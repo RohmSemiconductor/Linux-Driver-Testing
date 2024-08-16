@@ -21,8 +21,10 @@
  */
 #include "priv.h"
 
+#include <subdev/gsp.h>
+
 static int
-ga100_top_oneinit(struct nvkm_top *top)
+ga100_top_parse(struct nvkm_top *top)
 {
 	struct nvkm_subdev *subdev = &top->subdev;
 	struct nvkm_device *device = subdev->device;
@@ -54,7 +56,7 @@ ga100_top_oneinit(struct nvkm_top *top)
 			info->reset   = (data & 0x0000001f);
 			break;
 		case 2:
-			info->runlist = (data & 0x0000fc00) >> 10;
+			info->runlist = (data & 0x00fffc00);
 			info->engine  = (data & 0x00000003);
 			break;
 		default:
@@ -76,7 +78,7 @@ ga100_top_oneinit(struct nvkm_top *top)
 		case 0x00000012: I_(NVKM_SUBDEV_IOCTRL, inst); break;
 		case 0x00000013: I_(NVKM_ENGINE_CE    , inst); break;
 		case 0x00000014: O_(NVKM_SUBDEV_GSP   ,    0); break;
-		case 0x00000015: O_(NVKM_ENGINE_NVJPG ,    0); break;
+		case 0x00000015: I_(NVKM_ENGINE_NVJPG , inst); break;
 		case 0x00000016: O_(NVKM_ENGINE_OFA   ,    0); break;
 		case 0x00000017: O_(NVKM_SUBDEV_FLA   ,    0); break;
 			break;
@@ -85,9 +87,10 @@ ga100_top_oneinit(struct nvkm_top *top)
 		}
 
 		nvkm_debug(subdev, "%02x.%d (%8s): addr %06x fault %2d "
-				   "runlist %2d engine %2d reset %2d\n", type, inst,
+				   "runlist %6x engine %2d reset %2d\n", type, inst,
 			   info->type == NVKM_SUBDEV_NR ? "????????" : nvkm_subdev_type[info->type],
-			   info->addr, info->fault, info->runlist, info->engine, info->reset);
+			   info->addr, info->fault, info->runlist < 0 ? 0 : info->runlist,
+			   info->engine, info->reset);
 		info = NULL;
 	}
 
@@ -96,12 +99,15 @@ ga100_top_oneinit(struct nvkm_top *top)
 
 static const struct nvkm_top_func
 ga100_top = {
-	.oneinit = ga100_top_oneinit,
+	.parse = ga100_top_parse,
 };
 
 int
 ga100_top_new(struct nvkm_device *device, enum nvkm_subdev_type type, int inst,
 	      struct nvkm_top **ptop)
 {
+	if (nvkm_gsp_rm(device->gsp))
+		return -ENODEV;
+
 	return nvkm_top_new_(&ga100_top, device, type, inst, ptop);
 }

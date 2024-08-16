@@ -501,7 +501,7 @@ static int xgene_edac_mc_remove(struct xgene_edac_mc_ctx *mcu)
 #define MEMERR_L2C_L2ESRA_PAGE_OFFSET		0x0804
 
 /*
- * Processor Module Domain (PMD) context - Context for a pair of processsors.
+ * Processor Module Domain (PMD) context - Context for a pair of processors.
  * Each PMD consists of 2 CPUs and a shared L2 cache. Each CPU consists of
  * its own L1 cache.
  */
@@ -1919,7 +1919,7 @@ static int xgene_edac_probe(struct platform_device *pdev)
 			irq = platform_get_irq_optional(pdev, i);
 			if (irq < 0) {
 				dev_err(&pdev->dev, "No IRQ resource\n");
-				rc = -EINVAL;
+				rc = irq;
 				goto out_err;
 			}
 			rc = devm_request_irq(&pdev->dev, irq,
@@ -1960,7 +1960,7 @@ out_err:
 	return rc;
 }
 
-static int xgene_edac_remove(struct platform_device *pdev)
+static void xgene_edac_remove(struct platform_device *pdev)
 {
 	struct xgene_edac *edac = dev_get_drvdata(&pdev->dev);
 	struct xgene_edac_mc_ctx *mcu;
@@ -1981,8 +1981,6 @@ static int xgene_edac_remove(struct platform_device *pdev)
 
 	list_for_each_entry_safe(node, temp_node, &edac->socs, next)
 		xgene_edac_soc_remove(node);
-
-	return 0;
 }
 
 static const struct of_device_id xgene_edac_of_match[] = {
@@ -1993,7 +1991,7 @@ MODULE_DEVICE_TABLE(of, xgene_edac_of_match);
 
 static struct platform_driver xgene_edac_driver = {
 	.probe = xgene_edac_probe,
-	.remove = xgene_edac_remove,
+	.remove_new = xgene_edac_remove,
 	.driver = {
 		.name = "xgene-edac",
 		.of_match_table = xgene_edac_of_match,
@@ -2003,6 +2001,9 @@ static struct platform_driver xgene_edac_driver = {
 static int __init xgene_edac_init(void)
 {
 	int rc;
+
+	if (ghes_get_devices())
+		return -EBUSY;
 
 	/* Make sure error reporting method is sane */
 	switch (edac_op_state) {
