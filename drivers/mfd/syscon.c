@@ -20,7 +20,6 @@
 #include <linux/platform_data/syscon.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
-#include <linux/reset.h>
 #include <linux/mfd/syscon.h>
 #include <linux/slab.h>
 
@@ -32,7 +31,6 @@ static LIST_HEAD(syscon_list);
 struct syscon {
 	struct device_node *np;
 	struct regmap *regmap;
-	struct reset_control *reset;
 	struct list_head list;
 };
 
@@ -42,7 +40,7 @@ static const struct regmap_config syscon_regmap_config = {
 	.reg_stride = 4,
 };
 
-static struct syscon *of_syscon_register(struct device_node *np, bool check_res)
+static struct syscon *of_syscon_register(struct device_node *np, bool check_clk)
 {
 	struct clk *clk;
 	struct syscon *syscon;
@@ -52,7 +50,6 @@ static struct syscon *of_syscon_register(struct device_node *np, bool check_res)
 	int ret;
 	struct regmap_config syscon_config = syscon_regmap_config;
 	struct resource res;
-	struct reset_control *reset;
 
 	syscon = kzalloc(sizeof(*syscon), GFP_KERNEL);
 	if (!syscon)
@@ -104,11 +101,8 @@ static struct syscon *of_syscon_register(struct device_node *np, bool check_res)
 		}
 	}
 
-	syscon_config.name = kasprintf(GFP_KERNEL, "%pOFn@%pa", np, &res.start);
-	if (!syscon_config.name) {
-		ret = -ENOMEM;
-		goto err_regmap;
-	}
+	syscon_config.name = kasprintf(GFP_KERNEL, "%pOFn@%llx", np,
+				       (u64)res.start);
 	syscon_config.reg_stride = reg_io_width;
 	syscon_config.val_bits = reg_io_width * 8;
 	syscon_config.max_register = resource_size(&res) - reg_io_width;
@@ -121,7 +115,7 @@ static struct syscon *of_syscon_register(struct device_node *np, bool check_res)
 		goto err_regmap;
 	}
 
-	if (check_res) {
+	if (check_clk) {
 		clk = of_clk_get(np, 0);
 		if (IS_ERR(clk)) {
 			ret = PTR_ERR(clk);
@@ -131,18 +125,8 @@ static struct syscon *of_syscon_register(struct device_node *np, bool check_res)
 		} else {
 			ret = regmap_mmio_attach_clk(regmap, clk);
 			if (ret)
-				goto err_attach_clk;
+				goto err_attach;
 		}
-
-		reset = of_reset_control_get_optional_exclusive(np, NULL);
-		if (IS_ERR(reset)) {
-			ret = PTR_ERR(reset);
-			goto err_attach_clk;
-		}
-
-		ret = reset_control_deassert(reset);
-		if (ret)
-			goto err_reset;
 	}
 
 	syscon->regmap = regmap;
@@ -154,9 +138,7 @@ static struct syscon *of_syscon_register(struct device_node *np, bool check_res)
 
 	return syscon;
 
-err_reset:
-	reset_control_put(reset);
-err_attach_clk:
+err_attach:
 	if (!IS_ERR(clk))
 		clk_put(clk);
 err_clk:
@@ -169,7 +151,7 @@ err_map:
 }
 
 static struct regmap *device_node_get_regmap(struct device_node *np,
-					     bool check_res)
+					     bool check_clk)
 {
 	struct syscon *entry, *syscon = NULL;
 
@@ -184,7 +166,7 @@ static struct regmap *device_node_get_regmap(struct device_node *np,
 	spin_unlock(&syscon_list_slock);
 
 	if (!syscon)
-		syscon = of_syscon_register(np, check_res);
+		syscon = of_syscon_register(np, check_clk);
 
 	if (IS_ERR(syscon))
 		return ERR_CAST(syscon);

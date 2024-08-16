@@ -36,10 +36,18 @@ static struct ebt_replace_kernel initial_table = {
 	.entries	= (char *)&initial_chain,
 };
 
+static int check(const struct ebt_table_info *info, unsigned int valid_hooks)
+{
+	if (valid_hooks & ~(1 << NF_BR_BROUTING))
+		return -EINVAL;
+	return 0;
+}
+
 static const struct ebt_table broute_table = {
 	.name		= "broute",
 	.table		= &initial_table,
 	.valid_hooks	= 1 << NF_BR_BROUTING,
+	.check		= check,
 	.me		= THIS_MODULE,
 };
 
@@ -58,7 +66,7 @@ static unsigned int ebt_broute(void *priv, struct sk_buff *skb,
 			   NFPROTO_BRIDGE, s->in, NULL, NULL,
 			   s->net, NULL);
 
-	ret = ebt_do_table(priv, skb, &state);
+	ret = ebt_do_table(skb, &state, priv);
 	if (ret != NF_DROP)
 		return ret;
 
@@ -135,4 +143,3 @@ static void __exit ebtable_broute_fini(void)
 module_init(ebtable_broute_init);
 module_exit(ebtable_broute_fini);
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Force packets to be routed instead of bridged");

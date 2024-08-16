@@ -44,7 +44,6 @@
 #include "usbaudio.h"
 #include "card.h"
 #include "midi.h"
-#include "midi2.h"
 #include "mixer.h"
 #include "proc.h"
 #include "quirks.h"
@@ -179,8 +178,9 @@ static int snd_usb_create_stream(struct snd_usb_audio *chip, int ctrlif, int int
 	if ((altsd->bInterfaceClass == USB_CLASS_AUDIO ||
 	     altsd->bInterfaceClass == USB_CLASS_VENDOR_SPEC) &&
 	    altsd->bInterfaceSubClass == USB_SUBCLASS_MIDISTREAMING) {
-		int err = snd_usb_midi_v2_create(chip, iface, NULL,
-						 chip->usb_id);
+		int err = __snd_usbmidi_create(chip->card, iface,
+					     &chip->midi_list, NULL,
+					     chip->usb_id);
 		if (err < 0) {
 			dev_err(&dev->dev,
 				"%u:%d: cannot create sequencer device\n",
@@ -387,14 +387,6 @@ static const struct usb_audio_device_name usb_audio_names[] = {
 	DEVICE_NAME(0x05e1, 0x0408, "Syntek", "STK1160"),
 	DEVICE_NAME(0x05e1, 0x0480, "Hauppauge", "Woodbury"),
 
-	/* ASUS ROG Zenith II: this machine has also two devices, one for
-	 * the front headphone and another for the rest
-	 */
-	PROFILE_NAME(0x0b05, 0x1915, "ASUS", "Zenith II Front Headphone",
-		     "Zenith-II-Front-Headphone"),
-	PROFILE_NAME(0x0b05, 0x1916, "ASUS", "Zenith II Main Audio",
-		     "Zenith-II-Main-Audio"),
-
 	/* ASUS ROG Strix */
 	PROFILE_NAME(0x0b05, 0x1917,
 		     "Realtek", "ALC1220-VB-DT", "Realtek-ALC1220-VB-Desktop"),
@@ -485,7 +477,6 @@ static void snd_usb_audio_free(struct snd_card *card)
 	struct snd_usb_audio *chip = card->private_data;
 
 	snd_usb_endpoint_free_all(chip);
-	snd_usb_midi_v2_free_all(chip);
 
 	mutex_destroy(&chip->mutex);
 	if (!atomic_read(&chip->shutdown))
@@ -610,6 +601,7 @@ static int snd_usb_audio_create(struct usb_interface *intf,
 	case USB_SPEED_LOW:
 	case USB_SPEED_FULL:
 	case USB_SPEED_HIGH:
+	case USB_SPEED_WIRELESS:
 	case USB_SPEED_SUPER:
 	case USB_SPEED_SUPER_PLUS:
 		break;
@@ -643,9 +635,7 @@ static int snd_usb_audio_create(struct usb_interface *intf,
 	INIT_LIST_HEAD(&chip->pcm_list);
 	INIT_LIST_HEAD(&chip->ep_list);
 	INIT_LIST_HEAD(&chip->iface_ref_list);
-	INIT_LIST_HEAD(&chip->clock_ref_list);
 	INIT_LIST_HEAD(&chip->midi_list);
-	INIT_LIST_HEAD(&chip->midi_v2_list);
 	INIT_LIST_HEAD(&chip->mixer_list);
 
 	if (quirk_flags[idx])
@@ -691,7 +681,7 @@ static bool get_alias_id(struct usb_device *dev, unsigned int *id)
 	return false;
 }
 
-static int check_delayed_register_option(struct snd_usb_audio *chip)
+static bool check_delayed_register_option(struct snd_usb_audio *chip, int iface)
 {
 	int i;
 	unsigned int id, inum;
@@ -700,30 +690,13 @@ static int check_delayed_register_option(struct snd_usb_audio *chip)
 		if (delayed_register[i] &&
 		    sscanf(delayed_register[i], "%x:%x", &id, &inum) == 2 &&
 		    id == chip->usb_id)
-			return inum;
+			return inum != iface;
 	}
 
-	return -1;
+	return false;
 }
 
 static const struct usb_device_id usb_audio_ids[]; /* defined below */
-
-/* look for the last interface that matches with our ids and remember it */
-static void find_last_interface(struct snd_usb_audio *chip)
-{
-	struct usb_host_config *config = chip->dev->actconfig;
-	struct usb_interface *intf;
-	int i;
-
-	if (!config)
-		return;
-	for (i = 0; i < config->desc.bNumInterfaces; i++) {
-		intf = config->interface[i];
-		if (usb_match_id(intf, usb_audio_ids))
-			chip->last_iface = intf->altsetting[0].desc.bInterfaceNumber;
-	}
-	usb_audio_dbg(chip, "Found last interface = %d\n", chip->last_iface);
-}
 
 /* look for the corresponding quirk */
 static const struct snd_usb_audio_quirk *
@@ -741,18 +714,6 @@ get_alias_quirk(struct usb_device *dev, unsigned int id)
 	}
 
 	return NULL;
-}
-
-/* register card if we reach to the last interface or to the specified
- * one given via option
- */
-static int try_to_register_card(struct snd_usb_audio *chip, int ifnum)
-{
-	if (check_delayed_register_option(chip) == ifnum ||
-	    chip->last_iface == ifnum ||
-	    usb_interface_claimed(usb_ifnum_to_if(chip->dev, chip->last_iface)))
-		return snd_card_register(chip->card);
-	return 0;
 }
 
 /*
@@ -843,7 +804,6 @@ static int usb_audio_probe(struct usb_interface *intf,
 			err = -ENODEV;
 			goto __error;
 		}
-		find_last_interface(chip);
 	}
 
 	if (chip->num_interfaces >= MAX_CARD_INTERFACES) {
@@ -893,9 +853,15 @@ static int usb_audio_probe(struct usb_interface *intf,
 		chip->need_delayed_register = false; /* clear again */
 	}
 
-	err = try_to_register_card(chip, ifnum);
-	if (err < 0)
-		goto __error_no_register;
+	/* we are allowed to call snd_card_register() many times, but first
+	 * check to see if a device needs to skip it or do anything special
+	 */
+	if (!snd_usb_registration_quirk(chip, ifnum) &&
+	    !check_delayed_register_option(chip, ifnum)) {
+		err = snd_card_register(chip->card);
+		if (err < 0)
+			goto __error;
+	}
 
 	if (chip->quirk_flags & QUIRK_FLAG_SHARE_MEDIA_DEVICE) {
 		/* don't want to fail when snd_media_device_create() fails */
@@ -914,11 +880,6 @@ static int usb_audio_probe(struct usb_interface *intf,
 	return 0;
 
  __error:
-	/* in the case of error in secondary interface, still try to register */
-	if (chip)
-		try_to_register_card(chip, ifnum);
-
- __error_no_register:
 	if (chip) {
 		/* chip->active is inside the chip->card object,
 		 * decrement before memory is possibly returned.
@@ -970,7 +931,6 @@ static void usb_audio_disconnect(struct usb_interface *intf)
 		list_for_each(p, &chip->midi_list) {
 			snd_usbmidi_disconnect(p);
 		}
-		snd_usb_midi_v2_disconnect_all(chip);
 		/*
 		 * Nice to check quirk && quirk->shares_media_device and
 		 * then call the snd_media_device_delete(). Don't have
@@ -1027,6 +987,8 @@ void snd_usb_unlock_shutdown(struct snd_usb_audio *chip)
 		wake_up(&chip->shutdown_wait);
 }
 
+#ifdef CONFIG_PM
+
 int snd_usb_autoresume(struct snd_usb_audio *chip)
 {
 	int i, err;
@@ -1082,7 +1044,6 @@ static int usb_audio_suspend(struct usb_interface *intf, pm_message_t message)
 			snd_usbmidi_suspend(p);
 		list_for_each_entry(mixer, &chip->mixer_list, list)
 			snd_usb_mixer_suspend(mixer);
-		snd_usb_midi_v2_suspend_all(chip);
 	}
 
 	if (!PMSG_IS_AUTO(message) && !chip->system_suspend) {
@@ -1093,7 +1054,7 @@ static int usb_audio_suspend(struct usb_interface *intf, pm_message_t message)
 	return 0;
 }
 
-static int usb_audio_resume(struct usb_interface *intf)
+static int __usb_audio_resume(struct usb_interface *intf, bool reset_resume)
 {
 	struct snd_usb_audio *chip = usb_get_intfdata(intf);
 	struct snd_usb_stream *as;
@@ -1119,7 +1080,7 @@ static int usb_audio_resume(struct usb_interface *intf)
 	 * we just notify and restart the mixers
 	 */
 	list_for_each_entry(mixer, &chip->mixer_list, list) {
-		err = snd_usb_mixer_resume(mixer);
+		err = snd_usb_mixer_resume(mixer, reset_resume);
 		if (err < 0)
 			goto err_out;
 	}
@@ -1127,8 +1088,6 @@ static int usb_audio_resume(struct usb_interface *intf)
 	list_for_each(p, &chip->midi_list) {
 		snd_usbmidi_resume(p);
 	}
-
-	snd_usb_midi_v2_resume_all(chip);
 
  out:
 	if (chip->num_suspended_intf == chip->system_suspend) {
@@ -1141,6 +1100,21 @@ err_out:
 	atomic_dec(&chip->active); /* allow autopm after this point */
 	return err;
 }
+
+static int usb_audio_resume(struct usb_interface *intf)
+{
+	return __usb_audio_resume(intf, false);
+}
+
+static int usb_audio_reset_resume(struct usb_interface *intf)
+{
+	return __usb_audio_resume(intf, true);
+}
+#else
+#define usb_audio_suspend	NULL
+#define usb_audio_resume	NULL
+#define usb_audio_reset_resume	NULL
+#endif		/* CONFIG_PM */
 
 static const struct usb_device_id usb_audio_ids [] = {
 #include "quirks-table.h"
@@ -1161,7 +1135,7 @@ static struct usb_driver usb_audio_driver = {
 	.disconnect =	usb_audio_disconnect,
 	.suspend =	usb_audio_suspend,
 	.resume =	usb_audio_resume,
-	.reset_resume =	usb_audio_resume,
+	.reset_resume =	usb_audio_reset_resume,
 	.id_table =	usb_audio_ids,
 	.supports_autosuspend = 1,
 };

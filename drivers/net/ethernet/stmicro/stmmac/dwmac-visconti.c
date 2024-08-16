@@ -6,8 +6,7 @@
  */
 
 #include <linux/module.h>
-#include <linux/of.h>
-#include <linux/platform_device.h>
+#include <linux/of_device.h>
 #include <linux/of_net.h>
 #include <linux/stmmac.h>
 
@@ -23,21 +22,21 @@
 #define ETHER_CLK_SEL_RMII_CLK_EN BIT(2)
 #define ETHER_CLK_SEL_RMII_CLK_RST BIT(3)
 #define ETHER_CLK_SEL_DIV_SEL_2 BIT(4)
-#define ETHER_CLK_SEL_DIV_SEL_20 0
+#define ETHER_CLK_SEL_DIV_SEL_20 BIT(0)
 #define ETHER_CLK_SEL_FREQ_SEL_125M	(BIT(9) | BIT(8))
 #define ETHER_CLK_SEL_FREQ_SEL_50M	BIT(9)
 #define ETHER_CLK_SEL_FREQ_SEL_25M	BIT(8)
-#define ETHER_CLK_SEL_FREQ_SEL_2P5M	0
-#define ETHER_CLK_SEL_TX_CLK_EXT_SEL_IN 0
+#define ETHER_CLK_SEL_FREQ_SEL_2P5M	BIT(0)
+#define ETHER_CLK_SEL_TX_CLK_EXT_SEL_IN BIT(0)
 #define ETHER_CLK_SEL_TX_CLK_EXT_SEL_TXC BIT(10)
 #define ETHER_CLK_SEL_TX_CLK_EXT_SEL_DIV BIT(11)
-#define ETHER_CLK_SEL_RX_CLK_EXT_SEL_IN  0
+#define ETHER_CLK_SEL_RX_CLK_EXT_SEL_IN  BIT(0)
 #define ETHER_CLK_SEL_RX_CLK_EXT_SEL_RXC BIT(12)
 #define ETHER_CLK_SEL_RX_CLK_EXT_SEL_DIV BIT(13)
-#define ETHER_CLK_SEL_TX_CLK_O_TX_I	 0
+#define ETHER_CLK_SEL_TX_CLK_O_TX_I	 BIT(0)
 #define ETHER_CLK_SEL_TX_CLK_O_RMII_I	 BIT(14)
 #define ETHER_CLK_SEL_TX_O_E_N_IN	 BIT(15)
-#define ETHER_CLK_SEL_RMII_CLK_SEL_IN	 0
+#define ETHER_CLK_SEL_RMII_CLK_SEL_IN	 BIT(0)
 #define ETHER_CLK_SEL_RMII_CLK_SEL_RX_C	 BIT(16)
 
 #define ETHER_CLK_SEL_RX_TX_CLK_EN (ETHER_CLK_SEL_RX_CLK_EN | ETHER_CLK_SEL_TX_CLK_EN)
@@ -50,15 +49,13 @@ struct visconti_eth {
 	void __iomem *reg;
 	u32 phy_intf_sel;
 	struct clk *phy_ref_clk;
-	struct device *dev;
 	spinlock_t lock; /* lock to protect register update */
 };
 
-static void visconti_eth_fix_mac_speed(void *priv, unsigned int speed, unsigned int mode)
+static void visconti_eth_fix_mac_speed(void *priv, unsigned int speed)
 {
 	struct visconti_eth *dwmac = priv;
-	struct net_device *netdev = dev_get_drvdata(dwmac->dev);
-	unsigned int val, clk_sel_val = 0;
+	unsigned int val, clk_sel_val;
 	unsigned long flags;
 
 	spin_lock_irqsave(&dwmac->lock, flags);
@@ -88,9 +85,7 @@ static void visconti_eth_fix_mac_speed(void *priv, unsigned int speed, unsigned 
 		break;
 	default:
 		/* No bit control */
-		netdev_err(netdev, "Unsupported speed request (%d)", speed);
-		spin_unlock_irqrestore(&dwmac->lock, flags);
-		return;
+		break;
 	}
 
 	writel(val, dwmac->reg + MAC_CTRL_REG);
@@ -101,40 +96,30 @@ static void visconti_eth_fix_mac_speed(void *priv, unsigned int speed, unsigned 
 	val |= ETHER_CLK_SEL_TX_O_E_N_IN;
 	writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
 
-	/* Set Clock-Mux, Start clock, Set TX_O direction */
 	switch (dwmac->phy_intf_sel) {
 	case ETHER_CONFIG_INTF_RGMII:
 		val = clk_sel_val | ETHER_CLK_SEL_RX_CLK_EXT_SEL_RXC;
-		writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
-
-		val |= ETHER_CLK_SEL_RX_TX_CLK_EN;
-		writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
-
-		val &= ~ETHER_CLK_SEL_TX_O_E_N_IN;
-		writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
 		break;
 	case ETHER_CONFIG_INTF_RMII:
 		val = clk_sel_val | ETHER_CLK_SEL_RX_CLK_EXT_SEL_DIV |
-			ETHER_CLK_SEL_TX_CLK_EXT_SEL_DIV | ETHER_CLK_SEL_TX_O_E_N_IN |
+			ETHER_CLK_SEL_TX_CLK_EXT_SEL_TXC | ETHER_CLK_SEL_TX_O_E_N_IN |
 			ETHER_CLK_SEL_RMII_CLK_SEL_RX_C;
-		writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
-
-		val |= ETHER_CLK_SEL_RMII_CLK_RST;
-		writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
-
-		val |= ETHER_CLK_SEL_RMII_CLK_EN | ETHER_CLK_SEL_RX_TX_CLK_EN;
-		writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
 		break;
 	case ETHER_CONFIG_INTF_MII:
 	default:
 		val = clk_sel_val | ETHER_CLK_SEL_RX_CLK_EXT_SEL_RXC |
-			ETHER_CLK_SEL_TX_CLK_EXT_SEL_TXC | ETHER_CLK_SEL_TX_O_E_N_IN;
-		writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
-
-		val |= ETHER_CLK_SEL_RX_TX_CLK_EN;
-		writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
+			ETHER_CLK_SEL_TX_CLK_EXT_SEL_DIV | ETHER_CLK_SEL_TX_O_E_N_IN |
+			ETHER_CLK_SEL_RMII_CLK_EN;
 		break;
 	}
+
+	/* Start clock */
+	writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
+	val |= ETHER_CLK_SEL_RX_TX_CLK_EN;
+	writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
+
+	val &= ~ETHER_CLK_SEL_TX_O_E_N_IN;
+	writel(val, dwmac->reg + REG_ETHER_CLOCK_SEL);
 
 	spin_unlock_irqrestore(&dwmac->lock, flags);
 }
@@ -186,9 +171,10 @@ static int visconti_eth_clock_probe(struct platform_device *pdev,
 	int err;
 
 	dwmac->phy_ref_clk = devm_clk_get(&pdev->dev, "phy_ref_clk");
-	if (IS_ERR(dwmac->phy_ref_clk))
-		return dev_err_probe(&pdev->dev, PTR_ERR(dwmac->phy_ref_clk),
-				     "phy_ref_clk clock not found.\n");
+	if (IS_ERR(dwmac->phy_ref_clk)) {
+		dev_err(&pdev->dev, "phy_ref_clk clock not found.\n");
+		return PTR_ERR(dwmac->phy_ref_clk);
+	}
 
 	err = clk_prepare_enable(dwmac->phy_ref_clk);
 	if (err < 0) {
@@ -199,7 +185,7 @@ static int visconti_eth_clock_probe(struct platform_device *pdev,
 	return 0;
 }
 
-static void visconti_eth_clock_remove(struct platform_device *pdev)
+static int visconti_eth_clock_remove(struct platform_device *pdev)
 {
 	struct visconti_eth *dwmac = get_stmmac_bsp_priv(&pdev->dev);
 	struct net_device *ndev = platform_get_drvdata(pdev);
@@ -207,6 +193,8 @@ static void visconti_eth_clock_remove(struct platform_device *pdev)
 
 	clk_disable_unprepare(dwmac->phy_ref_clk);
 	clk_disable_unprepare(priv->plat->stmmac_clk);
+
+	return 0;
 }
 
 static int visconti_eth_dwmac_probe(struct platform_device *pdev)
@@ -220,23 +208,24 @@ static int visconti_eth_dwmac_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	plat_dat = devm_stmmac_probe_config_dt(pdev, stmmac_res.mac);
+	plat_dat = stmmac_probe_config_dt(pdev, stmmac_res.mac);
 	if (IS_ERR(plat_dat))
 		return PTR_ERR(plat_dat);
 
 	dwmac = devm_kzalloc(&pdev->dev, sizeof(*dwmac), GFP_KERNEL);
-	if (!dwmac)
-		return -ENOMEM;
+	if (!dwmac) {
+		ret = -ENOMEM;
+		goto remove_config;
+	}
 
 	spin_lock_init(&dwmac->lock);
 	dwmac->reg = stmmac_res.addr;
-	dwmac->dev = &pdev->dev;
 	plat_dat->bsp_priv = dwmac;
 	plat_dat->fix_mac_speed = visconti_eth_fix_mac_speed;
 
 	ret = visconti_eth_clock_probe(pdev, plat_dat);
 	if (ret)
-		return ret;
+		goto remove_config;
 
 	visconti_eth_init_hw(pdev, plat_dat);
 
@@ -250,14 +239,29 @@ static int visconti_eth_dwmac_probe(struct platform_device *pdev)
 
 remove:
 	visconti_eth_clock_remove(pdev);
+remove_config:
+	stmmac_remove_config_dt(pdev, plat_dat);
 
 	return ret;
 }
 
-static void visconti_eth_dwmac_remove(struct platform_device *pdev)
+static int visconti_eth_dwmac_remove(struct platform_device *pdev)
 {
-	stmmac_pltfr_remove(pdev);
-	visconti_eth_clock_remove(pdev);
+	struct net_device *ndev = platform_get_drvdata(pdev);
+	struct stmmac_priv *priv = netdev_priv(ndev);
+	int err;
+
+	err = stmmac_pltfr_remove(pdev);
+	if (err < 0)
+		dev_err(&pdev->dev, "failed to remove platform: %d\n", err);
+
+	err = visconti_eth_clock_remove(pdev);
+	if (err < 0)
+		dev_err(&pdev->dev, "failed to remove clock: %d\n", err);
+
+	stmmac_remove_config_dt(pdev, priv->plat);
+
+	return err;
 }
 
 static const struct of_device_id visconti_eth_dwmac_match[] = {
@@ -268,7 +272,7 @@ MODULE_DEVICE_TABLE(of, visconti_eth_dwmac_match);
 
 static struct platform_driver visconti_eth_dwmac_driver = {
 	.probe  = visconti_eth_dwmac_probe,
-	.remove_new = visconti_eth_dwmac_remove,
+	.remove = visconti_eth_dwmac_remove,
 	.driver = {
 		.name           = "visconti-eth-dwmac",
 		.of_match_table = visconti_eth_dwmac_match,

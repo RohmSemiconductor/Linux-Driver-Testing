@@ -12,7 +12,6 @@
  *  i740fb by Patrick LERDA, v0.9
  */
 
-#include <linux/aperture.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/errno.h>
@@ -160,9 +159,10 @@ static int i740fb_setup_ddc_bus(struct fb_info *info)
 {
 	struct i740fb_par *par = info->par;
 
-	strscpy(par->ddc_adapter.name, info->fix.id,
+	strlcpy(par->ddc_adapter.name, info->fix.id,
 		sizeof(par->ddc_adapter.name));
 	par->ddc_adapter.owner		= THIS_MODULE;
+	par->ddc_adapter.class		= I2C_CLASS_DDC;
 	par->ddc_adapter.algo_data	= &par->ddc_algo;
 	par->ddc_adapter.dev.parent	= info->device;
 	par->ddc_algo.setsda		= i740fb_ddc_setsda;
@@ -400,7 +400,7 @@ static int i740fb_decode_var(const struct fb_var_screeninfo *var,
 	u32 xres, right, hslen, left, xtotal;
 	u32 yres, lower, vslen, upper, ytotal;
 	u32 vxres, xoffset, vyres, yoffset;
-	u32 bpp, base, dacspeed24, mem, freq;
+	u32 bpp, base, dacspeed24, mem;
 	u8 r7;
 	int i;
 
@@ -643,12 +643,7 @@ static int i740fb_decode_var(const struct fb_var_screeninfo *var,
 	par->atc[VGA_ATC_OVERSCAN] = 0;
 
 	/* Calculate VCLK that most closely matches the requested dot clock */
-	freq = (((u32)1e9) / var->pixclock) * (u32)(1e3);
-	if (freq < I740_RFREQ_FIX) {
-		fb_dbg(info, "invalid pixclock\n");
-		freq = I740_RFREQ_FIX;
-	}
-	i740_calc_vclk(freq, par);
+	i740_calc_vclk((((u32)1e9) / var->pixclock) * (u32)(1e3), par);
 
 	/* Since we program the clocks ourselves, always use VCLK2. */
 	par->misc |= 0x0C;
@@ -662,9 +657,6 @@ static int i740fb_decode_var(const struct fb_var_screeninfo *var,
 
 static int i740fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 {
-	if (!var->pixclock)
-		return -EINVAL;
-
 	switch (var->bits_per_pixel) {
 	case 8:
 		var->red.offset	= var->green.offset = var->blue.offset = 0;
@@ -748,7 +740,7 @@ static int i740fb_set_par(struct fb_info *info)
 	if (i)
 		return i;
 
-	memset_io(info->screen_base, 0, info->screen_size);
+	memset(info->screen_base, 0, info->screen_size);
 
 	vga_protect(par);
 
@@ -993,12 +985,14 @@ static const struct fb_ops i740fb_ops = {
 	.owner		= THIS_MODULE,
 	.fb_open	= i740fb_open,
 	.fb_release	= i740fb_release,
-	FB_DEFAULT_IOMEM_OPS,
 	.fb_check_var	= i740fb_check_var,
 	.fb_set_par	= i740fb_set_par,
 	.fb_setcolreg	= i740fb_setcolreg,
 	.fb_blank	= i740fb_blank,
 	.fb_pan_display	= i740fb_pan_display,
+	.fb_fillrect	= cfb_fillrect,
+	.fb_copyarea	= cfb_copyarea,
+	.fb_imageblit	= cfb_imageblit,
 };
 
 /* ------------------------------------------------------------------------- */
@@ -1010,10 +1004,6 @@ static int i740fb_probe(struct pci_dev *dev, const struct pci_device_id *ent)
 	int ret, tmp;
 	bool found = false;
 	u8 *edid;
-
-	ret = aperture_remove_conflicting_pci_devices(dev, "i740fb");
-	if (ret)
-		return ret;
 
 	info = framebuffer_alloc(sizeof(struct i740fb_par), &(dev->dev));
 	if (!info)
@@ -1074,7 +1064,7 @@ static int i740fb_probe(struct pci_dev *dev, const struct pci_device_id *ent)
 	info->fix.mmio_len = pci_resource_len(dev, 1);
 	info->fix.smem_start = pci_resource_start(dev, 0);
 	info->fix.smem_len = info->screen_size;
-	info->flags = FBINFO_HWACCEL_YPAN;
+	info->flags = FBINFO_DEFAULT | FBINFO_HWACCEL_YPAN;
 
 	if (i740fb_setup_ddc_bus(info) == 0) {
 		par->ddc_registered = true;
@@ -1282,12 +1272,7 @@ static int __init i740fb_init(void)
 {
 #ifndef MODULE
 	char *option = NULL;
-#endif
 
-	if (fb_modesetting_disabled("i740fb"))
-		return -ENODEV;
-
-#ifndef MODULE
 	if (fb_get_options("i740fb", &option))
 		return -ENODEV;
 	i740fb_setup(option);

@@ -27,8 +27,6 @@
 #include <linux/string.h>
 #include <linux/xarray.h>
 
-#include "radix-tree.h"
-
 /*
  * Radix tree node cache.
  */
@@ -679,7 +677,7 @@ static void radix_tree_free_nodes(struct radix_tree_node *node)
 }
 
 static inline int insert_entries(struct radix_tree_node *node,
-		void __rcu **slot, void *item)
+		void __rcu **slot, void *item, bool replace)
 {
 	if (*slot)
 		return -EEXIST;
@@ -713,7 +711,7 @@ int radix_tree_insert(struct radix_tree_root *root, unsigned long index,
 	if (error)
 		return error;
 
-	error = insert_entries(node, slot, item);
+	error = insert_entries(node, slot, item, false);
 	if (error < 0)
 		return error;
 
@@ -1031,7 +1029,7 @@ void *radix_tree_tag_clear(struct radix_tree_root *root,
 {
 	struct radix_tree_node *node, *parent;
 	unsigned long maxindex;
-	int offset = 0;
+	int offset;
 
 	radix_tree_load_root(root, &node, &maxindex);
 	if (index > maxindex)
@@ -1136,6 +1134,7 @@ static void set_iter_tags(struct radix_tree_iter *iter,
 void __rcu **radix_tree_iter_resume(void __rcu **slot,
 					struct radix_tree_iter *iter)
 {
+	slot++;
 	iter->index = __radix_tree_iter_add(iter, 1);
 	iter->next_index = iter->index;
 	iter->tags = 0;

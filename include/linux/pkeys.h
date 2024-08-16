@@ -4,8 +4,6 @@
 
 #include <linux/mm.h>
 
-#define ARCH_DEFAULT_PKEY	0
-
 #ifdef CONFIG_ARCH_HAS_PKEYS
 #include <asm/pkeys.h>
 #else /* ! CONFIG_ARCH_HAS_PKEYS */

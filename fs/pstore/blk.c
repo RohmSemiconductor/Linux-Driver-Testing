@@ -205,6 +205,7 @@ static ssize_t psblk_generic_blk_write(const char *buf, size_t bytes,
 static int __register_pstore_blk(struct pstore_device_info *dev,
 				 const char *devpath)
 {
+	struct inode *inode;
 	int ret = -ENODEV;
 
 	lockdep_assert_held(&pstore_blk_lock);
@@ -216,13 +217,14 @@ static int __register_pstore_blk(struct pstore_device_info *dev,
 		goto err;
 	}
 
-	if (!S_ISBLK(file_inode(psblk_file)->i_mode)) {
+	inode = file_inode(psblk_file);
+	if (!S_ISBLK(inode->i_mode)) {
 		pr_err("'%s' is not block device!\n", devpath);
 		goto err_fput;
 	}
 
-	dev->zone.total_size =
-		bdev_nr_bytes(I_BDEV(psblk_file->f_mapping->host));
+	inode = I_BDEV(psblk_file->f_mapping->host)->bd_inode;
+	dev->zone.total_size = i_size_read(inode);
 
 	ret = __register_pstore_device(dev);
 	if (ret)
@@ -263,9 +265,9 @@ static __init const char *early_boot_devpath(const char *initial_devname)
 	 * same scheme to find the device that we use for mounting
 	 * the root file system.
 	 */
-	dev_t dev;
+	dev_t dev = name_to_dev_t(initial_devname);
 
-	if (early_lookup_bdev(initial_devname, &dev)) {
+	if (!dev) {
 		pr_err("failed to resolve '%s'!\n", initial_devname);
 		return initial_devname;
 	}
@@ -309,7 +311,7 @@ static int __init __best_effort_init(void)
 	if (ret)
 		kfree(best_effort_dev);
 	else
-		pr_info("attached %s (%lu) (no dedicated panic_write!)\n",
+		pr_info("attached %s (%zu) (no dedicated panic_write!)\n",
 			blkdev, best_effort_dev->zone.total_size);
 
 	return ret;

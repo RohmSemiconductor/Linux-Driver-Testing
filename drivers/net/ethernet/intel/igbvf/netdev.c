@@ -3,25 +3,25 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
-#include <linux/bitfield.h>
-#include <linux/delay.h>
-#include <linux/ethtool.h>
-#include <linux/if_vlan.h>
-#include <linux/init.h>
-#include <linux/ipv6.h>
-#include <linux/mii.h>
 #include <linux/module.h>
-#include <linux/netdevice.h>
-#include <linux/pagemap.h>
-#include <linux/pci.h>
-#include <linux/prefetch.h>
-#include <linux/sctp.h>
-#include <linux/slab.h>
-#include <linux/tcp.h>
 #include <linux/types.h>
+#include <linux/init.h>
+#include <linux/pci.h>
 #include <linux/vmalloc.h>
+#include <linux/pagemap.h>
+#include <linux/delay.h>
+#include <linux/netdevice.h>
+#include <linux/tcp.h>
+#include <linux/ipv6.h>
+#include <linux/slab.h>
 #include <net/checksum.h>
 #include <net/ip6_checksum.h>
+#include <linux/mii.h>
+#include <linux/ethtool.h>
+#include <linux/if_vlan.h>
+#include <linux/prefetch.h>
+#include <linux/sctp.h>
+
 #include "igbvf.h"
 
 char igbvf_driver_name[] = "igbvf";
@@ -273,8 +273,9 @@ static bool igbvf_clean_rx_irq(struct igbvf_adapter *adapter,
 		 * that case, it fills the header buffer and spills the rest
 		 * into the page.
 		 */
-		hlen = le16_get_bits(rx_desc->wb.lower.lo_dword.hs_rss.hdr_info,
-				     E1000_RXDADV_HDRBUFLEN_MASK);
+		hlen = (le16_to_cpu(rx_desc->wb.lower.lo_dword.hs_rss.hdr_info)
+		       & E1000_RXDADV_HDRBUFLEN_MASK) >>
+		       E1000_RXDADV_HDRBUFLEN_SHIFT;
 		if (hlen > adapter->rx_ps_hdr_size)
 			hlen = adapter->rx_ps_hdr_size;
 
@@ -1073,7 +1074,7 @@ static int igbvf_request_msix(struct igbvf_adapter *adapter)
 			  igbvf_intr_msix_rx, 0, adapter->rx_ring->name,
 			  netdev);
 	if (err)
-		goto free_irq_tx;
+		goto out;
 
 	adapter->rx_ring->itr_register = E1000_EITR(vector);
 	adapter->rx_ring->itr_val = adapter->current_itr;
@@ -1082,14 +1083,10 @@ static int igbvf_request_msix(struct igbvf_adapter *adapter)
 	err = request_irq(adapter->msix_entries[vector].vector,
 			  igbvf_msix_other, 0, netdev->name, netdev);
 	if (err)
-		goto free_irq_rx;
+		goto out;
 
 	igbvf_configure_msix(adapter);
 	return 0;
-free_irq_rx:
-	free_irq(adapter->msix_entries[--vector].vector, netdev);
-free_irq_tx:
-	free_irq(adapter->msix_entries[--vector].vector, netdev);
 out:
 	return err;
 }
@@ -1112,7 +1109,7 @@ static int igbvf_alloc_queues(struct igbvf_adapter *adapter)
 		return -ENOMEM;
 	}
 
-	netif_napi_add(netdev, &adapter->rx_ring->napi, igbvf_poll);
+	netif_napi_add(netdev, &adapter->rx_ring->napi, igbvf_poll, 64);
 
 	return 0;
 }
@@ -1523,14 +1520,15 @@ static void igbvf_reset(struct igbvf_adapter *adapter)
 
 	/* Allow time for pending master requests to run */
 	if (mac->ops.reset_hw(hw))
-		dev_info(&adapter->pdev->dev, "PF still resetting\n");
+		dev_warn(&adapter->pdev->dev, "PF still resetting\n");
 
 	mac->ops.init_hw(hw);
 
 	spin_unlock_bh(&hw->mbx_lock);
 
 	if (is_valid_ether_addr(adapter->hw.mac.addr)) {
-		eth_hw_addr_set(netdev, adapter->hw.mac.addr);
+		memcpy(netdev->dev_addr, adapter->hw.mac.addr,
+		       netdev->addr_len);
 		memcpy(netdev->perm_addr, adapter->hw.mac.addr,
 		       netdev->addr_len);
 	}
@@ -1815,7 +1813,7 @@ static int igbvf_set_mac(struct net_device *netdev, void *p)
 	if (!ether_addr_equal(addr->sa_data, hw->mac.addr))
 		return -EADDRNOTAVAIL;
 
-	eth_hw_addr_set(netdev, addr->sa_data);
+	memcpy(netdev->dev_addr, addr->sa_data, netdev->addr_len);
 
 	return 0;
 }
@@ -2540,7 +2538,7 @@ static pci_ers_result_t igbvf_io_error_detected(struct pci_dev *pdev,
 		igbvf_down(adapter);
 	pci_disable_device(pdev);
 
-	/* Request a slot reset. */
+	/* Request a slot slot reset. */
 	return PCI_ERS_RESULT_NEED_RESET;
 }
 
@@ -2590,33 +2588,6 @@ static void igbvf_io_resume(struct pci_dev *pdev)
 	}
 
 	netif_device_attach(netdev);
-}
-
-/**
- * igbvf_io_prepare - prepare device driver for PCI reset
- * @pdev: PCI device information struct
- */
-static void igbvf_io_prepare(struct pci_dev *pdev)
-{
-	struct net_device *netdev = pci_get_drvdata(pdev);
-	struct igbvf_adapter *adapter = netdev_priv(netdev);
-
-	while (test_and_set_bit(__IGBVF_RESETTING, &adapter->state))
-		usleep_range(1000, 2000);
-	igbvf_down(adapter);
-}
-
-/**
- * igbvf_io_reset_done - PCI reset done, device driver reset can begin
- * @pdev: PCI device information struct
- */
-static void igbvf_io_reset_done(struct pci_dev *pdev)
-{
-	struct net_device *netdev = pci_get_drvdata(pdev);
-	struct igbvf_adapter *adapter = netdev_priv(netdev);
-
-	igbvf_up(adapter);
-	clear_bit(__IGBVF_RESETTING, &adapter->state);
 }
 
 static void igbvf_print_device_info(struct igbvf_adapter *adapter)
@@ -2714,18 +2685,25 @@ static int igbvf_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	struct igbvf_adapter *adapter;
 	struct e1000_hw *hw;
 	const struct igbvf_info *ei = igbvf_info_tbl[ent->driver_data];
+
 	static int cards_found;
-	int err;
+	int err, pci_using_dac;
 
 	err = pci_enable_device_mem(pdev);
 	if (err)
 		return err;
 
+	pci_using_dac = 0;
 	err = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64));
-	if (err) {
-		dev_err(&pdev->dev,
-			"No usable DMA configuration, aborting\n");
-		goto err_dma;
+	if (!err) {
+		pci_using_dac = 1;
+	} else {
+		err = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
+		if (err) {
+			dev_err(&pdev->dev,
+				"No usable DMA configuration, aborting\n");
+			goto err_dma;
+		}
 	}
 
 	err = pci_request_regions(pdev, igbvf_driver_name);
@@ -2784,7 +2762,7 @@ static int igbvf_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 	igbvf_set_ethtool_ops(netdev);
 	netdev->watchdog_timeo = 5 * HZ;
-	strscpy(netdev->name, pci_name(pdev), sizeof(netdev->name));
+	strncpy(netdev->name, pci_name(pdev), sizeof(netdev->name) - 1);
 
 	adapter->bd_number = cards_found++;
 
@@ -2806,7 +2784,10 @@ static int igbvf_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	netdev->hw_features |= NETIF_F_GSO_PARTIAL |
 			       IGBVF_GSO_PARTIAL_FEATURES;
 
-	netdev->features = netdev->hw_features | NETIF_F_HIGHDMA;
+	netdev->features = netdev->hw_features;
+
+	if (pci_using_dac)
+		netdev->features |= NETIF_F_HIGHDMA;
 
 	netdev->vlan_features |= netdev->features | NETIF_F_TSO_MANGLEID;
 	netdev->mpls_features |= NETIF_F_HW_CSUM;
@@ -2835,7 +2816,8 @@ static int igbvf_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		else if (is_zero_ether_addr(adapter->hw.mac.addr))
 			dev_info(&pdev->dev,
 				 "MAC address not assigned by administrator.\n");
-		eth_hw_addr_set(netdev, adapter->hw.mac.addr);
+		memcpy(netdev->dev_addr, adapter->hw.mac.addr,
+		       netdev->addr_len);
 	}
 
 	spin_unlock_bh(&hw->mbx_lock);
@@ -2879,7 +2861,6 @@ static int igbvf_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	return 0;
 
 err_hw_init:
-	netif_napi_del(&adapter->rx_ring->napi);
 	kfree(adapter->tx_ring);
 	kfree(adapter->rx_ring);
 err_sw_init:
@@ -2946,8 +2927,6 @@ static const struct pci_error_handlers igbvf_err_handler = {
 	.error_detected = igbvf_io_error_detected,
 	.slot_reset = igbvf_io_slot_reset,
 	.resume = igbvf_io_resume,
-	.reset_prepare = igbvf_io_prepare,
-	.reset_done = igbvf_io_reset_done,
 };
 
 static const struct pci_device_id igbvf_pci_tbl[] = {

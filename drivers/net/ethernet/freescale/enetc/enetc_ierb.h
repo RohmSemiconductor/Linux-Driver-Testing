@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause) */
-/* Copyright 2021 NXP */
+/* Copyright 2021 NXP Semiconductors */
 
 #include <linux/pci.h>
 #include <linux/platform_device.h>

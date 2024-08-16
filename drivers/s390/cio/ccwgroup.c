@@ -77,13 +77,12 @@ EXPORT_SYMBOL(ccwgroup_set_online);
 /**
  * ccwgroup_set_offline() - disable a ccwgroup device
  * @gdev: target ccwgroup device
- * @call_gdrv: Call the registered gdrv set_offline function
  *
  * This function attempts to put the ccwgroup device into the offline state.
  * Returns:
  *  %0 on success and a negative error value on failure.
  */
-int ccwgroup_set_offline(struct ccwgroup_device *gdev, bool call_gdrv)
+int ccwgroup_set_offline(struct ccwgroup_device *gdev)
 {
 	struct ccwgroup_driver *gdrv = to_ccwgroupdrv(gdev->dev.driver);
 	int ret = -EINVAL;
@@ -92,16 +91,11 @@ int ccwgroup_set_offline(struct ccwgroup_device *gdev, bool call_gdrv)
 		return -EAGAIN;
 	if (gdev->state == CCWGROUP_OFFLINE)
 		goto out;
-	if (!call_gdrv) {
-		ret = 0;
-		goto offline;
-	}
 	if (gdrv->set_offline)
 		ret = gdrv->set_offline(gdev);
 	if (ret)
 		goto out;
 
-offline:
 	gdev->state = CCWGROUP_OFFLINE;
 out:
 	atomic_set(&gdev->onoff, 0);
@@ -130,7 +124,7 @@ static ssize_t ccwgroup_online_store(struct device *dev,
 	if (value == 1)
 		ret = ccwgroup_set_online(gdev);
 	else if (value == 0)
-		ret = ccwgroup_set_offline(gdev, true);
+		ret = ccwgroup_set_offline(gdev);
 	else
 		ret = -EINVAL;
 out:
@@ -152,7 +146,7 @@ static ssize_t ccwgroup_online_show(struct device *dev,
 
 /*
  * Provide an 'ungroup' attribute so the user can remove group devices no
- * longer needed or accidentally created. Saves memory :)
+ * longer needed or accidentially created. Saves memory :)
  */
 static void ccwgroup_ungroup(struct ccwgroup_device *gdev)
 {

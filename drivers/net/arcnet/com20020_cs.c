@@ -97,7 +97,6 @@ module_param(backplane, int, 0);
 module_param(clockp, int, 0);
 module_param(clockm, int, 0);
 
-MODULE_DESCRIPTION("ARCnet COM20020 chipset PCMCIA driver");
 MODULE_LICENSE("GPL");
 
 /*====================================================================*/
@@ -114,7 +113,6 @@ static int com20020_probe(struct pcmcia_device *p_dev)
 	struct com20020_dev *info;
 	struct net_device *dev;
 	struct arcnet_local *lp;
-	int ret = -ENOMEM;
 
 	dev_dbg(&p_dev->dev, "com20020_attach()\n");
 
@@ -135,7 +133,7 @@ static int com20020_probe(struct pcmcia_device *p_dev)
 	lp->hw.owner = THIS_MODULE;
 
 	/* fill in our module parameters as defaults */
-	arcnet_set_addr(dev, node);
+	dev->dev_addr[0] = node;
 
 	p_dev->resource[0]->flags |= IO_DATA_PATH_WIDTH_8;
 	p_dev->resource[0]->end = 16;
@@ -144,18 +142,12 @@ static int com20020_probe(struct pcmcia_device *p_dev)
 	info->dev = dev;
 	p_dev->priv = info;
 
-	ret = com20020_config(p_dev);
-	if (ret)
-		goto fail_config;
+	return com20020_config(p_dev);
 
-	return 0;
-
-fail_config:
-	free_arcdev(dev);
 fail_alloc_dev:
 	kfree(info);
 fail_alloc_info:
-	return ret;
+	return -ENOMEM;
 } /* com20020_attach */
 
 static void com20020_detach(struct pcmcia_device *link)

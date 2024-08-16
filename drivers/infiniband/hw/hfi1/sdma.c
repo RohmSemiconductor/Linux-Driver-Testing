@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
+// SPDX-License-Identifier: GPL-2.0 or BSD-3-Clause
 /*
  * Copyright(c) 2015 - 2018 Intel Corporation.
  */
@@ -838,8 +838,8 @@ struct sdma_engine *sdma_select_user_engine(struct hfi1_devdata *dd,
 	if (current->nr_cpus_allowed != 1)
 		goto out;
 
-	rcu_read_lock();
 	cpu_id = smp_processor_id();
+	rcu_read_lock();
 	rht_node = rhashtable_lookup(dd->sdma_rht, &cpu_id,
 				     sdma_rht_params);
 
@@ -1288,13 +1288,11 @@ void sdma_clean(struct hfi1_devdata *dd, size_t num_engines)
 		kvfree(sde->tx_ring);
 		sde->tx_ring = NULL;
 	}
-	if (rcu_access_pointer(dd->sdma_map)) {
-		spin_lock_irq(&dd->sde_map_lock);
-		sdma_map_free(rcu_access_pointer(dd->sdma_map));
-		RCU_INIT_POINTER(dd->sdma_map, NULL);
-		spin_unlock_irq(&dd->sde_map_lock);
-		synchronize_rcu();
-	}
+	spin_lock_irq(&dd->sde_map_lock);
+	sdma_map_free(rcu_access_pointer(dd->sdma_map));
+	RCU_INIT_POINTER(dd->sdma_map, NULL);
+	spin_unlock_irq(&dd->sde_map_lock);
+	synchronize_rcu();
 	kfree(dd->per_sdma);
 	dd->per_sdma = NULL;
 
@@ -1595,18 +1593,20 @@ static inline void sdma_unmap_desc(
 {
 	switch (sdma_mapping_type(descp)) {
 	case SDMA_MAP_SINGLE:
-		dma_unmap_single(&dd->pcidev->dev, sdma_mapping_addr(descp),
-				 sdma_mapping_len(descp), DMA_TO_DEVICE);
+		dma_unmap_single(
+			&dd->pcidev->dev,
+			sdma_mapping_addr(descp),
+			sdma_mapping_len(descp),
+			DMA_TO_DEVICE);
 		break;
 	case SDMA_MAP_PAGE:
-		dma_unmap_page(&dd->pcidev->dev, sdma_mapping_addr(descp),
-			       sdma_mapping_len(descp), DMA_TO_DEVICE);
+		dma_unmap_page(
+			&dd->pcidev->dev,
+			sdma_mapping_addr(descp),
+			sdma_mapping_len(descp),
+			DMA_TO_DEVICE);
 		break;
 	}
-
-	if (descp->pinning_ctx && descp->ctx_put)
-		descp->ctx_put(descp->pinning_ctx);
-	descp->pinning_ctx = NULL;
 }
 
 /*
@@ -3127,7 +3127,7 @@ int ext_coal_sdma_tx_descs(struct hfi1_devdata *dd, struct sdma_txreq *tx,
 		/* Add descriptor for coalesce buffer */
 		tx->desc_limit = MAX_DESC;
 		return _sdma_txadd_daddr(dd, SDMA_MAP_SINGLE, tx,
-					 addr, tx->tlen, NULL, NULL, NULL);
+					 addr, tx->tlen);
 	}
 
 	return 1;
@@ -3158,6 +3158,7 @@ int _pad_sdma_tx_descs(struct hfi1_devdata *dd, struct sdma_txreq *tx)
 {
 	int rval = 0;
 
+	tx->num_desc++;
 	if ((unlikely(tx->num_desc == tx->desc_limit))) {
 		rval = _extend_sdma_tx_descs(dd, tx);
 		if (rval) {
@@ -3165,15 +3166,12 @@ int _pad_sdma_tx_descs(struct hfi1_devdata *dd, struct sdma_txreq *tx)
 			return rval;
 		}
 	}
-
 	/* finish the one just added */
 	make_tx_sdma_desc(
 		tx,
 		SDMA_MAP_NONE,
 		dd->sdma_pad_phys,
-		sizeof(u32) - (tx->packet_len & (sizeof(u32) - 1)),
-		NULL, NULL, NULL);
-	tx->num_desc++;
+		sizeof(u32) - (tx->packet_len & (sizeof(u32) - 1)));
 	_sdma_close_tx(dd, tx);
 	return rval;
 }

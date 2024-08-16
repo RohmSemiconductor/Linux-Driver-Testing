@@ -17,12 +17,6 @@
 #include "defines.h"
 #include "main.h"
 
-/*
- * FIXME: OpenSSL 3.0 has deprecated some functions. For now just ignore
- * the warnings.
- */
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
 struct q1q2_ctx {
 	BN_CTX *bn_ctx;
 	BIGNUM *m;
@@ -295,17 +289,15 @@ static bool mrenclave_eextend(EVP_MD_CTX *ctx, uint64_t offset,
 static bool mrenclave_segment(EVP_MD_CTX *ctx, struct encl *encl,
 			      struct encl_segment *seg)
 {
-	uint64_t end = seg->size;
+	uint64_t end = seg->offset + seg->size;
 	uint64_t offset;
 
-	for (offset = 0; offset < end; offset += PAGE_SIZE) {
-		if (!mrenclave_eadd(ctx, seg->offset + offset, seg->flags))
+	for (offset = seg->offset; offset < end; offset += PAGE_SIZE) {
+		if (!mrenclave_eadd(ctx, offset, seg->flags))
 			return false;
 
-		if (seg->measure) {
-			if (!mrenclave_eextend(ctx, seg->offset + offset, seg->src + offset))
-				return false;
-		}
+		if (!mrenclave_eextend(ctx, offset, encl->src + offset))
+			return false;
 	}
 
 	return true;
@@ -318,9 +310,9 @@ bool encl_measure(struct encl *encl)
 	struct sgx_sigstruct *sigstruct = &encl->sigstruct;
 	struct sgx_sigstruct_payload payload;
 	uint8_t digest[SHA256_DIGEST_LENGTH];
-	EVP_MD_CTX *ctx = NULL;
 	unsigned int siglen;
 	RSA *key = NULL;
+	EVP_MD_CTX *ctx;
 	int i;
 
 	memset(sigstruct, 0, sizeof(*sigstruct));
@@ -384,8 +376,7 @@ bool encl_measure(struct encl *encl)
 	return true;
 
 err:
-	if (ctx)
-		EVP_MD_CTX_destroy(ctx);
+	EVP_MD_CTX_destroy(ctx);
 	RSA_free(key);
 	return false;
 }

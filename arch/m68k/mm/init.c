@@ -72,6 +72,12 @@ void __init paging_init(void)
 	if (!empty_zero_page)
 		panic("%s: Failed to allocate %lu bytes align=0x%lx\n",
 		      __func__, PAGE_SIZE, PAGE_SIZE);
+
+	/*
+	 * Set up SFC/DFC registers (user data space).
+	 */
+	set_fs (USER_DS);
+
 	max_zone_pfn[ZONE_DMA] = end_mem >> PAGE_SHIFT;
 	free_area_init(max_zone_pfn);
 }

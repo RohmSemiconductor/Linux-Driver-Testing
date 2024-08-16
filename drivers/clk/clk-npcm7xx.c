@@ -129,6 +129,20 @@ npcm7xx_clk_register_pll(void __iomem *pllcon, const char *name,
 #define NPCM7XX_SECCNT          (0x68)
 #define NPCM7XX_CNTR25M         (0x6C)
 
+struct npcm7xx_clk_gate_data {
+	u32 reg;
+	u8 bit_idx;
+	const char *name;
+	const char *parent_name;
+	unsigned long flags;
+	/*
+	 * If this clock is exported via DT, set onecell_idx to constant
+	 * defined in include/dt-bindings/clock/nuvoton, NPCM7XX-clock.h for
+	 * this specific clock.  Otherwise, set to -1.
+	 */
+	int onecell_idx;
+};
+
 struct npcm7xx_clk_mux_data {
 	u8 shift;
 	u8 mask;
@@ -145,6 +159,21 @@ struct npcm7xx_clk_mux_data {
 	int onecell_idx;
 
 };
+
+struct npcm7xx_clk_div_fixed_data {
+	u8 mult;
+	u8 div;
+	const char *name;
+	const char *parent_name;
+	u8 clk_divider_flags;
+	/*
+	 * If this clock is exported via DT, set onecell_idx to constant
+	 * defined in include/dt-bindings/clock/nuvoton, NPCM7XX-clock.h for
+	 * this specific clock.  Otherwise, set to -1.
+	 */
+	int onecell_idx;
+};
+
 
 struct npcm7xx_clk_div_data {
 	u32 reg;
@@ -510,7 +539,7 @@ static void __init npcm7xx_clk_init(struct device_node *clk_np)
 	return;
 
 npcm7xx_init_fail:
-	kfree(npcm7xx_clk_data);
+	kfree(npcm7xx_clk_data->hws);
 npcm7xx_init_np_err:
 	iounmap(clk_base);
 npcm7xx_init_error:

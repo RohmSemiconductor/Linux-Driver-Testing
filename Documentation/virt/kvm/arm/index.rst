@@ -8,7 +8,6 @@ ARM
    :maxdepth: 2
 
    hyp-abi
-   hypercalls
+   psci
    pvtime
    ptp_kvm
-   vcpu-features

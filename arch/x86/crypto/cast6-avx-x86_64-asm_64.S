@@ -84,19 +84,15 @@
 
 #define lookup_32bit(src, dst, op1, op2, op3, interleave_op, il_reg) \
 	movzbl		src ## bh,     RID1d;    \
-	leaq		s1(%rip),      RID2;     \
-	movl		(RID2,RID1,4), dst ## d; \
 	movzbl		src ## bl,     RID2d;    \
-	leaq		s2(%rip),      RID1;     \
-	op1		(RID1,RID2,4), dst ## d; \
 	shrq $16,	src;                     \
+	movl		s1(, RID1, 4), dst ## d; \
+	op1		s2(, RID2, 4), dst ## d; \
 	movzbl		src ## bh,     RID1d;    \
-	leaq		s3(%rip),      RID2;     \
-	op2		(RID2,RID1,4), dst ## d; \
 	movzbl		src ## bl,     RID2d;    \
 	interleave_op(il_reg);			 \
-	leaq		s4(%rip),      RID1;     \
-	op3		(RID1,RID2,4), dst ## d;
+	op2		s3(, RID1, 4), dst ## d; \
+	op3		s4(, RID2, 4), dst ## d;
 
 #define dummy(d) /* do nothing */
 
@@ -179,10 +175,10 @@
 	qop(RD, RC, 1);
 
 #define shuffle(mask) \
-	vpshufb		mask(%rip),            RKR, RKR;
+	vpshufb		mask,            RKR, RKR;
 
 #define preload_rkr(n, do_mask, mask) \
-	vbroadcastss	.L16_mask(%rip),          RKR;      \
+	vbroadcastss	.L16_mask,                RKR;      \
 	/* add 16-bit rotation to key rotations (mod 32) */ \
 	vpxor		(kr+n*16)(CTX),           RKR, RKR; \
 	do_mask(mask);
@@ -262,9 +258,9 @@ SYM_FUNC_START_LOCAL(__cast6_enc_blk8)
 
 	movq %rdi, CTX;
 
-	vmovdqa .Lbswap_mask(%rip), RKM;
-	vmovd .Lfirst_mask(%rip), R1ST;
-	vmovd .L32_mask(%rip), R32;
+	vmovdqa .Lbswap_mask, RKM;
+	vmovd .Lfirst_mask, R1ST;
+	vmovd .L32_mask, R32;
 
 	inpack_blocks(RA1, RB1, RC1, RD1, RTMP, RX, RKRF, RKM);
 	inpack_blocks(RA2, RB2, RC2, RD2, RTMP, RX, RKRF, RKM);
@@ -288,12 +284,12 @@ SYM_FUNC_START_LOCAL(__cast6_enc_blk8)
 	popq %rbx;
 	popq %r15;
 
-	vmovdqa .Lbswap_mask(%rip), RKM;
+	vmovdqa .Lbswap_mask, RKM;
 
 	outunpack_blocks(RA1, RB1, RC1, RD1, RTMP, RX, RKRF, RKM);
 	outunpack_blocks(RA2, RB2, RC2, RD2, RTMP, RX, RKRF, RKM);
 
-	RET;
+	ret;
 SYM_FUNC_END(__cast6_enc_blk8)
 
 .align 8
@@ -310,9 +306,9 @@ SYM_FUNC_START_LOCAL(__cast6_dec_blk8)
 
 	movq %rdi, CTX;
 
-	vmovdqa .Lbswap_mask(%rip), RKM;
-	vmovd .Lfirst_mask(%rip), R1ST;
-	vmovd .L32_mask(%rip), R32;
+	vmovdqa .Lbswap_mask, RKM;
+	vmovd .Lfirst_mask, R1ST;
+	vmovd .L32_mask, R32;
 
 	inpack_blocks(RA1, RB1, RC1, RD1, RTMP, RX, RKRF, RKM);
 	inpack_blocks(RA2, RB2, RC2, RD2, RTMP, RX, RKRF, RKM);
@@ -336,11 +332,11 @@ SYM_FUNC_START_LOCAL(__cast6_dec_blk8)
 	popq %rbx;
 	popq %r15;
 
-	vmovdqa .Lbswap_mask(%rip), RKM;
+	vmovdqa .Lbswap_mask, RKM;
 	outunpack_blocks(RA1, RB1, RC1, RD1, RTMP, RX, RKRF, RKM);
 	outunpack_blocks(RA2, RB2, RC2, RD2, RTMP, RX, RKRF, RKM);
 
-	RET;
+	ret;
 SYM_FUNC_END(__cast6_dec_blk8)
 
 SYM_FUNC_START(cast6_ecb_enc_8way)
@@ -363,7 +359,7 @@ SYM_FUNC_START(cast6_ecb_enc_8way)
 
 	popq %r15;
 	FRAME_END
-	RET;
+	ret;
 SYM_FUNC_END(cast6_ecb_enc_8way)
 
 SYM_FUNC_START(cast6_ecb_dec_8way)
@@ -386,7 +382,7 @@ SYM_FUNC_START(cast6_ecb_dec_8way)
 
 	popq %r15;
 	FRAME_END
-	RET;
+	ret;
 SYM_FUNC_END(cast6_ecb_dec_8way)
 
 SYM_FUNC_START(cast6_cbc_dec_8way)
@@ -412,5 +408,5 @@ SYM_FUNC_START(cast6_cbc_dec_8way)
 	popq %r15;
 	popq %r12;
 	FRAME_END
-	RET;
+	ret;
 SYM_FUNC_END(cast6_cbc_dec_8way)

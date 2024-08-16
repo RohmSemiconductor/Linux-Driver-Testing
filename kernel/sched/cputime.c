@@ -2,10 +2,7 @@
 /*
  * Simple CPU accounting cgroup controller
  */
-
-#ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
- #include <asm/cputime.h>
-#endif
+#include "sched.h"
 
 #ifdef CONFIG_IRQ_TIME_ACCOUNTING
 
@@ -151,10 +148,10 @@ void account_guest_time(struct task_struct *p, u64 cputime)
 
 	/* Add guest time to cpustat. */
 	if (task_nice(p) > 0) {
-		task_group_account_field(p, CPUTIME_NICE, cputime);
+		cpustat[CPUTIME_NICE] += cputime;
 		cpustat[CPUTIME_GUEST_NICE] += cputime;
 	} else {
-		task_group_account_field(p, CPUTIME_USER, cputime);
+		cpustat[CPUTIME_USER] += cputime;
 		cpustat[CPUTIME_GUEST] += cputime;
 	}
 }
@@ -229,21 +226,6 @@ void account_idle_time(u64 cputime)
 	else
 		cpustat[CPUTIME_IDLE] += cputime;
 }
-
-
-#ifdef CONFIG_SCHED_CORE
-/*
- * Account for forceidle time due to core scheduling.
- *
- * REQUIRES: schedstat is enabled.
- */
-void __account_forceidle_time(struct task_struct *p, u64 delta)
-{
-	__schedstat_add(p->stats.core_forceidle_sum, delta);
-
-	task_group_account_field(p, CPUTIME_FORCEIDLE, delta);
-}
-#endif
 
 /*
  * When a guest is interrupted for a longer amount of time, missed clock
@@ -633,8 +615,7 @@ void task_cputime_adjusted(struct task_struct *p, u64 *ut, u64 *st)
 		.sum_exec_runtime = p->se.sum_exec_runtime,
 	};
 
-	if (task_cputime(p, &cputime.utime, &cputime.stime))
-		cputime.sum_exec_runtime = task_sched_runtime(p);
+	task_cputime(p, &cputime.utime, &cputime.stime);
 	cputime_adjust(&cputime, &p->prev_cputime, ut, st);
 }
 EXPORT_SYMBOL_GPL(task_cputime_adjusted);
@@ -847,21 +828,19 @@ u64 task_gtime(struct task_struct *t)
  * add up the pending nohz execution time since the last
  * cputime snapshot.
  */
-bool task_cputime(struct task_struct *t, u64 *utime, u64 *stime)
+void task_cputime(struct task_struct *t, u64 *utime, u64 *stime)
 {
 	struct vtime *vtime = &t->vtime;
 	unsigned int seq;
 	u64 delta;
-	int ret;
 
 	if (!vtime_accounting_enabled()) {
 		*utime = t->utime;
 		*stime = t->stime;
-		return false;
+		return;
 	}
 
 	do {
-		ret = false;
 		seq = read_seqcount_begin(&vtime->seqcount);
 
 		*utime = t->utime;
@@ -871,7 +850,6 @@ bool task_cputime(struct task_struct *t, u64 *utime, u64 *stime)
 		if (vtime->state < VTIME_SYS)
 			continue;
 
-		ret = true;
 		delta = vtime_delta(vtime);
 
 		/*
@@ -883,8 +861,6 @@ bool task_cputime(struct task_struct *t, u64 *utime, u64 *stime)
 		else
 			*utime += vtime->utime + delta;
 	} while (read_seqcount_retry(&vtime->seqcount, seq));
-
-	return ret;
 }
 
 static int vtime_state_fetch(struct vtime *vtime, int cpu)

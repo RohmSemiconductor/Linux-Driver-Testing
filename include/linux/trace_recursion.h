@@ -16,8 +16,23 @@
  *  When function tracing occurs, the following steps are made:
  *   If arch does not support a ftrace feature:
  *    call internal function (uses INTERNAL bits) which calls...
+ *   If callback is registered to the "global" list, the list
+ *    function is called and recursion checks the GLOBAL bits.
+ *    then this function calls...
  *   The function callback, which can use the FTRACE bits to
  *    check for recursion.
+ *
+ * Now if the arch does not support a feature, and it calls
+ * the global list function which calls the ftrace callback
+ * all three of these steps will do a recursion protection.
+ * There's no reason to do one if the previous caller already
+ * did. The recursion that we are protecting against will
+ * go through the same steps again.
+ *
+ * To prevent the multiple recursion checks, if a recursion
+ * bit is set that is higher than the MAX bit of the current
+ * check, then we know that the check was made by the previous
+ * caller, and we can skip the current check.
  */
 enum {
 	/* Function recursion bits */
@@ -25,14 +40,12 @@ enum {
 	TRACE_FTRACE_NMI_BIT,
 	TRACE_FTRACE_IRQ_BIT,
 	TRACE_FTRACE_SIRQ_BIT,
-	TRACE_FTRACE_TRANSITION_BIT,
 
-	/* Internal use recursion bits */
+	/* INTERNAL_BITs must be greater than FTRACE_BITs */
 	TRACE_INTERNAL_BIT,
 	TRACE_INTERNAL_NMI_BIT,
 	TRACE_INTERNAL_IRQ_BIT,
 	TRACE_INTERNAL_SIRQ_BIT,
-	TRACE_INTERNAL_TRANSITION_BIT,
 
 	TRACE_BRANCH_BIT,
 /*
@@ -73,6 +86,12 @@ enum {
 	 */
 	TRACE_GRAPH_NOTRACE_BIT,
 
+	/*
+	 * When transitioning between context, the preempt_count() may
+	 * not be correct. Allow for a single recursion to cover this case.
+	 */
+	TRACE_TRANSITION_BIT,
+
 	/* Used to prevent recursion recording from recursing. */
 	TRACE_RECORD_RECURSION_BIT,
 };
@@ -94,10 +113,12 @@ enum {
 #define TRACE_CONTEXT_BITS	4
 
 #define TRACE_FTRACE_START	TRACE_FTRACE_BIT
+#define TRACE_FTRACE_MAX	((1 << (TRACE_FTRACE_START + TRACE_CONTEXT_BITS)) - 1)
 
 #define TRACE_LIST_START	TRACE_INTERNAL_BIT
+#define TRACE_LIST_MAX		((1 << (TRACE_LIST_START + TRACE_CONTEXT_BITS)) - 1)
 
-#define TRACE_CONTEXT_MASK	((1 << (TRACE_LIST_START + TRACE_CONTEXT_BITS)) - 1)
+#define TRACE_CONTEXT_MASK	TRACE_LIST_MAX
 
 /*
  * Used for setting context
@@ -111,14 +132,17 @@ enum {
 	TRACE_CTX_IRQ,
 	TRACE_CTX_SOFTIRQ,
 	TRACE_CTX_NORMAL,
-	TRACE_CTX_TRANSITION,
 };
 
 static __always_inline int trace_get_context_bit(void)
 {
-	unsigned char bit = interrupt_context_level();
+	unsigned long pc = preempt_count();
 
-	return TRACE_CTX_NORMAL - bit;
+	if (!(pc & (NMI_MASK | HARDIRQ_MASK | SOFTIRQ_OFFSET)))
+		return TRACE_CTX_NORMAL;
+	else
+		return pc & NMI_MASK ? TRACE_CTX_NMI :
+			pc & HARDIRQ_MASK ? TRACE_CTX_IRQ : TRACE_CTX_SOFTIRQ;
 }
 
 #ifdef CONFIG_FTRACE_RECORD_RECURSION
@@ -135,66 +159,46 @@ extern void ftrace_record_recursion(unsigned long ip, unsigned long parent_ip);
 # define do_ftrace_record_recursion(ip, pip)	do { } while (0)
 #endif
 
-#ifdef CONFIG_ARCH_WANTS_NO_INSTR
-# define trace_warn_on_no_rcu(ip)					\
-	({								\
-		bool __ret = !rcu_is_watching();			\
-		if (__ret && !trace_recursion_test(TRACE_RECORD_RECURSION_BIT)) { \
-			trace_recursion_set(TRACE_RECORD_RECURSION_BIT); \
-			WARN_ONCE(true, "RCU not on for: %pS\n", (void *)ip); \
-			trace_recursion_clear(TRACE_RECORD_RECURSION_BIT); \
-		}							\
-		__ret;							\
-	})
-#else
-# define trace_warn_on_no_rcu(ip)	false
-#endif
-
-/*
- * Preemption is promised to be disabled when return bit >= 0.
- */
 static __always_inline int trace_test_and_set_recursion(unsigned long ip, unsigned long pip,
-							int start)
+							int start, int max)
 {
 	unsigned int val = READ_ONCE(current->trace_recursion);
 	int bit;
 
-	if (trace_warn_on_no_rcu(ip))
-		return -1;
+	/* A previous recursion check was made */
+	if ((val & TRACE_CONTEXT_MASK) > max)
+		return 0;
 
 	bit = trace_get_context_bit() + start;
 	if (unlikely(val & (1 << bit))) {
 		/*
-		 * If an interrupt occurs during a trace, and another trace
-		 * happens in that interrupt but before the preempt_count is
-		 * updated to reflect the new interrupt context, then this
-		 * will think a recursion occurred, and the event will be dropped.
-		 * Let a single instance happen via the TRANSITION_BIT to
-		 * not drop those events.
+		 * It could be that preempt_count has not been updated during
+		 * a switch between contexts. Allow for a single recursion.
 		 */
-		bit = TRACE_CTX_TRANSITION + start;
+		bit = TRACE_TRANSITION_BIT;
 		if (val & (1 << bit)) {
 			do_ftrace_record_recursion(ip, pip);
 			return -1;
 		}
+	} else {
+		/* Normal check passed, clear the transition to allow it again */
+		val &= ~(1 << TRACE_TRANSITION_BIT);
 	}
 
 	val |= 1 << bit;
 	current->trace_recursion = val;
 	barrier();
 
-	preempt_disable_notrace();
-
-	return bit;
+	return bit + 1;
 }
 
-/*
- * Preemption will be enabled (if it was previously enabled).
- */
 static __always_inline void trace_clear_recursion(int bit)
 {
-	preempt_enable_notrace();
+	if (!bit)
+		return;
+
 	barrier();
+	bit--;
 	trace_recursion_clear(bit);
 }
 
@@ -205,12 +209,12 @@ static __always_inline void trace_clear_recursion(int bit)
  * tracing recursed in the same context (normal vs interrupt),
  *
  * Returns: -1 if a recursion happened.
- *           >= 0 if no recursion.
+ *           >= 0 if no recursion
  */
 static __always_inline int ftrace_test_recursion_trylock(unsigned long ip,
 							 unsigned long parent_ip)
 {
-	return trace_test_and_set_recursion(ip, parent_ip, TRACE_FTRACE_START);
+	return trace_test_and_set_recursion(ip, parent_ip, TRACE_FTRACE_START, TRACE_FTRACE_MAX);
 }
 
 /**

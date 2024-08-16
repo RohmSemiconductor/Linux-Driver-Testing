@@ -2,7 +2,6 @@
 /*
  * S1G handling
  * Copyright(c) 2020 Adapt-IP
- * Copyright (C) 2023 Intel Corporation
  */
 #include <linux/ieee80211.h>
 #include <net/mac80211.h>
@@ -12,8 +11,8 @@
 void ieee80211_s1g_sta_rate_init(struct sta_info *sta)
 {
 	/* avoid indicating legacy bitrates for S1G STAs */
-	sta->deflink.tx_stats.last_rate.flags |= IEEE80211_TX_RC_S1G_MCS;
-	sta->deflink.rx_stats.last_rate =
+	sta->tx_stats.last_rate.flags |= IEEE80211_TX_RC_S1G_MCS;
+	sta->rx_stats.last_rate =
 			STA_STATS_FIELD(TYPE, STA_STATS_RATE_TYPE_S1G);
 }
 
@@ -105,16 +104,11 @@ ieee80211_s1g_rx_twt_setup(struct ieee80211_sub_if_data *sdata,
 
 	/* broadcast TWT not supported yet */
 	if (twt->control & IEEE80211_TWT_CONTROL_NEG_TYPE_BROADCAST) {
-		twt_agrt->req_type &=
-			~cpu_to_le16(IEEE80211_TWT_REQTYPE_SETUP_CMD);
-		twt_agrt->req_type |=
-			le16_encode_bits(TWT_SETUP_CMD_REJECT,
-					 IEEE80211_TWT_REQTYPE_SETUP_CMD);
+		le16p_replace_bits(&twt_agrt->req_type,
+				   TWT_SETUP_CMD_REJECT,
+				   IEEE80211_TWT_REQTYPE_SETUP_CMD);
 		goto out;
 	}
-
-	/* TWT Information not supported yet */
-	twt->control |= IEEE80211_TWT_CONTROL_RX_DISABLED;
 
 	drv_add_twt_setup(sdata->local, sdata, &sta->sta, twt);
 out:
@@ -154,11 +148,11 @@ void ieee80211_s1g_rx_twt_action(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_local *local = sdata->local;
 	struct sta_info *sta;
 
-	lockdep_assert_wiphy(local->hw.wiphy);
+	mutex_lock(&local->sta_mtx);
 
 	sta = sta_info_get_bss(sdata, mgmt->sa);
 	if (!sta)
-		return;
+		goto out;
 
 	switch (mgmt->u.action.u.s1g.action_code) {
 	case WLAN_S1G_TWT_SETUP:
@@ -170,6 +164,9 @@ void ieee80211_s1g_rx_twt_action(struct ieee80211_sub_if_data *sdata,
 	default:
 		break;
 	}
+
+out:
+	mutex_unlock(&local->sta_mtx);
 }
 
 void ieee80211_s1g_status_twt_action(struct ieee80211_sub_if_data *sdata,
@@ -179,11 +176,11 @@ void ieee80211_s1g_status_twt_action(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_local *local = sdata->local;
 	struct sta_info *sta;
 
-	lockdep_assert_wiphy(local->hw.wiphy);
+	mutex_lock(&local->sta_mtx);
 
 	sta = sta_info_get_bss(sdata, mgmt->da);
 	if (!sta)
-		return;
+		goto out;
 
 	switch (mgmt->u.action.u.s1g.action_code) {
 	case WLAN_S1G_TWT_SETUP:
@@ -193,4 +190,7 @@ void ieee80211_s1g_status_twt_action(struct ieee80211_sub_if_data *sdata,
 	default:
 		break;
 	}
+
+out:
+	mutex_unlock(&local->sta_mtx);
 }

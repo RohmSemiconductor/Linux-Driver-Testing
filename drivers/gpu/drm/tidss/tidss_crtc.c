@@ -7,7 +7,10 @@
 #include <drm/drm_atomic.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc.h>
-#include <drm/drm_gem_dma_helper.h>
+#include <drm/drm_crtc_helper.h>
+#include <drm/drm_fb_cma_helper.h>
+#include <drm/drm_gem_cma_helper.h>
+#include <drm/drm_plane_helper.h>
 #include <drm/drm_vblank.h>
 
 #include "tidss_crtc.h"
@@ -169,10 +172,14 @@ static void tidss_crtc_atomic_flush(struct drm_crtc *crtc,
 	struct tidss_device *tidss = to_tidss(ddev);
 	unsigned long flags;
 
-	dev_dbg(ddev->dev, "%s: %s is %sactive, %s modeset, event %p\n",
-		__func__, crtc->name, crtc->state->active ? "" : "not ",
-		drm_atomic_crtc_needs_modeset(crtc->state) ? "needs" : "doesn't need",
-		crtc->state->event);
+	dev_dbg(ddev->dev,
+		"%s: %s enabled %d, needs modeset %d, event %p\n", __func__,
+		crtc->name, drm_atomic_crtc_needs_modeset(crtc->state),
+		crtc->state->enable, crtc->state->event);
+
+	/* There is nothing to do if CRTC is not going to be enabled. */
+	if (!crtc->state->enable)
+		return;
 
 	/*
 	 * Flush CRTC changes with go bit only if new modeset is not

@@ -12,12 +12,8 @@
 #include <linux/module.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
-#include <linux/property.h>
 #include <linux/netdevice.h>
 #include <linux/can/dev.h>
-#include <linux/of.h>
-#include <linux/of_address.h>
-#include <linux/of_irq.h>
 #include <linux/of_platform.h>
 #include <sysdev/fsl_soc.h>
 #include <linux/clk.h>
@@ -65,7 +61,7 @@ static u32 mpc52xx_can_get_clock(struct platform_device *ofdev,
 	else
 		*mscan_clksrc = MSCAN_CLKSRC_XTAL;
 
-	freq = mpc5xxx_get_bus_frequency(&ofdev->dev);
+	freq = mpc5xxx_get_bus_frequency(ofdev->dev.of_node);
 	if (!freq)
 		return 0;
 
@@ -292,13 +288,15 @@ static int mpc5xxx_can_probe(struct platform_device *ofdev)
 	int irq, mscan_clksrc = 0;
 	int err = -ENOMEM;
 
-	data = device_get_match_data(&ofdev->dev);
+	data = of_device_get_match_data(&ofdev->dev);
 	if (!data)
 		return -EINVAL;
 
 	base = of_iomap(np, 0);
-	if (!base)
-		return dev_err_probe(&ofdev->dev, err, "couldn't ioremap\n");
+	if (!base) {
+		dev_err(&ofdev->dev, "couldn't ioremap\n");
+		return err;
+	}
 
 	irq = irq_of_parse_and_map(np, 0);
 	if (!irq) {
@@ -324,14 +322,14 @@ static int mpc5xxx_can_probe(struct platform_device *ofdev)
 					       &mscan_clksrc);
 	if (!priv->can.clock.freq) {
 		dev_err(&ofdev->dev, "couldn't get MSCAN clock properties\n");
-		goto exit_put_clock;
+		goto exit_free_mscan;
 	}
 
 	err = register_mscandev(dev, mscan_clksrc);
 	if (err) {
 		dev_err(&ofdev->dev, "registering %s failed (err=%d)\n",
 			DRV_NAME, err);
-		goto exit_put_clock;
+		goto exit_free_mscan;
 	}
 
 	dev_info(&ofdev->dev, "MSCAN at 0x%p, irq %d, clock %d Hz\n",
@@ -339,9 +337,7 @@ static int mpc5xxx_can_probe(struct platform_device *ofdev)
 
 	return 0;
 
-exit_put_clock:
-	if (data->put_clock)
-		data->put_clock(ofdev);
+exit_free_mscan:
 	free_candev(dev);
 exit_dispose_irq:
 	irq_dispose_mapping(irq);
@@ -351,13 +347,15 @@ exit_unmap_mem:
 	return err;
 }
 
-static void mpc5xxx_can_remove(struct platform_device *ofdev)
+static int mpc5xxx_can_remove(struct platform_device *ofdev)
 {
+	const struct of_device_id *match;
 	const struct mpc5xxx_can_data *data;
 	struct net_device *dev = platform_get_drvdata(ofdev);
 	struct mscan_priv *priv = netdev_priv(dev);
 
-	data = device_get_match_data(&ofdev->dev);
+	match = of_match_device(mpc5xxx_can_table, &ofdev->dev);
+	data = match ? match->data : NULL;
 
 	unregister_mscandev(dev);
 	if (data && data->put_clock)
@@ -365,6 +363,8 @@ static void mpc5xxx_can_remove(struct platform_device *ofdev)
 	iounmap(priv->reg_base);
 	irq_dispose_mapping(dev->irq);
 	free_candev(dev);
+
+	return 0;
 }
 
 #ifdef CONFIG_PM
@@ -435,7 +435,7 @@ static struct platform_driver mpc5xxx_can_driver = {
 		.of_match_table = mpc5xxx_can_table,
 	},
 	.probe = mpc5xxx_can_probe,
-	.remove_new = mpc5xxx_can_remove,
+	.remove = mpc5xxx_can_remove,
 #ifdef CONFIG_PM
 	.suspend = mpc5xxx_can_suspend,
 	.resume = mpc5xxx_can_resume,

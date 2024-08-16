@@ -7,7 +7,6 @@
 #include "common.h"
 #include "stmmac.h"
 #include "stmmac_ptp.h"
-#include "stmmac_est.h"
 
 static u32 stmmac_get_id(struct stmmac_priv *priv, u32 id_reg)
 {
@@ -88,19 +87,6 @@ static int stmmac_dwxlgmac_quirks(struct stmmac_priv *priv)
 	return 0;
 }
 
-int stmmac_reset(struct stmmac_priv *priv, void __iomem *ioaddr)
-{
-	struct plat_stmmacenet_data *plat = priv ? priv->plat : NULL;
-
-	if (!priv)
-		return -EINVAL;
-
-	if (plat && plat->fix_soc_reset)
-		return plat->fix_soc_reset(plat, ioaddr);
-
-	return stmmac_do_callback(priv, dma, reset, ioaddr);
-}
-
 static const struct stmmac_hwif_entry {
 	bool gmac;
 	bool gmac4;
@@ -115,7 +101,6 @@ static const struct stmmac_hwif_entry {
 	const void *mode;
 	const void *tc;
 	const void *mmc;
-	const void *est;
 	int (*setup)(struct stmmac_priv *priv);
 	int (*quirks)(struct stmmac_priv *priv);
 } stmmac_hw[] = {
@@ -164,7 +149,6 @@ static const struct stmmac_hwif_entry {
 		.regs = {
 			.ptp_off = PTP_GMAC4_OFFSET,
 			.mmc_off = MMC_GMAC4_OFFSET,
-			.est_off = EST_GMAC4_OFFSET,
 		},
 		.desc = &dwmac4_desc_ops,
 		.dma = &dwmac4_dma_ops,
@@ -173,7 +157,6 @@ static const struct stmmac_hwif_entry {
 		.mode = NULL,
 		.tc = &dwmac510_tc_ops,
 		.mmc = &dwmac_mmc_ops,
-		.est = &dwmac510_est_ops,
 		.setup = dwmac4_setup,
 		.quirks = stmmac_dwmac4_quirks,
 	}, {
@@ -184,7 +167,6 @@ static const struct stmmac_hwif_entry {
 		.regs = {
 			.ptp_off = PTP_GMAC4_OFFSET,
 			.mmc_off = MMC_GMAC4_OFFSET,
-			.est_off = EST_GMAC4_OFFSET,
 		},
 		.desc = &dwmac4_desc_ops,
 		.dma = &dwmac4_dma_ops,
@@ -193,7 +175,6 @@ static const struct stmmac_hwif_entry {
 		.mode = &dwmac4_ring_mode_ops,
 		.tc = &dwmac510_tc_ops,
 		.mmc = &dwmac_mmc_ops,
-		.est = &dwmac510_est_ops,
 		.setup = dwmac4_setup,
 		.quirks = NULL,
 	}, {
@@ -204,7 +185,6 @@ static const struct stmmac_hwif_entry {
 		.regs = {
 			.ptp_off = PTP_GMAC4_OFFSET,
 			.mmc_off = MMC_GMAC4_OFFSET,
-			.est_off = EST_GMAC4_OFFSET,
 		},
 		.desc = &dwmac4_desc_ops,
 		.dma = &dwmac410_dma_ops,
@@ -213,7 +193,6 @@ static const struct stmmac_hwif_entry {
 		.mode = &dwmac4_ring_mode_ops,
 		.tc = &dwmac510_tc_ops,
 		.mmc = &dwmac_mmc_ops,
-		.est = &dwmac510_est_ops,
 		.setup = dwmac4_setup,
 		.quirks = NULL,
 	}, {
@@ -224,7 +203,6 @@ static const struct stmmac_hwif_entry {
 		.regs = {
 			.ptp_off = PTP_GMAC4_OFFSET,
 			.mmc_off = MMC_GMAC4_OFFSET,
-			.est_off = EST_GMAC4_OFFSET,
 		},
 		.desc = &dwmac4_desc_ops,
 		.dma = &dwmac410_dma_ops,
@@ -233,7 +211,6 @@ static const struct stmmac_hwif_entry {
 		.mode = &dwmac4_ring_mode_ops,
 		.tc = &dwmac510_tc_ops,
 		.mmc = &dwmac_mmc_ops,
-		.est = &dwmac510_est_ops,
 		.setup = dwmac4_setup,
 		.quirks = NULL,
 	}, {
@@ -245,7 +222,6 @@ static const struct stmmac_hwif_entry {
 		.regs = {
 			.ptp_off = PTP_XGMAC_OFFSET,
 			.mmc_off = MMC_XGMAC_OFFSET,
-			.est_off = EST_XGMAC_OFFSET,
 		},
 		.desc = &dwxgmac210_desc_ops,
 		.dma = &dwxgmac210_dma_ops,
@@ -254,7 +230,6 @@ static const struct stmmac_hwif_entry {
 		.mode = NULL,
 		.tc = &dwmac510_tc_ops,
 		.mmc = &dwxgmac_mmc_ops,
-		.est = &dwmac510_est_ops,
 		.setup = dwxgmac2_setup,
 		.quirks = NULL,
 	}, {
@@ -266,7 +241,6 @@ static const struct stmmac_hwif_entry {
 		.regs = {
 			.ptp_off = PTP_XGMAC_OFFSET,
 			.mmc_off = MMC_XGMAC_OFFSET,
-			.est_off = EST_XGMAC_OFFSET,
 		},
 		.desc = &dwxgmac210_desc_ops,
 		.dma = &dwxgmac210_dma_ops,
@@ -275,7 +249,6 @@ static const struct stmmac_hwif_entry {
 		.mode = NULL,
 		.tc = &dwmac510_tc_ops,
 		.mmc = &dwxgmac_mmc_ops,
-		.est = &dwmac510_est_ops,
 		.setup = dwxlgmac2_setup,
 		.quirks = stmmac_dwxlgmac_quirks,
 	},
@@ -310,10 +283,6 @@ int stmmac_hwif_init(struct stmmac_priv *priv)
 		(needs_gmac4 ? PTP_GMAC4_OFFSET : PTP_GMAC3_X_OFFSET);
 	priv->mmcaddr = priv->ioaddr +
 		(needs_gmac4 ? MMC_GMAC4_OFFSET : MMC_GMAC3_X_OFFSET);
-	if (needs_gmac4)
-		priv->estaddr = priv->ioaddr + EST_GMAC4_OFFSET;
-	else if (needs_xgmac)
-		priv->estaddr = priv->ioaddr + EST_XGMAC_OFFSET;
 
 	/* Check for HW specific setup first */
 	if (priv->plat->setup) {
@@ -350,13 +319,10 @@ int stmmac_hwif_init(struct stmmac_priv *priv)
 		mac->mode = mac->mode ? : entry->mode;
 		mac->tc = mac->tc ? : entry->tc;
 		mac->mmc = mac->mmc ? : entry->mmc;
-		mac->est = mac->est ? : entry->est;
 
 		priv->hw = mac;
 		priv->ptpaddr = priv->ioaddr + entry->regs.ptp_off;
 		priv->mmcaddr = priv->ioaddr + entry->regs.mmc_off;
-		if (entry->est)
-			priv->estaddr = priv->ioaddr + entry->regs.est_off;
 
 		/* Entry found */
 		if (needs_setup) {

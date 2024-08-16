@@ -270,17 +270,13 @@ static int xfrm6_tunnel_err(struct sk_buff *skb, struct inet6_skb_parm *opt,
 	return 0;
 }
 
-static int xfrm6_tunnel_init_state(struct xfrm_state *x, struct netlink_ext_ack *extack)
+static int xfrm6_tunnel_init_state(struct xfrm_state *x)
 {
-	if (x->props.mode != XFRM_MODE_TUNNEL) {
-		NL_SET_ERR_MSG(extack, "IPv6 tunnel can only be used with tunnel mode");
+	if (x->props.mode != XFRM_MODE_TUNNEL)
 		return -EINVAL;
-	}
 
-	if (x->encap) {
-		NL_SET_ERR_MSG(extack, "IPv6 tunnel is not compatible with encapsulation");
+	if (x->encap)
 		return -EINVAL;
-	}
 
 	x->props.header_len = sizeof(struct ipv6hdr);
 
@@ -401,6 +397,5 @@ static void __exit xfrm6_tunnel_fini(void)
 
 module_init(xfrm6_tunnel_init);
 module_exit(xfrm6_tunnel_fini);
-MODULE_DESCRIPTION("IPv6 XFRM tunnel driver");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS_XFRM_TYPE(AF_INET6, XFRM_PROTO_IPV6);

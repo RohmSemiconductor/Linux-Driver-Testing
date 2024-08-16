@@ -11,14 +11,14 @@
 
 static u16 enetc_get_max_gcl_len(struct enetc_hw *hw)
 {
-	return enetc_rd(hw, ENETC_PTGCAPR) & ENETC_PTGCAPR_MAX_GCL_LEN_MASK;
+	return enetc_rd(hw, ENETC_QBV_PTGCAPR_OFFSET)
+		& ENETC_QBV_MAX_GCL_LEN_MASK;
 }
 
 void enetc_sched_speed_set(struct enetc_ndev_priv *priv, int speed)
 {
-	struct enetc_hw *hw = &priv->si->hw;
 	u32 old_speed = priv->speed;
-	u32 pspeed, tmp;
+	u32 pspeed;
 
 	if (speed == old_speed)
 		return;
@@ -39,33 +39,38 @@ void enetc_sched_speed_set(struct enetc_ndev_priv *priv, int speed)
 	}
 
 	priv->speed = speed;
-	tmp = enetc_port_rd(hw, ENETC_PMR);
-	enetc_port_wr(hw, ENETC_PMR, (tmp & ~ENETC_PMR_PSPEED_MASK) | pspeed);
+	enetc_port_wr(&priv->si->hw, ENETC_PMR,
+		      (enetc_port_rd(&priv->si->hw, ENETC_PMR)
+		      & (~ENETC_PMR_PSPEED_MASK))
+		      | pspeed);
 }
 
-static int enetc_setup_taprio(struct enetc_ndev_priv *priv,
+static int enetc_setup_taprio(struct net_device *ndev,
 			      struct tc_taprio_qopt_offload *admin_conf)
 {
-	struct enetc_hw *hw = &priv->si->hw;
+	struct enetc_ndev_priv *priv = netdev_priv(ndev);
 	struct enetc_cbd cbd = {.cmd = 0};
 	struct tgs_gcl_conf *gcl_config;
 	struct tgs_gcl_data *gcl_data;
-	dma_addr_t dma;
 	struct gce *gce;
+	dma_addr_t dma;
 	u16 data_size;
 	u16 gcl_len;
-	void *tmp;
 	u32 tge;
 	int err;
 	int i;
 
-	/* TSD and Qbv are mutually exclusive in hardware */
-	for (i = 0; i < priv->num_tx_rings; i++)
-		if (priv->tx_ring[i]->tsd_enable)
-			return -EBUSY;
-
-	if (admin_conf->num_entries > enetc_get_max_gcl_len(hw))
+	if (admin_conf->num_entries > enetc_get_max_gcl_len(&priv->si->hw))
 		return -EINVAL;
+	gcl_len = admin_conf->num_entries;
+
+	tge = enetc_rd(&priv->si->hw, ENETC_QBV_PTGCR_OFFSET);
+	if (!admin_conf->enable) {
+		enetc_wr(&priv->si->hw,
+			 ENETC_QBV_PTGCR_OFFSET,
+			 tge & (~ENETC_QBV_TGE));
+		return 0;
+	}
 
 	if (admin_conf->cycle_time > U32_MAX ||
 	    admin_conf->cycle_time_extension > U32_MAX)
@@ -75,12 +80,10 @@ static int enetc_setup_taprio(struct enetc_ndev_priv *priv,
 	 * control BD descriptor.
 	 */
 	gcl_config = &cbd.gcl_conf;
-	gcl_len = admin_conf->num_entries;
 
 	data_size = struct_size(gcl_data, entry, gcl_len);
-	tmp = enetc_cbd_alloc_data_mem(priv->si, &cbd, data_size,
-				       &dma, (void *)&gcl_data);
-	if (!tmp)
+	gcl_data = kzalloc(data_size, __GFP_DMA | GFP_KERNEL);
+	if (!gcl_data)
 		return -ENOMEM;
 
 	gce = (struct gce *)(gcl_data + 1);
@@ -104,119 +107,61 @@ static int enetc_setup_taprio(struct enetc_ndev_priv *priv,
 		temp_gce->period = cpu_to_le32(temp_entry->interval);
 	}
 
+	cbd.length = cpu_to_le16(data_size);
 	cbd.status_flags = 0;
 
+	dma = dma_map_single(&priv->si->pdev->dev, gcl_data,
+			     data_size, DMA_TO_DEVICE);
+	if (dma_mapping_error(&priv->si->pdev->dev, dma)) {
+		netdev_err(priv->si->ndev, "DMA mapping failed!\n");
+		kfree(gcl_data);
+		return -ENOMEM;
+	}
+
+	cbd.addr[0] = cpu_to_le32(lower_32_bits(dma));
+	cbd.addr[1] = cpu_to_le32(upper_32_bits(dma));
 	cbd.cls = BDCR_CMD_PORT_GCL;
 	cbd.status_flags = 0;
 
-	tge = enetc_rd(hw, ENETC_PTGCR);
-	enetc_wr(hw, ENETC_PTGCR, tge | ENETC_PTGCR_TGE);
+	enetc_wr(&priv->si->hw, ENETC_QBV_PTGCR_OFFSET,
+		 tge | ENETC_QBV_TGE);
 
 	err = enetc_send_cmd(priv->si, &cbd);
 	if (err)
-		enetc_wr(hw, ENETC_PTGCR, tge & ~ENETC_PTGCR_TGE);
+		enetc_wr(&priv->si->hw,
+			 ENETC_QBV_PTGCR_OFFSET,
+			 tge & (~ENETC_QBV_TGE));
 
-	enetc_cbd_free_data_mem(priv->si, data_size, tmp, &dma);
-
-	if (err)
-		return err;
-
-	enetc_set_ptcmsdur(hw, admin_conf->max_sdu);
-	priv->active_offloads |= ENETC_F_QBV;
-
-	return 0;
-}
-
-static void enetc_reset_taprio_stats(struct enetc_ndev_priv *priv)
-{
-	int i;
-
-	for (i = 0; i < priv->num_tx_rings; i++)
-		priv->tx_ring[i]->stats.win_drop = 0;
-}
-
-static void enetc_reset_taprio(struct enetc_ndev_priv *priv)
-{
-	struct enetc_hw *hw = &priv->si->hw;
-	u32 val;
-
-	val = enetc_rd(hw, ENETC_PTGCR);
-	enetc_wr(hw, ENETC_PTGCR, val & ~ENETC_PTGCR_TGE);
-	enetc_reset_ptcmsdur(hw);
-
-	priv->active_offloads &= ~ENETC_F_QBV;
-}
-
-static void enetc_taprio_destroy(struct net_device *ndev)
-{
-	struct enetc_ndev_priv *priv = netdev_priv(ndev);
-
-	enetc_reset_taprio(priv);
-	enetc_reset_tc_mqprio(ndev);
-	enetc_reset_taprio_stats(priv);
-}
-
-static void enetc_taprio_stats(struct net_device *ndev,
-			       struct tc_taprio_qopt_stats *stats)
-{
-	struct enetc_ndev_priv *priv = netdev_priv(ndev);
-	u64 window_drops = 0;
-	int i;
-
-	for (i = 0; i < priv->num_tx_rings; i++)
-		window_drops += priv->tx_ring[i]->stats.win_drop;
-
-	stats->window_drops = window_drops;
-}
-
-static void enetc_taprio_queue_stats(struct net_device *ndev,
-				     struct tc_taprio_qopt_queue_stats *queue_stats)
-{
-	struct tc_taprio_qopt_stats *stats = &queue_stats->stats;
-	struct enetc_ndev_priv *priv = netdev_priv(ndev);
-	int queue = queue_stats->queue;
-
-	stats->window_drops = priv->tx_ring[queue]->stats.win_drop;
-}
-
-static int enetc_taprio_replace(struct net_device *ndev,
-				struct tc_taprio_qopt_offload *offload)
-{
-	struct enetc_ndev_priv *priv = netdev_priv(ndev);
-	int err;
-
-	err = enetc_setup_tc_mqprio(ndev, &offload->mqprio);
-	if (err)
-		return err;
-
-	err = enetc_setup_taprio(priv, offload);
-	if (err)
-		enetc_reset_tc_mqprio(ndev);
+	dma_unmap_single(&priv->si->pdev->dev, dma, data_size, DMA_TO_DEVICE);
+	kfree(gcl_data);
 
 	return err;
 }
 
 int enetc_setup_tc_taprio(struct net_device *ndev, void *type_data)
 {
-	struct tc_taprio_qopt_offload *offload = type_data;
-	int err = 0;
+	struct tc_taprio_qopt_offload *taprio = type_data;
+	struct enetc_ndev_priv *priv = netdev_priv(ndev);
+	int err;
+	int i;
 
-	switch (offload->cmd) {
-	case TAPRIO_CMD_REPLACE:
-		err = enetc_taprio_replace(ndev, offload);
-		break;
-	case TAPRIO_CMD_DESTROY:
-		enetc_taprio_destroy(ndev);
-		break;
-	case TAPRIO_CMD_STATS:
-		enetc_taprio_stats(ndev, &offload->stats);
-		break;
-	case TAPRIO_CMD_QUEUE_STATS:
-		enetc_taprio_queue_stats(ndev, &offload->queue_stats);
-		break;
-	default:
-		err = -EOPNOTSUPP;
-	}
+	/* TSD and Qbv are mutually exclusive in hardware */
+	for (i = 0; i < priv->num_tx_rings; i++)
+		if (priv->tx_ring[i]->tsd_enable)
+			return -EBUSY;
+
+	for (i = 0; i < priv->num_tx_rings; i++)
+		enetc_set_bdr_prio(&priv->si->hw,
+				   priv->tx_ring[i]->index,
+				   taprio->enable ? i : 0);
+
+	err = enetc_setup_taprio(ndev, taprio);
+
+	if (err)
+		for (i = 0; i < priv->num_tx_rings; i++)
+			enetc_set_bdr_prio(&priv->si->hw,
+					   priv->tx_ring[i]->index,
+					   taprio->enable ? 0 : i);
 
 	return err;
 }
@@ -237,7 +182,7 @@ int enetc_setup_tc_cbs(struct net_device *ndev, void *type_data)
 	struct tc_cbs_qopt_offload *cbs = type_data;
 	u32 port_transmit_rate = priv->speed;
 	u8 tc_nums = netdev_get_num_tc(ndev);
-	struct enetc_hw *hw = &priv->si->hw;
+	struct enetc_si *si = priv->si;
 	u32 hi_credit_bit, hi_credit_reg;
 	u32 max_interference_size;
 	u32 port_frame_max_size;
@@ -246,8 +191,8 @@ int enetc_setup_tc_cbs(struct net_device *ndev, void *type_data)
 	int bw_sum = 0;
 	u8 bw;
 
-	prio_top = tc_nums - 1;
-	prio_next = tc_nums - 2;
+	prio_top = netdev_get_prio_tc_map(ndev, tc_nums - 1);
+	prio_next = netdev_get_prio_tc_map(ndev, tc_nums - 2);
 
 	/* Support highest prio and second prio tc in cbs mode */
 	if (tc != prio_top && tc != prio_next)
@@ -258,15 +203,15 @@ int enetc_setup_tc_cbs(struct net_device *ndev, void *type_data)
 		 * lower than this TC have been disabled.
 		 */
 		if (tc == prio_top &&
-		    enetc_get_cbs_enable(hw, prio_next)) {
+		    enetc_get_cbs_enable(&si->hw, prio_next)) {
 			dev_err(&ndev->dev,
 				"Disable TC%d before disable TC%d\n",
 				prio_next, tc);
 			return -EINVAL;
 		}
 
-		enetc_port_wr(hw, ENETC_PTCCBSR1(tc), 0);
-		enetc_port_wr(hw, ENETC_PTCCBSR0(tc), 0);
+		enetc_port_wr(&si->hw, ENETC_PTCCBSR1(tc), 0);
+		enetc_port_wr(&si->hw, ENETC_PTCCBSR0(tc), 0);
 
 		return 0;
 	}
@@ -283,13 +228,13 @@ int enetc_setup_tc_cbs(struct net_device *ndev, void *type_data)
 	 * higher than this TC have been enabled.
 	 */
 	if (tc == prio_next) {
-		if (!enetc_get_cbs_enable(hw, prio_top)) {
+		if (!enetc_get_cbs_enable(&si->hw, prio_top)) {
 			dev_err(&ndev->dev,
 				"Enable TC%d first before enable TC%d\n",
 				prio_top, prio_next);
 			return -EINVAL;
 		}
-		bw_sum += enetc_get_cbs_bw(hw, prio_top);
+		bw_sum += enetc_get_cbs_bw(&si->hw, prio_top);
 	}
 
 	if (bw_sum + bw >= 100) {
@@ -298,7 +243,7 @@ int enetc_setup_tc_cbs(struct net_device *ndev, void *type_data)
 		return -EINVAL;
 	}
 
-	enetc_port_rd(hw, ENETC_PTCMSDUR(tc));
+	enetc_port_rd(&si->hw, ENETC_PTCMSDUR(tc));
 
 	/* For top prio TC, the max_interfrence_size is maxSizedFrame.
 	 *
@@ -318,8 +263,8 @@ int enetc_setup_tc_cbs(struct net_device *ndev, void *type_data)
 		u32 m0, ma, r0, ra;
 
 		m0 = port_frame_max_size * 8;
-		ma = enetc_port_rd(hw, ENETC_PTCMSDUR(prio_top)) * 8;
-		ra = enetc_get_cbs_bw(hw, prio_top) *
+		ma = enetc_port_rd(&si->hw, ENETC_PTCMSDUR(prio_top)) * 8;
+		ra = enetc_get_cbs_bw(&si->hw, prio_top) *
 			port_transmit_rate * 10000ULL;
 		r0 = port_transmit_rate * 1000000ULL;
 		max_interference_size = m0 + ma +
@@ -339,10 +284,10 @@ int enetc_setup_tc_cbs(struct net_device *ndev, void *type_data)
 	hi_credit_reg = (u32)div_u64((ENETC_CLK * 100ULL) * hi_credit_bit,
 				     port_transmit_rate * 1000000ULL);
 
-	enetc_port_wr(hw, ENETC_PTCCBSR1(tc), hi_credit_reg);
+	enetc_port_wr(&si->hw, ENETC_PTCCBSR1(tc), hi_credit_reg);
 
 	/* Set bw register and enable this traffic class */
-	enetc_port_wr(hw, ENETC_PTCCBSR0(tc), bw | ENETC_CBSE);
+	enetc_port_wr(&si->hw, ENETC_PTCCBSR0(tc), bw | ENETC_CBSE);
 
 	return 0;
 }
@@ -352,7 +297,6 @@ int enetc_setup_tc_txtime(struct net_device *ndev, void *type_data)
 	struct enetc_ndev_priv *priv = netdev_priv(ndev);
 	struct tc_etf_qopt_offload *qopt = type_data;
 	u8 tc_nums = netdev_get_num_tc(ndev);
-	struct enetc_hw *hw = &priv->si->hw;
 	int tc;
 
 	if (!tc_nums)
@@ -363,12 +307,17 @@ int enetc_setup_tc_txtime(struct net_device *ndev, void *type_data)
 	if (tc < 0 || tc >= priv->num_tx_rings)
 		return -EINVAL;
 
+	/* Do not support TXSTART and TX CSUM offload simutaniously */
+	if (ndev->features & NETIF_F_CSUM_MASK)
+		return -EBUSY;
+
 	/* TSD and Qbv are mutually exclusive in hardware */
-	if (enetc_rd(hw, ENETC_PTGCR) & ENETC_PTGCR_TGE)
+	if (enetc_rd(&priv->si->hw, ENETC_QBV_PTGCR_OFFSET) & ENETC_QBV_TGE)
 		return -EBUSY;
 
 	priv->tx_ring[tc]->tsd_enable = qopt->enable;
-	enetc_port_wr(hw, ENETC_PTCTSDR(tc), qopt->enable ? ENETC_TSDE : 0);
+	enetc_port_wr(&priv->si->hw, ENETC_PTCTSDR(tc),
+		      qopt->enable ? ENETC_TSDE : 0);
 
 	return 0;
 }
@@ -443,7 +392,7 @@ struct enetc_psfp_gate {
 	u32 num_entries;
 	refcount_t refcount;
 	struct hlist_node node;
-	struct action_gate_entry entries[] __counted_by(num_entries);
+	struct action_gate_entry entries[];
 };
 
 /* Only enable the green color frame now
@@ -483,13 +432,13 @@ struct enetc_psfp {
 static struct actions_fwd enetc_act_fwd[] = {
 	{
 		BIT(FLOW_ACTION_GATE),
-		BIT_ULL(FLOW_DISSECTOR_KEY_ETH_ADDRS),
+		BIT(FLOW_DISSECTOR_KEY_ETH_ADDRS),
 		FILTER_ACTION_TYPE_PSFP
 	},
 	{
 		BIT(FLOW_ACTION_POLICE) |
 		BIT(FLOW_ACTION_GATE),
-		BIT_ULL(FLOW_DISSECTOR_KEY_ETH_ADDRS),
+		BIT(FLOW_DISSECTOR_KEY_ETH_ADDRS),
 		FILTER_ACTION_TYPE_PSFP
 	},
 	/* example for ACL actions */
@@ -501,7 +450,6 @@ static struct actions_fwd enetc_act_fwd[] = {
 };
 
 static struct enetc_psfp epsfp = {
-	.dev_bitmap = 0,
 	.psfp_sfi_bitmap = NULL,
 };
 
@@ -515,9 +463,8 @@ static int enetc_streamid_hw_set(struct enetc_ndev_priv *priv,
 	struct enetc_cbd cbd = {.cmd = 0};
 	struct streamid_data *si_data;
 	struct streamid_conf *si_conf;
-	dma_addr_t dma;
 	u16 data_size;
-	void *tmp;
+	dma_addr_t dma;
 	int port;
 	int err;
 
@@ -538,11 +485,19 @@ static int enetc_streamid_hw_set(struct enetc_ndev_priv *priv,
 	cbd.status_flags = 0;
 
 	data_size = sizeof(struct streamid_data);
-	tmp = enetc_cbd_alloc_data_mem(priv->si, &cbd, data_size,
-				       &dma, (void *)&si_data);
-	if (!tmp)
-		return -ENOMEM;
+	si_data = kzalloc(data_size, __GFP_DMA | GFP_KERNEL);
+	cbd.length = cpu_to_le16(data_size);
 
+	dma = dma_map_single(&priv->si->pdev->dev, si_data,
+			     data_size, DMA_FROM_DEVICE);
+	if (dma_mapping_error(&priv->si->pdev->dev, dma)) {
+		netdev_err(priv->si->ndev, "DMA mapping failed!\n");
+		kfree(si_data);
+		return -ENOMEM;
+	}
+
+	cbd.addr[0] = cpu_to_le32(lower_32_bits(dma));
+	cbd.addr[1] = cpu_to_le32(upper_32_bits(dma));
 	eth_broadcast_addr(si_data->dmac);
 	si_data->vid_vidm_tg = (ENETC_CBDR_SID_VID_MASK
 			       + ((0x3 << 14) | ENETC_CBDR_SID_VIDM));
@@ -557,12 +512,19 @@ static int enetc_streamid_hw_set(struct enetc_ndev_priv *priv,
 
 	err = enetc_send_cmd(priv->si, &cbd);
 	if (err)
-		goto out;
+		return -EINVAL;
 
-	if (!enable)
-		goto out;
+	if (!enable) {
+		kfree(si_data);
+		return 0;
+	}
 
 	/* Enable the entry overwrite again incase space flushed by hardware */
+	memset(&cbd, 0, sizeof(cbd));
+
+	cbd.index = cpu_to_le16((u16)sid->index);
+	cbd.cmd = 0;
+	cbd.cls = BDCR_CMD_STREAM_IDENTIFY;
 	cbd.status_flags = 0;
 
 	si_conf->en = 0x80;
@@ -574,6 +536,11 @@ static int enetc_streamid_hw_set(struct enetc_ndev_priv *priv,
 	si_conf->oui[0] = 0xC2;
 
 	memset(si_data, 0, data_size);
+
+	cbd.length = cpu_to_le16(data_size);
+
+	cbd.addr[0] = cpu_to_le32(lower_32_bits(dma));
+	cbd.addr[1] = cpu_to_le32(upper_32_bits(dma));
 
 	/* VIDM default to be 1.
 	 * VID Match. If set (b1) then the VID must match, otherwise
@@ -593,8 +560,7 @@ static int enetc_streamid_hw_set(struct enetc_ndev_priv *priv,
 	}
 
 	err = enetc_send_cmd(priv->si, &cbd);
-out:
-	enetc_cbd_free_data_mem(priv->si, data_size, tmp, &dma);
+	kfree(si_data);
 
 	return err;
 }
@@ -665,7 +631,6 @@ static int enetc_streamcounter_hw_get(struct enetc_ndev_priv *priv,
 	struct sfi_counter_data *data_buf;
 	dma_addr_t dma;
 	u16 data_size;
-	void *tmp;
 	int err;
 
 	cbd.index = cpu_to_le16((u16)index);
@@ -674,11 +639,21 @@ static int enetc_streamcounter_hw_get(struct enetc_ndev_priv *priv,
 	cbd.status_flags = 0;
 
 	data_size = sizeof(struct sfi_counter_data);
-
-	tmp = enetc_cbd_alloc_data_mem(priv->si, &cbd, data_size,
-				       &dma, (void *)&data_buf);
-	if (!tmp)
+	data_buf = kzalloc(data_size, __GFP_DMA | GFP_KERNEL);
+	if (!data_buf)
 		return -ENOMEM;
+
+	dma = dma_map_single(&priv->si->pdev->dev, data_buf,
+			     data_size, DMA_FROM_DEVICE);
+	if (dma_mapping_error(&priv->si->pdev->dev, dma)) {
+		netdev_err(priv->si->ndev, "DMA mapping failed!\n");
+		err = -ENOMEM;
+		goto exit;
+	}
+	cbd.addr[0] = cpu_to_le32(lower_32_bits(dma));
+	cbd.addr[1] = cpu_to_le32(upper_32_bits(dma));
+
+	cbd.length = cpu_to_le16(data_size);
 
 	err = enetc_send_cmd(priv->si, &cbd);
 	if (err)
@@ -705,8 +680,7 @@ static int enetc_streamcounter_hw_get(struct enetc_ndev_priv *priv,
 				data_buf->flow_meter_dropl;
 
 exit:
-	enetc_cbd_free_data_mem(priv->si, data_size, tmp, &dma);
-
+	kfree(data_buf);
 	return err;
 }
 
@@ -748,7 +722,6 @@ static int enetc_streamgate_hw_set(struct enetc_ndev_priv *priv,
 	dma_addr_t dma;
 	u16 data_size;
 	int err, i;
-	void *tmp;
 	u64 now;
 
 	cbd.index = cpu_to_le16(sgi->index);
@@ -795,10 +768,24 @@ static int enetc_streamgate_hw_set(struct enetc_ndev_priv *priv,
 	sgcl_config->acl_len = (sgi->num_entries - 1) & 0x3;
 
 	data_size = struct_size(sgcl_data, sgcl, sgi->num_entries);
-	tmp = enetc_cbd_alloc_data_mem(priv->si, &cbd, data_size,
-				       &dma, (void *)&sgcl_data);
-	if (!tmp)
+
+	sgcl_data = kzalloc(data_size, __GFP_DMA | GFP_KERNEL);
+	if (!sgcl_data)
 		return -ENOMEM;
+
+	cbd.length = cpu_to_le16(data_size);
+
+	dma = dma_map_single(&priv->si->pdev->dev,
+			     sgcl_data, data_size,
+			     DMA_FROM_DEVICE);
+	if (dma_mapping_error(&priv->si->pdev->dev, dma)) {
+		netdev_err(priv->si->ndev, "DMA mapping failed!\n");
+		kfree(sgcl_data);
+		return -ENOMEM;
+	}
+
+	cbd.addr[0] = cpu_to_le32(lower_32_bits(dma));
+	cbd.addr[1] = cpu_to_le32(upper_32_bits(dma));
 
 	sgce = &sgcl_data->sgcl[0];
 
@@ -853,7 +840,8 @@ static int enetc_streamgate_hw_set(struct enetc_ndev_priv *priv,
 	err = enetc_send_cmd(priv->si, &cbd);
 
 exit:
-	enetc_cbd_free_data_mem(priv->si, data_size, tmp, &dma);
+	kfree(sgcl_data);
+
 	return err;
 }
 
@@ -1069,8 +1057,8 @@ revert_sid:
 	return err;
 }
 
-static struct actions_fwd *
-enetc_check_flow_actions(u64 acts, unsigned long long inputkeys)
+static struct actions_fwd *enetc_check_flow_actions(u64 acts,
+						    unsigned int inputkeys)
 {
 	int i;
 
@@ -1080,46 +1068,6 @@ enetc_check_flow_actions(u64 acts, unsigned long long inputkeys)
 			return &enetc_act_fwd[i];
 
 	return NULL;
-}
-
-static int enetc_psfp_policer_validate(const struct flow_action *action,
-				       const struct flow_action_entry *act,
-				       struct netlink_ext_ack *extack)
-{
-	if (act->police.exceed.act_id != FLOW_ACTION_DROP) {
-		NL_SET_ERR_MSG_MOD(extack,
-				   "Offload not supported when exceed action is not drop");
-		return -EOPNOTSUPP;
-	}
-
-	if (act->police.notexceed.act_id != FLOW_ACTION_PIPE &&
-	    act->police.notexceed.act_id != FLOW_ACTION_ACCEPT) {
-		NL_SET_ERR_MSG_MOD(extack,
-				   "Offload not supported when conform action is not pipe or ok");
-		return -EOPNOTSUPP;
-	}
-
-	if (act->police.notexceed.act_id == FLOW_ACTION_ACCEPT &&
-	    !flow_action_is_last_entry(action, act)) {
-		NL_SET_ERR_MSG_MOD(extack,
-				   "Offload not supported when conform action is ok, but action is not last");
-		return -EOPNOTSUPP;
-	}
-
-	if (act->police.peakrate_bytes_ps ||
-	    act->police.avrate || act->police.overhead) {
-		NL_SET_ERR_MSG_MOD(extack,
-				   "Offload not supported when peakrate/avrate/overhead is configured");
-		return -EOPNOTSUPP;
-	}
-
-	if (act->police.rate_pkt_ps) {
-		NL_SET_ERR_MSG_MOD(extack,
-				   "QoS offload not support packets per second");
-		return -EOPNOTSUPP;
-	}
-
-	return 0;
 }
 
 static int enetc_psfp_parse_clsflower(struct enetc_ndev_priv *priv,
@@ -1230,7 +1178,7 @@ static int enetc_psfp_parse_clsflower(struct enetc_ndev_priv *priv,
 	}
 
 	/* parsing gate action */
-	if (entryg->hw_index >= priv->psfp_cap.max_psfp_gate) {
+	if (entryg->gate.index >= priv->psfp_cap.max_psfp_gate) {
 		NL_SET_ERR_MSG_MOD(extack, "No Stream Gate resource!");
 		err = -ENOSPC;
 		goto free_filter;
@@ -1250,7 +1198,7 @@ static int enetc_psfp_parse_clsflower(struct enetc_ndev_priv *priv,
 	}
 
 	refcount_set(&sgi->refcount, 1);
-	sgi->index = entryg->hw_index;
+	sgi->index = entryg->gate.index;
 	sgi->init_ipv = entryg->gate.prio;
 	sgi->basetime = entryg->gate.basetime;
 	sgi->cycletime = entryg->gate.cycletime;
@@ -1278,10 +1226,11 @@ static int enetc_psfp_parse_clsflower(struct enetc_ndev_priv *priv,
 
 	/* Flow meter and max frame size */
 	if (entryp) {
-		err = enetc_psfp_policer_validate(&rule->action, entryp, extack);
-		if (err)
+		if (entryp->police.rate_pkt_ps) {
+			NL_SET_ERR_MSG_MOD(extack, "QoS offload not support packets per second");
+			err = -EOPNOTSUPP;
 			goto free_sfi;
-
+		}
 		if (entryp->police.burst) {
 			fmi = kzalloc(sizeof(*fmi), GFP_KERNEL);
 			if (!fmi) {
@@ -1291,7 +1240,7 @@ static int enetc_psfp_parse_clsflower(struct enetc_ndev_priv *priv,
 			refcount_set(&fmi->refcount, 1);
 			fmi->cir = entryp->police.rate_bytes_ps;
 			fmi->cbs = entryp->police.burst;
-			fmi->index = entryp->hw_index;
+			fmi->index = entryp->police.index;
 			filter->flags |= ENETC_PSFP_FLAGS_FMI;
 			filter->fmi_index = fmi->index;
 			sfi->meter_id = fmi->index;
@@ -1312,7 +1261,7 @@ static int enetc_psfp_parse_clsflower(struct enetc_ndev_priv *priv,
 		int index;
 
 		index = enetc_get_free_index(priv);
-		if (index < 0) {
+		if (sfi->handle < 0) {
 			NL_SET_ERR_MSG_MOD(extack, "No Stream Filter resource!");
 			err = -ENOSPC;
 			goto free_fmi;
@@ -1576,29 +1525,6 @@ int enetc_setup_tc_block_cb(enum tc_setup_type type, void *type_data,
 	}
 }
 
-int enetc_set_psfp(struct net_device *ndev, bool en)
-{
-	struct enetc_ndev_priv *priv = netdev_priv(ndev);
-	int err;
-
-	if (en) {
-		err = enetc_psfp_enable(priv);
-		if (err)
-			return err;
-
-		priv->active_offloads |= ENETC_F_QCI;
-		return 0;
-	}
-
-	err = enetc_psfp_disable(priv);
-	if (err)
-		return err;
-
-	priv->active_offloads &= ~ENETC_F_QCI;
-
-	return 0;
-}
-
 int enetc_psfp_init(struct enetc_ndev_priv *priv)
 {
 	if (epsfp.psfp_sfi_bitmap)
@@ -1659,31 +1585,4 @@ int enetc_setup_tc_psfp(struct net_device *ndev, void *type_data)
 	}
 
 	return 0;
-}
-
-int enetc_qos_query_caps(struct net_device *ndev, void *type_data)
-{
-	struct enetc_ndev_priv *priv = netdev_priv(ndev);
-	struct tc_query_caps_base *base = type_data;
-	struct enetc_si *si = priv->si;
-
-	switch (base->type) {
-	case TC_SETUP_QDISC_MQPRIO: {
-		struct tc_mqprio_caps *caps = base->caps;
-
-		caps->validate_queue_counts = true;
-
-		return 0;
-	}
-	case TC_SETUP_QDISC_TAPRIO: {
-		struct tc_taprio_caps *caps = base->caps;
-
-		if (si->hw_features & ENETC_SI_F_QBV)
-			caps->supports_queue_max_sdu = true;
-
-		return 0;
-	}
-	default:
-		return -EOPNOTSUPP;
-	}
 }

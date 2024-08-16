@@ -24,10 +24,6 @@
 #include <asm/mmzone.h>
 #include <asm/unroll.h>
 
-extern void r5k_sc_init(void);
-extern void rm7k_sc_init(void);
-extern int mips_sc_init(void);
-
 extern void (*r4k_blast_dcache)(void);
 extern void (*r4k_blast_icache)(void);
 
@@ -123,7 +119,7 @@ static inline void flush_scache_line(unsigned long addr)
 	"	j	2b			\n"		\
 	"	.previous			\n"		\
 	"	.section __ex_table,\"a\"	\n"		\
-	"	"STR(PTR_WD)" 1b, 3b		\n"		\
+	"	"STR(PTR)" 1b, 3b		\n"		\
 	"	.previous"					\
 	: "+r" (__err)						\
 	: "i" (op), "r" (addr), "i" (-EFAULT));			\
@@ -146,7 +142,7 @@ static inline void flush_scache_line(unsigned long addr)
 	"	j	2b			\n"		\
 	"	.previous			\n"		\
 	"	.section __ex_table,\"a\"	\n"		\
-	"	"STR(PTR_WD)" 1b, 3b		\n"		\
+	"	"STR(PTR)" 1b, 3b		\n"		\
 	"	.previous"					\
 	: "+r" (__err)						\
 	: "i" (op), "r" (addr), "i" (-EFAULT));			\

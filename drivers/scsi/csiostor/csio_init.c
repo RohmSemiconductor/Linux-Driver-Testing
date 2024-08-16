@@ -38,6 +38,7 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/pci.h>
+#include <linux/aer.h>
 #include <linux/mm.h>
 #include <linux/notifier.h>
 #include <linux/kdebug.h>
@@ -521,8 +522,7 @@ static struct csio_hw *csio_hw_alloc(struct pci_dev *pdev)
 		goto err;
 
 	hw->pdev = pdev;
-	strscpy(hw->drv_version, CSIO_DRV_VERSION,
-		sizeof(hw->drv_version));
+	strncpy(hw->drv_version, CSIO_DRV_VERSION, 32);
 
 	/* memory pool/DMA pool allocation */
 	if (csio_resource_alloc(hw))
@@ -1254,4 +1254,3 @@ MODULE_DEVICE_TABLE(pci, csio_pci_tbl);
 MODULE_VERSION(CSIO_DRV_VERSION);
 MODULE_FIRMWARE(FW_FNAME_T5);
 MODULE_FIRMWARE(FW_FNAME_T6);
-MODULE_SOFTDEP("pre: cxgb4");

@@ -18,12 +18,9 @@ static int set_dvs_level(const struct regulator_desc *desc,
 
 	ret = of_property_read_u32(np, prop, &uv);
 	if (ret) {
-		if (ret != -EINVAL){
-			pr_err("set_dvs_level_ERROR0, %d\n", ret);
+		if (ret != -EINVAL)
 			return ret;
-			}
 		return 0;
-		
 	}
 	/* If voltage is set to 0 => disable */
 	if (uv == 0) {
@@ -34,16 +31,13 @@ static int set_dvs_level(const struct regulator_desc *desc,
 	if (!mask) {
 		if (omask)
 			return regmap_update_bits(regmap, oreg, omask, omask);
-		
-		pr_err("set_dvs_level_ERROR1\n");
+
 		return -EINVAL;
 	}
 	for (i = 0; i < desc->n_voltages; i++) {
 		/* NOTE to next hacker - Does not support pickable ranges */
-		if (desc->linear_range_selectors_bitfield) {
-			pr_err("set_dvs_level_ERROR2\n");
+		if (desc->linear_range_selectors)
 			return -EINVAL;
-		}
 		if (desc->n_linear_ranges)
 			ret = regulator_desc_list_voltage_linear_range(desc, i);
 		else
@@ -108,7 +102,6 @@ int rohm_regulator_set_dvs_levels(const struct rohm_dvs_config *dvs,
 				omask = dvs->snvs_on_mask;
 				break;
 			default:
-				pr_err("joku_error\n");
 				return -EINVAL;
 			}
 			ret = set_dvs_level(desc, np, regmap, prop, reg, mask,
@@ -118,23 +111,6 @@ int rohm_regulator_set_dvs_levels(const struct rohm_dvs_config *dvs,
 	return ret;
 }
 EXPORT_SYMBOL(rohm_regulator_set_dvs_levels);
-
-/*
- * Few ROHM PMIC ICs have constrains on voltage changing:
- * BD71837 - only buck 1-4 voltages can be changed when they are enabled.
- * Other bucks and all LDOs must be disabled when voltage is changed.
- * BD96801 - LDO voltage levels can be changed when LDOs are disabled.
- */
-int rohm_regulator_set_voltage_sel_restricted(struct regulator_dev *rdev,
-					      unsigned int sel)
-{
-	if (rdev->desc->ops->is_enabled(rdev))
-		pr_err("set_voltage_sel_restricted_(ops->is_enabled)\n");
-		return -EBUSY;
-
-	return regulator_set_voltage_sel_regmap(rdev, sel);
-}
-EXPORT_SYMBOL_GPL(rohm_regulator_set_voltage_sel_restricted);
 
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Matti Vaittinen <matti.vaittinen@fi.rohmeurope.com>");

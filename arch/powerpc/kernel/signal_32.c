@@ -43,7 +43,7 @@
 #include <asm/tm.h>
 #include <asm/asm-prototypes.h>
 #ifdef CONFIG_PPC64
-#include <asm/syscalls_32.h>
+#include "ppc32.h"
 #include <asm/unistd.h>
 #else
 #include <asm/ucontext.h>
@@ -233,12 +233,6 @@ struct rt_sigframe {
 	int			abigap[56];
 };
 
-unsigned long get_min_sigframe_size_32(void)
-{
-	return max(sizeof(struct rt_sigframe) + __SIGNAL_FRAMESIZE + 16,
-		   sizeof(struct sigframe) + __SIGNAL_FRAMESIZE);
-}
-
 /*
  * Save the current user registers on the user stack.
  * We only save the altivec/spe registers if the process has used
@@ -264,9 +258,8 @@ static void prepare_save_user_regs(int ctx_has_vsx_region)
 #endif
 }
 
-static __always_inline int
-__unsafe_save_user_regs(struct pt_regs *regs, struct mcontext __user *frame,
-			struct mcontext __user *tm_frame, int ctx_has_vsx_region)
+static int __unsafe_save_user_regs(struct pt_regs *regs, struct mcontext __user *frame,
+				   struct mcontext __user *tm_frame, int ctx_has_vsx_region)
 {
 	unsigned long msr = regs->msr;
 
@@ -365,9 +358,8 @@ static void prepare_save_tm_user_regs(void)
 		current->thread.ckvrsave = mfspr(SPRN_VRSAVE);
 }
 
-static __always_inline int
-save_tm_user_regs_unsafe(struct pt_regs *regs, struct mcontext __user *frame,
-			 struct mcontext __user *tm_frame, unsigned long msr)
+static int save_tm_user_regs_unsafe(struct pt_regs *regs, struct mcontext __user *frame,
+				    struct mcontext __user *tm_frame, unsigned long msr)
 {
 	/* Save both sets of general registers */
 	unsafe_save_general_regs(&current->thread.ckpt_regs, frame, failed);
@@ -446,9 +438,8 @@ failed:
 #else
 static void prepare_save_tm_user_regs(void) { }
 
-static __always_inline int
-save_tm_user_regs_unsafe(struct pt_regs *regs, struct mcontext __user *frame,
-			 struct mcontext __user *tm_frame, unsigned long msr)
+static int save_tm_user_regs_unsafe(struct pt_regs *regs, struct mcontext __user *frame,
+				    struct mcontext __user *tm_frame, unsigned long msr)
 {
 	return 0;
 }
@@ -536,20 +527,16 @@ static long restore_user_regs(struct pt_regs *regs,
 	regs_set_return_msr(regs, regs->msr & ~(MSR_FP | MSR_FE0 | MSR_FE1));
 
 #ifdef CONFIG_SPE
-	/*
-	 * Force the process to reload the spe registers from
-	 * current->thread when it next does spe instructions.
-	 * Since this is user ABI, we must enforce the sizing.
-	 */
-	BUILD_BUG_ON(sizeof(current->thread.spe) != ELF_NEVRREG * sizeof(u32));
+	/* force the process to reload the spe registers from
+	   current->thread when it next does spe instructions */
 	regs_set_return_msr(regs, regs->msr & ~MSR_SPE);
 	if (msr & MSR_SPE) {
 		/* restore spe registers from the stack */
-		unsafe_copy_from_user(&current->thread.spe, &sr->mc_vregs,
-				      sizeof(current->thread.spe), failed);
+		unsafe_copy_from_user(current->thread.evr, &sr->mc_vregs,
+				      ELF_NEVRREG * sizeof(u32), failed);
 		current->thread.used_spe = true;
 	} else if (current->thread.used_spe)
-		memset(&current->thread.spe, 0, sizeof(current->thread.spe));
+		memset(current->thread.evr, 0, ELF_NEVRREG * sizeof(u32));
 
 	/* Always get SPEFSCR back */
 	unsafe_get_user(current->thread.spefscr, (u32 __user *)&sr->mc_vregs + ELF_NEVRREG, failed);
@@ -1061,7 +1048,7 @@ SYSCALL_DEFINE3(swapcontext, struct ucontext __user *, old_ctx,
 	if (new_ctx == NULL)
 		return 0;
 	if (!access_ok(new_ctx, ctx_size) ||
-	    fault_in_readable((char __user *)new_ctx, ctx_size))
+	    fault_in_pages_readable((u8 __user *)new_ctx, ctx_size))
 		return -EFAULT;
 
 	/*
@@ -1075,10 +1062,8 @@ SYSCALL_DEFINE3(swapcontext, struct ucontext __user *, old_ctx,
 	 * or if another thread unmaps the region containing the context.
 	 * We kill the task with a SIGSEGV in this situation.
 	 */
-	if (do_setcontext(new_ctx, regs, 0)) {
-		force_exit_sig(SIGSEGV);
-		return -EFAULT;
-	}
+	if (do_setcontext(new_ctx, regs, 0))
+		do_exit(SIGSEGV);
 
 	set_thread_flag(TIF_RESTOREALL);
 	return 0;
@@ -1252,7 +1237,7 @@ SYSCALL_DEFINE3(debug_setcontext, struct ucontext __user *, ctx,
 #endif
 
 	if (!access_ok(ctx, sizeof(*ctx)) ||
-	    fault_in_readable((char __user *)ctx, sizeof(*ctx)))
+	    fault_in_pages_readable((u8 __user *)ctx, sizeof(*ctx)))
 		return -EFAULT;
 
 	/*

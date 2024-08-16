@@ -12,14 +12,11 @@
 
 static struct ctl_table_header *rxrpc_sysctl_reg_table;
 static const unsigned int four = 4;
-static const unsigned int max_backlog = RXRPC_BACKLOG_MAX - 1;
+static const unsigned int thirtytwo = 32;
 static const unsigned int n_65535 = 65535;
-static const unsigned int n_max_acks = 255;
+static const unsigned int n_max_acks = RXRPC_RXTX_BUFF_SIZE - 1;
 static const unsigned long one_jiffy = 1;
 static const unsigned long max_jiffies = MAX_JIFFY_OFFSET;
-#ifdef CONFIG_AF_RXRPC_INJECT_RX_DELAY
-static const unsigned long max_500 = 500;
-#endif
 
 /*
  * RxRPC operating parameters.
@@ -29,6 +26,15 @@ static const unsigned long max_500 = 500;
  */
 static struct ctl_table rxrpc_sysctl_table[] = {
 	/* Values measured in milliseconds but used in jiffies */
+	{
+		.procname	= "req_ack_delay",
+		.data		= &rxrpc_requested_ack_delay,
+		.maxlen		= sizeof(unsigned long),
+		.mode		= 0644,
+		.proc_handler	= proc_doulongvec_ms_jiffies_minmax,
+		.extra1		= (void *)&one_jiffy,
+		.extra2		= (void *)&max_jiffies,
+	},
 	{
 		.procname	= "soft_ack_delay",
 		.data		= &rxrpc_soft_ack_delay,
@@ -66,19 +72,6 @@ static struct ctl_table rxrpc_sysctl_table[] = {
 		.extra2		= (void *)&max_jiffies,
 	},
 
-	/* Values used in milliseconds */
-#ifdef CONFIG_AF_RXRPC_INJECT_RX_DELAY
-	{
-		.procname	= "inject_rx_delay",
-		.data		= &rxrpc_inject_rx_delay,
-		.maxlen		= sizeof(unsigned long),
-		.mode		= 0644,
-		.proc_handler	= proc_doulongvec_minmax,
-		.extra1		= (void *)SYSCTL_LONG_ZERO,
-		.extra2		= (void *)&max_500,
-	},
-#endif
-
 	/* Non-time values */
 	{
 		.procname	= "reap_client_conns",
@@ -96,7 +89,7 @@ static struct ctl_table rxrpc_sysctl_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= (void *)&four,
-		.extra2		= (void *)&max_backlog,
+		.extra2		= (void *)&thirtytwo,
 	},
 	{
 		.procname	= "rx_window_size",
@@ -125,6 +118,7 @@ static struct ctl_table rxrpc_sysctl_table[] = {
 		.extra1		= (void *)SYSCTL_ONE,
 		.extra2		= (void *)&four,
 	},
+
 	{ }
 };
 

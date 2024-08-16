@@ -15,6 +15,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
+#include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include "armada_ap_cp_helper.h"
@@ -252,18 +253,15 @@ static int ap_cpu_clock_probe(struct platform_device *pdev)
 	 */
 	nclusters = 1;
 	for_each_of_cpu_node(dn) {
-		u64 cpu;
+		int cpu, err;
 
-		cpu = of_get_cpu_hwid(dn, 0);
-		if (WARN_ON(cpu == OF_BAD_ADDR)) {
-			of_node_put(dn);
-			return -EINVAL;
-		}
+		err = of_property_read_u32(dn, "reg", &cpu);
+		if (WARN_ON(err))
+			return err;
 
 		/* If cpu2 or cpu3 is enabled */
 		if (cpu & APN806_CLUSTER_NUM_MASK) {
 			nclusters = 2;
-			of_node_put(dn);
 			break;
 		}
 	}
@@ -287,13 +285,11 @@ static int ap_cpu_clock_probe(struct platform_device *pdev)
 		struct clk_init_data init;
 		const char *parent_name;
 		struct clk *parent;
-		u64 cpu;
+		int cpu, err;
 
-		cpu = of_get_cpu_hwid(dn, 0);
-		if (WARN_ON(cpu == OF_BAD_ADDR)) {
-			of_node_put(dn);
-			return -EINVAL;
-		}
+		err = of_property_read_u32(dn, "reg", &cpu);
+		if (WARN_ON(err))
+			return err;
 
 		cluster_index = cpu & APN806_CLUSTER_NUM_MASK;
 		cluster_index >>= APN806_CLUSTER_NUM_OFFSET;
@@ -305,7 +301,6 @@ static int ap_cpu_clock_probe(struct platform_device *pdev)
 		parent = of_clk_get(np, cluster_index);
 		if (IS_ERR(parent)) {
 			dev_err(dev, "Could not get the clock parent\n");
-			of_node_put(dn);
 			return -EINVAL;
 		}
 		parent_name =  __clk_get_name(parent);
@@ -324,10 +319,8 @@ static int ap_cpu_clock_probe(struct platform_device *pdev)
 		init.parent_names = &parent_name;
 
 		ret = devm_clk_hw_register(dev, &ap_cpu_clk[cluster_index].hw);
-		if (ret) {
-			of_node_put(dn);
+		if (ret)
 			return ret;
-		}
 		ap_cpu_data->hws[cluster_index] = &ap_cpu_clk[cluster_index].hw;
 	}
 

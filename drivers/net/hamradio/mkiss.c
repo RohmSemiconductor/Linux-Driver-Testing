@@ -31,8 +31,6 @@
 
 #define AX_MTU		236
 
-/* some arch define END as assembly function ending, just undef it */
-#undef	END
 /* SLIP/KISS protocol characters. */
 #define END             0300		/* indicates end of frame	*/
 #define ESC             0333		/* indicates byte stuffing	*/
@@ -346,7 +344,7 @@ static int ax_set_mac_address(struct net_device *dev, void *addr)
 
 	netif_tx_lock_bh(dev);
 	netif_addr_lock(dev);
-	__dev_addr_set(dev, &sa->sax25_call, AX25_ADDR_LEN);
+	memcpy(dev->dev_addr, &sa->sax25_call, AX25_ADDR_LEN);
 	netif_addr_unlock(dev);
 	netif_tx_unlock_bh(dev);
 
@@ -649,7 +647,7 @@ static void ax_setup(struct net_device *dev)
 
 
 	memcpy(dev->broadcast, &ax25_bcast, AX25_ADDR_LEN);
-	dev_addr_set(dev, (u8 *)&ax25_defaddr);
+	memcpy(dev->dev_addr,  &ax25_defaddr,  AX25_ADDR_LEN);
 
 	dev->flags      = IFF_BROADCAST | IFF_MULTICAST;
 }
@@ -794,20 +792,19 @@ static void mkiss_close(struct tty_struct *tty)
 	 */
 	netif_stop_queue(ax->dev);
 
-	unregister_netdev(ax->dev);
-
-	/* Free all AX25 frame buffers after unreg. */
+	/* Free all AX25 frame buffers. */
 	kfree(ax->rbuff);
 	kfree(ax->xbuff);
 
 	ax->tty = NULL;
 
+	unregister_netdev(ax->dev);
 	free_netdev(ax->dev);
 }
 
 /* Perform I/O control on an active ax25 channel. */
-static int mkiss_ioctl(struct tty_struct *tty, unsigned int cmd,
-		unsigned long arg)
+static int mkiss_ioctl(struct tty_struct *tty, struct file *file,
+	unsigned int cmd, unsigned long arg)
 {
 	struct mkiss *ax = mkiss_get(tty);
 	struct net_device *dev;
@@ -853,7 +850,7 @@ static int mkiss_ioctl(struct tty_struct *tty, unsigned int cmd,
 		}
 
 		netif_tx_lock_bh(dev);
-		__dev_addr_set(dev, addr, AX25_ADDR_LEN);
+		memcpy(dev->dev_addr, addr, AX25_ADDR_LEN);
 		netif_tx_unlock_bh(dev);
 
 		err = 0;
@@ -874,8 +871,8 @@ static int mkiss_ioctl(struct tty_struct *tty, unsigned int cmd,
  * a block of data has been received, which can now be decapsulated
  * and sent on to the AX.25 layer for further processing.
  */
-static void mkiss_receive_buf(struct tty_struct *tty, const u8 *cp,
-			      const u8 *fp, size_t count)
+static void mkiss_receive_buf(struct tty_struct *tty, const unsigned char *cp,
+	const char *fp, int count)
 {
 	struct mkiss *ax = mkiss_get(tty);
 

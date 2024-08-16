@@ -29,9 +29,14 @@ struct symbol symbol_no = {
 	.flags = SYMBOL_CONST|SYMBOL_VALID,
 };
 
+static struct symbol symbol_empty = {
+	.name = "",
+	.curr = { "", no },
+	.flags = SYMBOL_VALID,
+};
+
 struct symbol *modules_sym;
 static tristate modules_val;
-static int sym_warnings;
 
 enum symbol_type sym_get_type(struct symbol *sym)
 {
@@ -117,9 +122,9 @@ static long long sym_get_range_val(struct symbol *sym, int base)
 static void sym_validate_range(struct symbol *sym)
 {
 	struct property *prop;
-	struct symbol *range_sym;
 	int base;
 	long long val, val2;
+	char str[64];
 
 	switch (sym->type) {
 	case S_INT:
@@ -135,15 +140,17 @@ static void sym_validate_range(struct symbol *sym)
 	if (!prop)
 		return;
 	val = strtoll(sym->curr.val, NULL, base);
-	range_sym = prop->expr->left.sym;
-	val2 = sym_get_range_val(range_sym, base);
+	val2 = sym_get_range_val(prop->expr->left.sym, base);
 	if (val >= val2) {
-		range_sym = prop->expr->right.sym;
-		val2 = sym_get_range_val(range_sym, base);
+		val2 = sym_get_range_val(prop->expr->right.sym, base);
 		if (val <= val2)
 			return;
 	}
-	sym->curr.val = range_sym->curr.val;
+	if (sym->type == S_INT)
+		sprintf(str, "%lld", val2);
+	else
+		sprintf(str, "0x%llx", val2);
+	sym->curr.val = xstrdup(str);
 }
 
 static void sym_set_changed(struct symbol *sym)
@@ -312,14 +319,6 @@ static void sym_warn_unmet_dep(struct symbol *sym)
 			       "  Selected by [m]:\n");
 
 	fputs(str_get(&gs), stderr);
-	sym_warnings++;
-}
-
-bool sym_dep_errors(void)
-{
-	if (sym_warnings)
-		return getenv("KCONFIG_WERROR");
-	return false;
 }
 
 void sym_calc_value(struct symbol *sym)
@@ -345,21 +344,15 @@ void sym_calc_value(struct symbol *sym)
 
 	oldval = sym->curr;
 
-	newval.tri = no;
-
 	switch (sym->type) {
 	case S_INT:
-		newval.val = "0";
-		break;
 	case S_HEX:
-		newval.val = "0x0";
-		break;
 	case S_STRING:
-		newval.val = "";
+		newval = symbol_empty.curr;
 		break;
 	case S_BOOLEAN:
 	case S_TRISTATE:
-		newval.val = "n";
+		newval = symbol_no.curr;
 		break;
 	default:
 		sym->curr.val = sym->name;
@@ -706,12 +699,13 @@ const char *sym_get_string_default(struct symbol *sym)
 {
 	struct property *prop;
 	struct symbol *ds;
-	const char *str = "";
+	const char *str;
 	tristate val;
 
 	sym_calc_visibility(sym);
 	sym_calc_value(modules_sym);
 	val = symbol_no.curr.tri;
+	str = symbol_empty.curr.val;
 
 	/* If symbol has a default value look it up */
 	prop = sym_get_default_prop(sym);
@@ -761,17 +755,14 @@ const char *sym_get_string_default(struct symbol *sym)
 		case yes: return "y";
 		}
 	case S_INT:
-		if (!str[0])
-			str = "0";
-		break;
 	case S_HEX:
-		if (!str[0])
-			str = "0x0";
-		break;
-	default:
+		return str;
+	case S_STRING:
+		return str;
+	case S_UNKNOWN:
 		break;
 	}
-	return str;
+	return "";
 }
 
 const char *sym_get_string_value(struct symbol *sym)
@@ -878,6 +869,49 @@ struct symbol *sym_find(const char *name)
 	}
 
 	return symbol;
+}
+
+const char *sym_escape_string_value(const char *in)
+{
+	const char *p;
+	size_t reslen;
+	char *res;
+	size_t l;
+
+	reslen = strlen(in) + strlen("\"\"") + 1;
+
+	p = in;
+	for (;;) {
+		l = strcspn(p, "\"\\");
+		p += l;
+
+		if (p[0] == '\0')
+			break;
+
+		reslen++;
+		p++;
+	}
+
+	res = xmalloc(reslen);
+	res[0] = '\0';
+
+	strcat(res, "\"");
+
+	p = in;
+	for (;;) {
+		l = strcspn(p, "\"\\");
+		strncat(res, p, l);
+		p += l;
+
+		if (p[0] == '\0')
+			break;
+
+		strcat(res, "\\");
+		strncat(res, p++, 1);
+	}
+
+	strcat(res, "\"");
+	return res;
 }
 
 struct sym_match {

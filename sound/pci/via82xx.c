@@ -1984,7 +1984,11 @@ static int snd_via8233_init_misc(struct via82xx *chip)
 		/* when no h/w PCM volume control is found, use DXS volume control
 		 * as the PCM vol control
 		 */
-		if (!snd_ctl_find_id_mixer(chip->card, "PCM Playback Volume")) {
+		struct snd_ctl_elem_id sid;
+		memset(&sid, 0, sizeof(sid));
+		strcpy(sid.name, "PCM Playback Volume");
+		sid.iface = SNDRV_CTL_ELEM_IFACE_MIXER;
+		if (! snd_ctl_find_id(chip->card, &sid)) {
 			dev_info(chip->card->dev,
 				 "Using DXS as PCM Playback\n");
 			err = snd_ctl_add(chip->card, snd_ctl_new1(&snd_via8233_pcmdxs_volume_control, chip));
@@ -2454,8 +2458,8 @@ static int check_dxs_list(struct pci_dev *pci, int revision)
 	return VIA_DXS_48K;
 };
 
-static int __snd_via82xx_probe(struct pci_dev *pci,
-			       const struct pci_device_id *pci_id)
+static int snd_via82xx_probe(struct pci_dev *pci,
+			     const struct pci_device_id *pci_id)
 {
 	struct snd_card *card;
 	struct via82xx *chip;
@@ -2563,12 +2567,6 @@ static int __snd_via82xx_probe(struct pci_dev *pci,
 		return err;
 	pci_set_drvdata(pci, card);
 	return 0;
-}
-
-static int snd_via82xx_probe(struct pci_dev *pci,
-			     const struct pci_device_id *pci_id)
-{
-	return snd_card_free_on_error(&pci->dev, __snd_via82xx_probe(pci, pci_id));
 }
 
 static struct pci_driver via82xx_driver = {

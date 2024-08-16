@@ -23,7 +23,9 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/rawnand.h>
 #include <linux/mtd/partitions.h>
-#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_device.h>
+#include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/clk.h>
@@ -128,7 +130,7 @@ struct pl35x_nand {
  * @conf_regs: SMC configuration registers for command phase
  * @io_regs: NAND data registers for data phase
  * @controller: Core NAND controller structure
- * @chips: List of connected NAND chips
+ * @chip: NAND chip information structure
  * @selected_chip: NAND chip currently selected by the controller
  * @assigned_cs: List of assigned CS
  * @ecc_buf: Temporary buffer to extract ECC bytes
@@ -511,7 +513,6 @@ static int pl35x_nand_write_page_hwecc(struct nand_chip *chip,
 	u32 addr1 = 0, addr2 = 0, row;
 	u32 cmd_addr;
 	int i, ret;
-	u8 status;
 
 	ret = pl35x_smc_set_ecc_mode(nfc, chip, PL35X_SMC_ECC_CFG_MODE_APB);
 	if (ret)
@@ -563,14 +564,6 @@ static int pl35x_nand_write_page_hwecc(struct nand_chip *chip,
 	ret = pl35x_smc_wait_for_irq(nfc);
 	if (ret)
 		goto disable_ecc_engine;
-
-	/* Check write status on the chip side */
-	ret = nand_status_op(chip, &status);
-	if (ret)
-		goto disable_ecc_engine;
-
-	if (status & NAND_STATUS_FAIL)
-		ret = -EIO;
 
 disable_ecc_engine:
 	pl35x_smc_set_ecc_mode(nfc, chip, PL35X_SMC_ECC_CFG_MODE_BYPASS);
@@ -1069,7 +1062,7 @@ static int pl35x_nand_chip_init(struct pl35x_nandc *nfc,
 	chip->controller = &nfc->controller;
 	mtd = nand_to_mtd(chip);
 	mtd->dev.parent = nfc->dev;
-	nand_set_flash_node(chip, np);
+	nand_set_flash_node(chip, nfc->dev->of_node);
 	if (!mtd->name) {
 		mtd->name = devm_kasprintf(nfc->dev, GFP_KERNEL,
 					   "%s", PL35X_NANDC_DRIVER_NAME);
@@ -1170,11 +1163,13 @@ static int pl35x_nand_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static void pl35x_nand_remove(struct platform_device *pdev)
+static int pl35x_nand_remove(struct platform_device *pdev)
 {
 	struct pl35x_nandc *nfc = platform_get_drvdata(pdev);
 
 	pl35x_nand_chips_cleanup(nfc);
+
+	return 0;
 }
 
 static const struct of_device_id pl35x_nand_of_match[] = {
@@ -1185,7 +1180,7 @@ MODULE_DEVICE_TABLE(of, pl35x_nand_of_match);
 
 static struct platform_driver pl35x_nandc_driver = {
 	.probe = pl35x_nand_probe,
-	.remove_new = pl35x_nand_remove,
+	.remove	= pl35x_nand_remove,
 	.driver = {
 		.name = PL35X_NANDC_DRIVER_NAME,
 		.of_match_table = pl35x_nand_of_match,

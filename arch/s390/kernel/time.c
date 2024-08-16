@@ -102,11 +102,6 @@ void __init time_early_init(void)
 			((long) qui.old_leap * 4096000000L);
 }
 
-unsigned long long noinstr sched_clock_noinstr(void)
-{
-	return tod_to_ns(__get_tod_clock_monotonic());
-}
-
 /*
  * Scheduler clock - returns current time in nanosec units.
  */
@@ -173,10 +168,10 @@ void init_cpu_timer(void)
 	clockevents_register_device(cd);
 
 	/* Enable clock comparator timer interrupt. */
-	local_ctl_set_bit(0, CR0_CLOCK_COMPARATOR_SUBMASK_BIT);
+	__ctl_set_bit(0,11);
 
 	/* Always allow the timing alert external interrupt. */
-	local_ctl_set_bit(0, CR0_ETR_SUBMASK_BIT);
+	__ctl_set_bit(0, 4);
 }
 
 static void clock_comparator_interrupt(struct ext_code ext_code,
@@ -369,7 +364,7 @@ static inline int check_sync_clock(void)
  * Apply clock delta to the global data structures.
  * This is called once on the CPU that performed the clock sync.
  */
-static void clock_sync_global(long delta)
+static void clock_sync_global(unsigned long delta)
 {
 	unsigned long now, adj;
 	struct ptff_qto qto;
@@ -405,7 +400,7 @@ static void clock_sync_global(long delta)
  * Apply clock delta to the per-CPU data structures of this CPU.
  * This is called for each online CPU after the call to clock_sync_global.
  */
-static void clock_sync_local(long delta)
+static void clock_sync_local(unsigned long delta)
 {
 	/* Add the delta to the clock comparator. */
 	if (S390_lowcore.clock_comparator != clock_comparator_max) {
@@ -429,7 +424,7 @@ static void __init time_init_wq(void)
 struct clock_sync_data {
 	atomic_t cpus;
 	int in_sync;
-	long clock_delta;
+	unsigned long clock_delta;
 };
 
 /*
@@ -549,7 +544,7 @@ static int stpinfo_valid(void)
 static int stp_sync_clock(void *data)
 {
 	struct clock_sync_data *sync = data;
-	long clock_delta, flags;
+	u64 clock_delta, flags;
 	static int first;
 	int rc;
 
@@ -559,7 +554,9 @@ static int stp_sync_clock(void *data)
 		while (atomic_read(&sync->cpus) != 0)
 			cpu_relax();
 		rc = 0;
-		if (stp_info.todoff || stp_info.tmd != 2) {
+		if (stp_info.todoff[0] || stp_info.todoff[1] ||
+		    stp_info.todoff[2] || stp_info.todoff[3] ||
+		    stp_info.tmd != 2) {
 			flags = vdso_update_begin();
 			rc = chsc_sstpc(stp_page, STP_OP_SYNC, 0,
 					&clock_delta);
@@ -702,7 +699,7 @@ static void stp_work_fn(struct work_struct *work)
 
 	if (!check_sync_clock())
 		/*
-		 * There is a usable clock but the synchronization failed.
+		 * There is a usable clock but the synchonization failed.
 		 * Retry after a second.
 		 */
 		mod_timer(&stp_timer, jiffies + msecs_to_jiffies(MSEC_PER_SEC));

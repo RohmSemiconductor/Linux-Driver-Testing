@@ -63,19 +63,6 @@ struct fuse_forget_link {
 	struct fuse_forget_link *next;
 };
 
-/* Submount lookup tracking */
-struct fuse_submount_lookup {
-	/** Refcount */
-	refcount_t count;
-
-	/** Unique ID, which identifies the inode between userspace
-	 * and kernel */
-	u64 nodeid;
-
-	/** The request used for sending the FORGET message */
-	struct fuse_forget_link *forget;
-};
-
 /** FUSE inode */
 struct fuse_inode {
 	/** Inode data */
@@ -100,9 +87,6 @@ struct fuse_inode {
 	/** The sticky bit in inode->i_mode may have been removed, so
 	    preserve the original mode */
 	umode_t orig_i_mode;
-
-	/* Cache birthtime */
-	struct timespec64 i_btime;
 
 	/** 64 bit inode number */
 	u64 orig_ino;
@@ -171,8 +155,6 @@ struct fuse_inode {
 	 */
 	struct fuse_inode_dax *dax;
 #endif
-	/** Submount specific lookup tracking */
-	struct fuse_submount_lookup *submount_lookup;
 };
 
 /** FUSE inode state bits */
@@ -185,8 +167,6 @@ enum {
 	FUSE_I_SIZE_UNSTABLE,
 	/* Bad inode */
 	FUSE_I_BAD,
-	/* Has btime */
-	FUSE_I_BTIME,
 };
 
 struct fuse_conn;
@@ -269,20 +249,17 @@ struct fuse_page_desc {
 struct fuse_args {
 	uint64_t nodeid;
 	uint32_t opcode;
-	uint8_t in_numargs;
-	uint8_t out_numargs;
-	uint8_t ext_idx;
+	unsigned short in_numargs;
+	unsigned short out_numargs;
 	bool force:1;
 	bool noreply:1;
 	bool nocreds:1;
 	bool in_pages:1;
 	bool out_pages:1;
-	bool user_pages:1;
 	bool out_argvar:1;
 	bool page_zeroing:1;
 	bool page_replace:1;
 	bool may_block:1;
-	bool is_ext:1;
 	struct fuse_in_arg in_args[3];
 	struct fuse_arg out_args[2];
 	void (*end)(struct fuse_mount *fm, struct fuse_args *args, int error);
@@ -503,18 +480,6 @@ struct fuse_dev {
 	struct list_head entry;
 };
 
-enum fuse_dax_mode {
-	FUSE_DAX_INODE_DEFAULT,	/* default */
-	FUSE_DAX_ALWAYS,	/* "-o dax=always" */
-	FUSE_DAX_NEVER,		/* "-o dax=never" */
-	FUSE_DAX_INODE_USER,	/* "-o dax=inode" */
-};
-
-static inline bool fuse_is_inode_dax_mode(enum fuse_dax_mode mode)
-{
-	return mode == FUSE_DAX_INODE_DEFAULT || mode == FUSE_DAX_INODE_USER;
-}
-
 struct fuse_fs_context {
 	int fd;
 	struct file *file;
@@ -532,7 +497,7 @@ struct fuse_fs_context {
 	bool no_control:1;
 	bool no_force_umount:1;
 	bool legacy_opts_show:1;
-	enum fuse_dax_mode dax_mode;
+	bool dax:1;
 	unsigned int max_read;
 	unsigned int blksize;
 	const char *subtype;
@@ -649,7 +614,7 @@ struct fuse_conn {
 	/** Connection successful.  Only set in INIT */
 	unsigned conn_init:1;
 
-	/** Do readahead asynchronously?  Only set in INIT */
+	/** Do readpages asynchronously?  Only set in INIT */
 	unsigned async_read:1;
 
 	/** Return an unique read error after abort.  Only set in INIT */
@@ -800,24 +765,6 @@ struct fuse_conn {
 	/* Propagate syncfs() to server */
 	unsigned int sync_fs:1;
 
-	/* Initialize security xattrs when creating a new inode */
-	unsigned int init_security:1;
-
-	/* Add supplementary group info when creating a new inode */
-	unsigned int create_supp_group:1;
-
-	/* Does the filesystem support per inode DAX? */
-	unsigned int inode_dax:1;
-
-	/* Is tmpfile not implemented by fs? */
-	unsigned int no_tmpfile:1;
-
-	/* Relax restrictions to allow shared mmap in FOPEN_DIRECT_IO mode */
-	unsigned int direct_io_allow_mmap:1;
-
-	/* Is statx not implemented by fs? */
-	unsigned int no_statx:1;
-
 	/** The number of requests waiting for completion */
 	atomic_t num_waiting;
 
@@ -855,9 +802,6 @@ struct fuse_conn {
 	struct list_head devices;
 
 #ifdef CONFIG_FUSE_DAX
-	/* Dax mode */
-	enum fuse_dax_mode dax_mode;
-
 	/* Dax specific conn data, non-NULL if DAX is enabled */
 	struct fuse_conn_dax *dax;
 #endif
@@ -888,7 +832,6 @@ struct fuse_mount {
 
 	/* Entry on fc->mounts */
 	struct list_head fc_entry;
-	struct rcu_head rcu;
 };
 
 static inline struct fuse_mount *get_fuse_mount_super(struct super_block *sb)
@@ -1064,7 +1007,7 @@ int fuse_notify_poll_wakeup(struct fuse_conn *fc,
 /**
  * Initialize file operations on a regular file
  */
-void fuse_init_file_inode(struct inode *inode, unsigned int flags);
+void fuse_init_file_inode(struct inode *inode);
 
 /**
  * Initialize inode operations on regular files and special files
@@ -1085,14 +1028,10 @@ void fuse_init_symlink(struct inode *inode);
  * Change attributes of an inode
  */
 void fuse_change_attributes(struct inode *inode, struct fuse_attr *attr,
-			    struct fuse_statx *sx,
 			    u64 attr_valid, u64 attr_version);
 
 void fuse_change_attributes_common(struct inode *inode, struct fuse_attr *attr,
-				   struct fuse_statx *sx,
-				   u64 attr_valid, u32 cache_mask);
-
-u32 fuse_get_cache_mask(struct inode *inode);
+				   u64 attr_valid);
 
 /**
  * Initialize the client device
@@ -1126,24 +1065,13 @@ void fuse_wait_aborted(struct fuse_conn *fc);
 /**
  * Invalidate inode attributes
  */
-
-/* Attributes possibly changed on data modification */
-#define FUSE_STATX_MODIFY	(STATX_MTIME | STATX_CTIME | STATX_BLOCKS)
-
-/* Attributes possibly changed on data and/or size modification */
-#define FUSE_STATX_MODSIZE	(FUSE_STATX_MODIFY | STATX_SIZE)
-
 void fuse_invalidate_attr(struct inode *inode);
-void fuse_invalidate_attr_mask(struct inode *inode, u32 mask);
 
 void fuse_invalidate_entry_cache(struct dentry *entry);
 
 void fuse_invalidate_atime(struct inode *inode);
 
-u64 fuse_time_to_jiffies(u64 sec, u32 nsec);
-#define ATTR_TIMEOUT(o) \
-	fuse_time_to_jiffies((o)->attr_valid, (o)->attr_valid_nsec)
-
+u64 entry_attr_timeout(struct fuse_entry_out *o);
 void fuse_change_entry_timeout(struct dentry *entry, struct fuse_entry_out *o);
 
 /**
@@ -1193,9 +1121,6 @@ int fuse_init_fs_context_submount(struct fs_context *fsc);
  */
 void fuse_conn_destroy(struct fuse_mount *fm);
 
-/* Drop the connection and free the fuse mount */
-void fuse_mount_destroy(struct fuse_mount *fm);
-
 /**
  * Add connection to control filesystem
  */
@@ -1216,14 +1141,13 @@ bool fuse_invalid_attr(struct fuse_attr *attr);
 /**
  * Is current process allowed to perform filesystem operation?
  */
-bool fuse_allow_current_process(struct fuse_conn *fc);
+int fuse_allow_current_process(struct fuse_conn *fc);
 
 u64 fuse_lock_owner_id(struct fuse_conn *fc, fl_owner_t id);
 
-void fuse_flush_time_update(struct inode *inode);
 void fuse_update_ctime(struct inode *inode);
 
-int fuse_update_attributes(struct inode *inode, struct file *file, u32 mask);
+int fuse_update_attributes(struct inode *inode, struct file *file);
 
 void fuse_flush_writepages(struct inode *inode);
 
@@ -1257,7 +1181,7 @@ int fuse_reverse_inval_inode(struct fuse_conn *fc, u64 nodeid,
  * then the dentry is unhashed (d_delete()).
  */
 int fuse_reverse_inval_entry(struct fuse_conn *fc, u64 parent_nodeid,
-			     u64 child_nodeid, struct qstr *name, u32 flags);
+			     u64 child_nodeid, struct qstr *name);
 
 int fuse_do_open(struct fuse_mount *fm, u64 nodeid, struct file *file,
 		 bool isdir);
@@ -1281,7 +1205,7 @@ long fuse_ioctl_common(struct file *file, unsigned int cmd,
 __poll_t fuse_file_poll(struct file *file, poll_table *wait);
 int fuse_dev_release(struct inode *inode, struct file *file);
 
-bool fuse_write_update_attr(struct inode *inode, loff_t pos, ssize_t written);
+bool fuse_write_update_size(struct inode *inode, loff_t pos);
 
 int fuse_flush_times(struct inode *inode, struct fuse_file *ff);
 int fuse_write_inode(struct inode *inode, struct writeback_control *wbc);
@@ -1300,13 +1224,13 @@ ssize_t fuse_getxattr(struct inode *inode, const char *name, void *value,
 		      size_t size);
 ssize_t fuse_listxattr(struct dentry *entry, char *list, size_t size);
 int fuse_removexattr(struct inode *inode, const char *name);
-extern const struct xattr_handler * const fuse_xattr_handlers[];
+extern const struct xattr_handler *fuse_xattr_handlers[];
+extern const struct xattr_handler *fuse_acl_xattr_handlers[];
+extern const struct xattr_handler *fuse_no_acl_xattr_handlers[];
 
 struct posix_acl;
-struct posix_acl *fuse_get_inode_acl(struct inode *inode, int type, bool rcu);
-struct posix_acl *fuse_get_acl(struct mnt_idmap *idmap,
-			       struct dentry *dentry, int type);
-int fuse_set_acl(struct mnt_idmap *, struct dentry *dentry,
+struct posix_acl *fuse_get_acl(struct inode *inode, int type, bool rcu);
+int fuse_set_acl(struct user_namespace *mnt_userns, struct inode *inode,
 		 struct posix_acl *acl, int type);
 
 /* readdir.c */
@@ -1331,13 +1255,11 @@ ssize_t fuse_dax_read_iter(struct kiocb *iocb, struct iov_iter *to);
 ssize_t fuse_dax_write_iter(struct kiocb *iocb, struct iov_iter *from);
 int fuse_dax_mmap(struct file *file, struct vm_area_struct *vma);
 int fuse_dax_break_layouts(struct inode *inode, u64 dmap_start, u64 dmap_end);
-int fuse_dax_conn_alloc(struct fuse_conn *fc, enum fuse_dax_mode mode,
-			struct dax_device *dax_dev);
+int fuse_dax_conn_alloc(struct fuse_conn *fc, struct dax_device *dax_dev);
 void fuse_dax_conn_free(struct fuse_conn *fc);
 bool fuse_dax_inode_alloc(struct super_block *sb, struct fuse_inode *fi);
-void fuse_dax_inode_init(struct inode *inode, unsigned int flags);
+void fuse_dax_inode_init(struct inode *inode);
 void fuse_dax_inode_cleanup(struct inode *inode);
-void fuse_dax_dontcache(struct inode *inode, unsigned int flags);
 bool fuse_dax_check_alignment(struct fuse_conn *fc, unsigned int map_alignment);
 void fuse_dax_cancel_work(struct fuse_conn *fc);
 
@@ -1346,7 +1268,7 @@ long fuse_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 long fuse_file_compat_ioctl(struct file *file, unsigned int cmd,
 			    unsigned long arg);
 int fuse_fileattr_get(struct dentry *dentry, struct fileattr *fa);
-int fuse_fileattr_set(struct mnt_idmap *idmap,
+int fuse_fileattr_set(struct user_namespace *mnt_userns,
 		      struct dentry *dentry, struct fileattr *fa);
 
 /* file.c */

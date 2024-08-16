@@ -268,16 +268,19 @@
 1:	popl	%ds
 2:	popl	%es
 3:	popl	%fs
-4:	addl	$(4 + \pop), %esp	/* pop the unused "gs" slot */
+	addl	$(4 + \pop), %esp	/* pop the unused "gs" slot */
 	IRET_FRAME
-
-	/*
-	 * There is no _ASM_EXTABLE_TYPE_REG() for ASM, however since this is
-	 * ASM the registers are known and we can trivially hard-code them.
-	 */
-	_ASM_EXTABLE_TYPE(1b, 2b, EX_TYPE_POP_ZERO|EX_REG_DS)
-	_ASM_EXTABLE_TYPE(2b, 3b, EX_TYPE_POP_ZERO|EX_REG_ES)
-	_ASM_EXTABLE_TYPE(3b, 4b, EX_TYPE_POP_ZERO|EX_REG_FS)
+.pushsection .fixup, "ax"
+4:	movl	$0, (%esp)
+	jmp	1b
+5:	movl	$0, (%esp)
+	jmp	2b
+6:	movl	$0, (%esp)
+	jmp	3b
+.popsection
+	_ASM_EXTABLE(1b, 4b)
+	_ASM_EXTABLE(2b, 5b)
+	_ASM_EXTABLE(3b, 6b)
 .endm
 
 .macro RESTORE_ALL_NMI cr3_reg:req pop=0
@@ -698,6 +701,7 @@ SYM_CODE_START(__switch_to_asm)
 	movl	%ebx, PER_CPU_VAR(__stack_chk_guard)
 #endif
 
+#ifdef CONFIG_RETPOLINE
 	/*
 	 * When switching from a shallower to a deeper call stack
 	 * the RSB may either underflow or use entries populated
@@ -706,6 +710,7 @@ SYM_CODE_START(__switch_to_asm)
 	 * speculative execution to prevent attack.
 	 */
 	FILL_RETURN_BUFFER %ebx, RSB_CLEAR_LOOPS, X86_FEATURE_RSB_CTXSW
+#endif
 
 	/* Restore flags or the incoming task to restore AC state. */
 	popfl
@@ -720,6 +725,26 @@ SYM_CODE_END(__switch_to_asm)
 .popsection
 
 /*
+ * The unwinder expects the last frame on the stack to always be at the same
+ * offset from the end of the page, which allows it to validate the stack.
+ * Calling schedule_tail() directly would break that convention because its an
+ * asmlinkage function so its argument has to be pushed on the stack.  This
+ * wrapper creates a proper "end of stack" frame header before the call.
+ */
+.pushsection .text, "ax"
+SYM_FUNC_START(schedule_tail_wrapper)
+	FRAME_BEGIN
+
+	pushl	%eax
+	call	schedule_tail
+	popl	%eax
+
+	FRAME_END
+	ret
+SYM_FUNC_END(schedule_tail_wrapper)
+.popsection
+
+/*
  * A newly forked process directly context switches into this address.
  *
  * eax: prev task we switched from
@@ -727,22 +752,29 @@ SYM_CODE_END(__switch_to_asm)
  * edi: kernel thread arg
  */
 .pushsection .text, "ax"
-SYM_CODE_START(ret_from_fork_asm)
-	movl	%esp, %edx	/* regs */
+SYM_CODE_START(ret_from_fork)
+	call	schedule_tail_wrapper
 
-	/* return address for the stack unwinder */
-	pushl	$.Lsyscall_32_done
+	testl	%ebx, %ebx
+	jnz	1f		/* kernel threads are uncommon */
 
-	FRAME_BEGIN
-	/* prev already in EAX */
-	movl	%ebx, %ecx	/* fn */
-	pushl	%edi		/* fn_arg */
-	call	ret_from_fork
-	addl	$4, %esp
-	FRAME_END
+2:
+	/* When we fork, we trace the syscall return in the child, too. */
+	movl    %esp, %eax
+	call    syscall_exit_to_user_mode
+	jmp     .Lsyscall_32_done
 
-	RET
-SYM_CODE_END(ret_from_fork_asm)
+	/* kernel thread */
+1:	movl	%edi, %eax
+	CALL_NOSPEC ebx
+	/*
+	 * A kernel thread is allowed to return here after successfully
+	 * calling kernel_execve().  Exit to userspace to complete the execve()
+	 * syscall.
+	 */
+	movl	$0, PT_EAX(%esp)
+	jmp	2b
+SYM_CODE_END(ret_from_fork)
 .popsection
 
 SYM_ENTRY(__begin_SYSENTER_singlestep_region, SYM_L_GLOBAL, SYM_A_NONE)
@@ -837,7 +869,7 @@ SYM_FUNC_START(entry_SYSENTER_32)
 
 	movl	%esp, %eax
 	call	do_SYSENTER_32
-	testb	%al, %al
+	testl	%eax, %eax
 	jz	.Lsyscall_32_done
 
 	STACKLEAK_ERASE
@@ -885,7 +917,6 @@ SYM_FUNC_START(entry_SYSENTER_32)
 	BUG_IF_WRONG_CR3 no_user_check=1
 	popfl
 	popl	%eax
-	CLEAR_CPU_BUFFERS
 
 	/*
 	 * Return back to the vDSO, which will pop ecx and edx.
@@ -894,8 +925,10 @@ SYM_FUNC_START(entry_SYSENTER_32)
 	sti
 	sysexit
 
-2:	movl    $0, PT_FS(%esp)
-	jmp     1b
+.pushsection .fixup, "ax"
+2:	movl	$0, PT_FS(%esp)
+	jmp	1b
+.popsection
 	_ASM_EXTABLE(1b, 2b)
 
 .Lsysenter_fix_flags:
@@ -955,7 +988,6 @@ restore_all_switch_stack:
 
 	/* Restore user state */
 	RESTORE_REGS pop=4			# skip orig_eax/error_code
-	CLEAR_CPU_BUFFERS
 .Lirq_return:
 	/*
 	 * ARCH_HAS_MEMBARRIER_SYNC_CORE rely on IRET core serialization
@@ -964,7 +996,8 @@ restore_all_switch_stack:
 	 */
 	iret
 
-.Lasm_iret_error:
+.section .fixup, "ax"
+SYM_CODE_START(asm_iret_error)
 	pushl	$0				# no error code
 	pushl	$iret_error
 
@@ -981,8 +1014,9 @@ restore_all_switch_stack:
 #endif
 
 	jmp	handle_exception
-
-	_ASM_EXTABLE(.Lirq_return, .Lasm_iret_error)
+SYM_CODE_END(asm_iret_error)
+.previous
+	_ASM_EXTABLE(.Lirq_return, asm_iret_error)
 SYM_FUNC_END(entry_INT80_32)
 
 .macro FIXUP_ESPFIX_STACK
@@ -1148,7 +1182,6 @@ SYM_CODE_START(asm_exc_nmi)
 
 	/* Not on SYSENTER stack. */
 	call	exc_nmi
-	CLEAR_CPU_BUFFERS
 	jmp	.Lnmi_return
 
 .Lnmi_from_sysenter_stack:
@@ -1157,7 +1190,7 @@ SYM_CODE_START(asm_exc_nmi)
 	 * is using the thread stack right now, so it's safe for us to use it.
 	 */
 	movl	%esp, %ebx
-	movl	PER_CPU_VAR(pcpu_hot + X86_top_of_stack), %esp
+	movl	PER_CPU_VAR(cpu_current_top_of_stack), %esp
 	call	exc_nmi
 	movl	%ebx, %esp
 
@@ -1215,14 +1248,14 @@ SYM_CODE_START(asm_exc_nmi)
 SYM_CODE_END(asm_exc_nmi)
 
 .pushsection .text, "ax"
-SYM_CODE_START(rewind_stack_and_make_dead)
+SYM_CODE_START(rewind_stack_do_exit)
 	/* Prevent any naive code from trying to unwind to our caller. */
 	xorl	%ebp, %ebp
 
-	movl	PER_CPU_VAR(pcpu_hot + X86_top_of_stack), %esi
+	movl	PER_CPU_VAR(cpu_current_top_of_stack), %esi
 	leal	-TOP_OF_KERNEL_STACK_PADDING-PTREGS_SIZE(%esi), %esp
 
-	call	make_task_dead
+	call	do_exit
 1:	jmp 1b
-SYM_CODE_END(rewind_stack_and_make_dead)
+SYM_CODE_END(rewind_stack_do_exit)
 .popsection

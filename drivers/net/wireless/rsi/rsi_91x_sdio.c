@@ -24,7 +24,10 @@
 /* Default operating mode is wlan STA + BT */
 static u16 dev_oper_mode = DEV_OPMODE_STA_BT_DUAL;
 module_param(dev_oper_mode, ushort, 0444);
-MODULE_PARM_DESC(dev_oper_mode, DEV_OPMODE_PARAM_DESC);
+MODULE_PARM_DESC(dev_oper_mode,
+		 "1[Wi-Fi], 4[BT], 8[BT LE], 5[Wi-Fi STA + BT classic]\n"
+		 "9[Wi-Fi STA + BT LE], 13[Wi-Fi STA + BT classic + BT LE]\n"
+		 "6[AP + BT classic], 14[AP + BT classic + BT LE]");
 
 /**
  * rsi_sdio_set_cmd52_arg() - This function prepares cmd 52 read/write arg.
@@ -144,7 +147,8 @@ static int rsi_issue_sdiocommand(struct sdio_func *func,
 static void rsi_handle_interrupt(struct sdio_func *function)
 {
 	struct rsi_hw *adapter = sdio_get_drvdata(function);
-	struct rsi_91x_sdiodev *dev = adapter->rsi_dev;
+	struct rsi_91x_sdiodev *dev =
+		(struct rsi_91x_sdiodev *)adapter->rsi_dev;
 
 	if (adapter->priv->fsm_state == FSM_FW_NOT_LOADED)
 		return;
@@ -336,7 +340,8 @@ static void rsi_reset_card(struct sdio_func *pfunction)
  */
 static void rsi_setclock(struct rsi_hw *adapter, u32 freq)
 {
-	struct rsi_91x_sdiodev *dev = adapter->rsi_dev;
+	struct rsi_91x_sdiodev *dev =
+		(struct rsi_91x_sdiodev *)adapter->rsi_dev;
 	struct mmc_host *host = dev->pfunction->card->host;
 	u32 clock;
 
@@ -356,7 +361,8 @@ static void rsi_setclock(struct rsi_hw *adapter, u32 freq)
  */
 static int rsi_setblocklength(struct rsi_hw *adapter, u32 length)
 {
-	struct rsi_91x_sdiodev *dev = adapter->rsi_dev;
+	struct rsi_91x_sdiodev *dev =
+		(struct rsi_91x_sdiodev *)adapter->rsi_dev;
 	int status;
 	rsi_dbg(INIT_ZONE, "%s: Setting the block length\n", __func__);
 
@@ -377,7 +383,8 @@ static int rsi_setblocklength(struct rsi_hw *adapter, u32 length)
  */
 static int rsi_setupcard(struct rsi_hw *adapter)
 {
-	struct rsi_91x_sdiodev *dev = adapter->rsi_dev;
+	struct rsi_91x_sdiodev *dev =
+		(struct rsi_91x_sdiodev *)adapter->rsi_dev;
 	int status = 0;
 
 	rsi_setclock(adapter, 50000);
@@ -403,7 +410,8 @@ int rsi_sdio_read_register(struct rsi_hw *adapter,
 			   u32 addr,
 			   u8 *data)
 {
-	struct rsi_91x_sdiodev *dev = adapter->rsi_dev;
+	struct rsi_91x_sdiodev *dev =
+		(struct rsi_91x_sdiodev *)adapter->rsi_dev;
 	u8 fun_num = 0;
 	int status;
 
@@ -436,7 +444,8 @@ int rsi_sdio_write_register(struct rsi_hw *adapter,
 			    u32 addr,
 			    u8 *data)
 {
-	struct rsi_91x_sdiodev *dev = adapter->rsi_dev;
+	struct rsi_91x_sdiodev *dev =
+		(struct rsi_91x_sdiodev *)adapter->rsi_dev;
 	int status = 0;
 
 	if (likely(dev->sdio_irq_task != current))
@@ -489,7 +498,8 @@ static int rsi_sdio_read_register_multiple(struct rsi_hw *adapter,
 					   u8 *data,
 					   u16 count)
 {
-	struct rsi_91x_sdiodev *dev = adapter->rsi_dev;
+	struct rsi_91x_sdiodev *dev =
+		(struct rsi_91x_sdiodev *)adapter->rsi_dev;
 	u32 status;
 
 	if (likely(dev->sdio_irq_task != current))
@@ -520,7 +530,8 @@ int rsi_sdio_write_register_multiple(struct rsi_hw *adapter,
 				     u8 *data,
 				     u16 count)
 {
-	struct rsi_91x_sdiodev *dev = adapter->rsi_dev;
+	struct rsi_91x_sdiodev *dev =
+		(struct rsi_91x_sdiodev *)adapter->rsi_dev;
 	int status;
 
 	if (dev->write_fail > 1) {
@@ -754,7 +765,8 @@ static int rsi_sdio_host_intf_write_pkt(struct rsi_hw *adapter,
 					u8 *pkt,
 					u32 len)
 {
-	struct rsi_91x_sdiodev *dev = adapter->rsi_dev;
+	struct rsi_91x_sdiodev *dev =
+		(struct rsi_91x_sdiodev *)adapter->rsi_dev;
 	u32 block_size = dev->tx_blk_size;
 	u32 num_blocks, address, length;
 	u32 queueno;
@@ -787,7 +799,7 @@ static int rsi_sdio_host_intf_write_pkt(struct rsi_hw *adapter,
  * rsi_sdio_host_intf_read_pkt() - This function reads the packet
  *				   from the device.
  * @adapter: Pointer to the adapter data structure.
- * @pkt: Pointer to the packet data to be read from the device.
+ * @pkt: Pointer to the packet data to be read from the the device.
  * @length: Length of the data to be read from the device.
  *
  * Return: 0 on success, -1 on failure.
@@ -1036,7 +1048,7 @@ static int rsi_probe(struct sdio_func *pfunction,
 		goto fail_free_adapter;
 	}
 
-	sdev = adapter->rsi_dev;
+	sdev = (struct rsi_91x_sdiodev *)adapter->rsi_dev;
 	rsi_init_event(&sdev->rx_thread.event);
 	status = rsi_create_kthread(adapter->priv, &sdev->rx_thread,
 				    rsi_sdio_rx_thread, "SDIO-RX-Thread");
@@ -1212,7 +1224,7 @@ static void rsi_disconnect(struct sdio_func *pfunction)
 	if (!adapter)
 		return;
 
-	dev = adapter->rsi_dev;
+	dev = (struct rsi_91x_sdiodev *)adapter->rsi_dev;
 
 	rsi_kill_thread(&dev->rx_thread);
 	sdio_claim_host(pfunction);
@@ -1246,7 +1258,8 @@ static void rsi_disconnect(struct sdio_func *pfunction)
 #ifdef CONFIG_PM
 static int rsi_set_sdio_pm_caps(struct rsi_hw *adapter)
 {
-	struct rsi_91x_sdiodev *dev = adapter->rsi_dev;
+	struct rsi_91x_sdiodev *dev =
+		(struct rsi_91x_sdiodev *)adapter->rsi_dev;
 	struct sdio_func *func = dev->pfunction;
 	int ret;
 
@@ -1397,7 +1410,7 @@ static int rsi_freeze(struct device *dev)
 		return -ENODEV;
 	}
 	common = adapter->priv;
-	sdev = adapter->rsi_dev;
+	sdev = (struct rsi_91x_sdiodev *)adapter->rsi_dev;
 
 	if ((common->wow_flags & RSI_WOW_ENABLED) &&
 	    (common->wow_flags & RSI_WOW_NO_CONNECTION))
@@ -1447,13 +1460,16 @@ static void rsi_shutdown(struct device *dev)
 {
 	struct sdio_func *pfunction = dev_to_sdio_func(dev);
 	struct rsi_hw *adapter = sdio_get_drvdata(pfunction);
-	struct rsi_91x_sdiodev *sdev = adapter->rsi_dev;
+	struct rsi_91x_sdiodev *sdev =
+		(struct rsi_91x_sdiodev *)adapter->rsi_dev;
 	struct ieee80211_hw *hw = adapter->hw;
 
 	rsi_dbg(ERR_ZONE, "SDIO Bus shutdown =====>\n");
 
-	if (hw && hw->wiphy && hw->wiphy->wowlan_config) {
-		if (rsi_config_wowlan(adapter, hw->wiphy->wowlan_config))
+	if (hw) {
+		struct cfg80211_wowlan *wowlan = hw->wiphy->wowlan_config;
+
+		if (rsi_config_wowlan(adapter, wowlan))
 			rsi_dbg(ERR_ZONE, "Failed to configure WoWLAN\n");
 	}
 
@@ -1467,6 +1483,9 @@ static void rsi_shutdown(struct device *dev)
 
 	if (sdev->write_fail)
 		rsi_dbg(INFO_ZONE, "###### Device is not ready #######\n");
+
+	if (rsi_set_sdio_pm_caps(adapter))
+		rsi_dbg(INFO_ZONE, "Setting power management caps failed\n");
 
 	rsi_dbg(INFO_ZONE, "***** RSI module shut down *****\n");
 }

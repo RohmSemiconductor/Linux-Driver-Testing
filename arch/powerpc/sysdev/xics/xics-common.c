@@ -6,7 +6,6 @@
 #include <linux/threads.h>
 #include <linux/kernel.h>
 #include <linux/irq.h>
-#include <linux/irqdomain.h>
 #include <linux/debugfs.h>
 #include <linux/smp.h>
 #include <linux/interrupt.h>
@@ -18,6 +17,7 @@
 #include <linux/spinlock.h>
 #include <linux/delay.h>
 
+#include <asm/prom.h>
 #include <asm/io.h>
 #include <asm/smp.h>
 #include <asm/machdep.h>
@@ -121,7 +121,7 @@ void xics_mask_unknown_vec(unsigned int vec)
 
 #ifdef CONFIG_SMP
 
-static void __init xics_request_ipi(void)
+static void xics_request_ipi(void)
 {
 	unsigned int ipi;
 
@@ -146,7 +146,7 @@ void __init xics_smp_probe(void)
 
 #endif /* CONFIG_SMP */
 
-noinstr void xics_teardown_cpu(void)
+void xics_teardown_cpu(void)
 {
 	struct xics_cppr *os_cppr = this_cpu_ptr(&xics_cppr);
 
@@ -159,7 +159,7 @@ noinstr void xics_teardown_cpu(void)
 	icp_ops->teardown_cpu();
 }
 
-noinstr void xics_kexec_teardown_cpu(int secondary)
+void xics_kexec_teardown_cpu(int secondary)
 {
 	xics_teardown_cpu();
 
@@ -348,9 +348,9 @@ static int xics_host_map(struct irq_domain *domain, unsigned int virq,
 	if (xics_ics->check(xics_ics, hwirq))
 		return -EINVAL;
 
-	/* Let the ICS be the chip data for the XICS domain. For ICS native */
+	/* No chip data for the XICS domain */
 	irq_domain_set_info(domain, virq, hwirq, xics_ics->chip,
-			    xics_ics, handle_fasteoi_irq, NULL, NULL);
+			    NULL, handle_fasteoi_irq, NULL, NULL);
 
 	return 0;
 }

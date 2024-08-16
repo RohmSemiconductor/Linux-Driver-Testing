@@ -46,7 +46,7 @@ static int _nfs42_proc_fallocate(struct rpc_message *msg, struct file *filep,
 {
 	struct inode *inode = file_inode(filep);
 	struct nfs_server *server = NFS_SERVER(inode);
-	u32 bitmask[NFS_BITMASK_SZ];
+	u32 bitmask[3];
 	struct nfs42_falloc_args args = {
 		.falloc_fh	= NFS_FH(inode),
 		.falloc_offset	= offset,
@@ -69,8 +69,9 @@ static int _nfs42_proc_fallocate(struct rpc_message *msg, struct file *filep,
 		return status;
 	}
 
-	nfs4_bitmask_set(bitmask, server->cache_consistency_bitmask, inode,
-			 NFS_INO_INVALID_BLOCKS);
+	memcpy(bitmask, server->cache_consistency_bitmask, sizeof(bitmask));
+	if (server->attr_bitmask[1] & FATTR4_WORD1_SPACE_USED)
+		bitmask[1] |= FATTR4_WORD1_SPACE_USED;
 
 	res.falloc_fattr = nfs_alloc_fattr();
 	if (!res.falloc_fattr)
@@ -78,20 +79,10 @@ static int _nfs42_proc_fallocate(struct rpc_message *msg, struct file *filep,
 
 	status = nfs4_call_sync(server->client, server, msg,
 				&args.seq_args, &res.seq_res, 0);
-	if (status == 0) {
-		if (nfs_should_remove_suid(inode)) {
-			spin_lock(&inode->i_lock);
-			nfs_set_cache_invalid(inode,
-				NFS_INO_REVAL_FORCED | NFS_INO_INVALID_MODE);
-			spin_unlock(&inode->i_lock);
-		}
+	if (status == 0)
 		status = nfs_post_op_update_inode_force_wcc(inode,
 							    res.falloc_fattr);
-	}
-	if (msg->rpc_proc == &nfs4_procedures[NFSPROC4_CLNT_ALLOCATE])
-		trace_nfs4_fallocate(inode, &args, status);
-	else
-		trace_nfs4_deallocate(inode, &args, status);
+
 	kfree(res.falloc_fattr);
 	return status;
 }
@@ -181,27 +172,28 @@ static int handle_async_copy(struct nfs42_copy_res *res,
 			     nfs4_stateid *src_stateid,
 			     bool *restart)
 {
-	struct nfs4_copy_state *copy, *tmp_copy = NULL, *iter;
+	struct nfs4_copy_state *copy, *tmp_copy;
 	int status = NFS4_OK;
+	bool found_pending = false;
 	struct nfs_open_context *dst_ctx = nfs_file_open_context(dst);
 	struct nfs_open_context *src_ctx = nfs_file_open_context(src);
 
-	copy = kzalloc(sizeof(struct nfs4_copy_state), GFP_KERNEL);
+	copy = kzalloc(sizeof(struct nfs4_copy_state), GFP_NOFS);
 	if (!copy)
 		return -ENOMEM;
 
 	spin_lock(&dst_server->nfs_client->cl_lock);
-	list_for_each_entry(iter,
+	list_for_each_entry(tmp_copy,
 				&dst_server->nfs_client->pending_cb_stateids,
 				copies) {
-		if (memcmp(&res->write_res.stateid, &iter->stateid,
+		if (memcmp(&res->write_res.stateid, &tmp_copy->stateid,
 				NFS4_STATEID_SIZE))
 			continue;
-		tmp_copy = iter;
-		list_del(&iter->copies);
+		found_pending = true;
+		list_del(&tmp_copy->copies);
 		break;
 	}
-	if (tmp_copy) {
+	if (found_pending) {
 		spin_unlock(&dst_server->nfs_client->cl_lock);
 		kfree(copy);
 		copy = tmp_copy;
@@ -259,7 +251,7 @@ static int process_copy_commit(struct file *dst, loff_t pos_dst,
 	struct nfs_commitres cres;
 	int status = -ENOMEM;
 
-	cres.verf = kzalloc(sizeof(struct nfs_writeverf), GFP_KERNEL);
+	cres.verf = kzalloc(sizeof(struct nfs_writeverf), GFP_NOFS);
 	if (!cres.verf)
 		goto out;
 
@@ -293,9 +285,7 @@ static void nfs42_copy_dest_done(struct inode *inode, loff_t pos, loff_t len)
 	loff_t newsize = pos + len;
 	loff_t end = newsize - 1;
 
-	WARN_ON_ONCE(invalidate_inode_pages2_range(inode->i_mapping,
-				pos >> PAGE_SHIFT, end >> PAGE_SHIFT));
-
+	truncate_pagecache_range(inode, pos, end);
 	spin_lock(&inode->i_lock);
 	if (newsize > i_size_read(inode))
 		i_size_write(inode, newsize);
@@ -342,7 +332,7 @@ static ssize_t _nfs42_proc_copy(struct file *src,
 			return status;
 		}
 	}
-	status = nfs_filemap_write_and_wait_range(src->f_mapping,
+	status = nfs_filemap_write_and_wait_range(file_inode(src)->i_mapping,
 			pos_src, pos_src + (loff_t)count - 1);
 	if (status)
 		return status;
@@ -362,7 +352,7 @@ static ssize_t _nfs42_proc_copy(struct file *src,
 	res->commit_res.verf = NULL;
 	if (args->sync) {
 		res->commit_res.verf =
-			kzalloc(sizeof(struct nfs_writeverf), GFP_KERNEL);
+			kzalloc(sizeof(struct nfs_writeverf), GFP_NOFS);
 		if (!res->commit_res.verf)
 			return -ENOMEM;
 	}
@@ -373,7 +363,6 @@ static ssize_t _nfs42_proc_copy(struct file *src,
 
 	status = nfs4_call_sync(dst_server->client, dst_server, &msg,
 				&args->seq_args, &res->seq_res, 0);
-	trace_nfs4_copy(src_inode, dst_inode, args, res, nss, status);
 	if (status == -ENOTSUPP)
 		dst_server->caps &= ~NFS_CAP_COPY;
 	if (status)
@@ -461,8 +450,7 @@ ssize_t nfs42_proc_copy(struct file *src, loff_t pos_src,
 
 		if (err >= 0)
 			break;
-		if ((err == -ENOTSUPP ||
-				err == -NFS4ERR_OFFLOAD_DENIED) &&
+		if (err == -ENOTSUPP &&
 				nfs42_files_from_same_server(src, dst)) {
 			err = -EOPNOTSUPP;
 			break;
@@ -472,9 +460,8 @@ ssize_t nfs42_proc_copy(struct file *src, loff_t pos_src,
 				continue;
 			}
 			break;
-		} else if (err == -NFS4ERR_OFFLOAD_NO_REQS &&
-				args.sync != res.synchronous) {
-			args.sync = res.synchronous;
+		} else if (err == -NFS4ERR_OFFLOAD_NO_REQS && !args.sync) {
+			args.sync = true;
 			dst_exception.retry = 1;
 			continue;
 		} else if ((err == -ESTALE ||
@@ -517,7 +504,6 @@ static void nfs42_offload_cancel_done(struct rpc_task *task, void *calldata)
 {
 	struct nfs42_offloadcancel_data *data = calldata;
 
-	trace_nfs4_offload_cancel(&data->args, task->tk_status);
 	nfs41_sequence_done(task, &data->res.osr_seq_res);
 	if (task->tk_status &&
 		nfs4_async_handle_error(task, data->seq_server, NULL,
@@ -559,7 +545,7 @@ static int nfs42_do_offload_cancel_async(struct file *dst,
 	if (!(dst_server->caps & NFS_CAP_OFFLOAD_CANCEL))
 		return -EOPNOTSUPP;
 
-	data = kzalloc(sizeof(struct nfs42_offloadcancel_data), GFP_KERNEL);
+	data = kzalloc(sizeof(struct nfs42_offloadcancel_data), GFP_NOFS);
 	if (data == NULL)
 		return -ENOMEM;
 
@@ -598,10 +584,8 @@ static int _nfs42_proc_copy_notify(struct file *src, struct file *dst,
 
 	ctx = get_nfs_open_context(nfs_file_open_context(src));
 	l_ctx = nfs_get_lock_context(ctx);
-	if (IS_ERR(l_ctx)) {
-		status = PTR_ERR(l_ctx);
-		goto out;
-	}
+	if (IS_ERR(l_ctx))
+		return PTR_ERR(l_ctx);
 
 	status = nfs4_set_rw_stateid(&args->cna_src_stateid, ctx, l_ctx,
 				     FMODE_READ);
@@ -609,16 +593,14 @@ static int _nfs42_proc_copy_notify(struct file *src, struct file *dst,
 	if (status) {
 		if (status == -EAGAIN)
 			status = -NFS4ERR_BAD_STATEID;
-		goto out;
+		return status;
 	}
 
 	status = nfs4_call_sync(src_server->client, src_server, &msg,
 				&args->cna_seq_args, &res->cnr_seq_res, 0);
-	trace_nfs4_copy_notify(file_inode(src), args, res, status);
 	if (status == -ENOTSUPP)
 		src_server->caps &= ~NFS_CAP_COPY_NOTIFY;
 
-out:
 	put_nfs_open_context(nfs_file_open_context(src));
 	return status;
 }
@@ -636,7 +618,7 @@ int nfs42_proc_copy_notify(struct file *src, struct file *dst,
 	if (!(src_server->caps & NFS_CAP_COPY_NOTIFY))
 		return -EOPNOTSUPP;
 
-	args = kzalloc(sizeof(struct nfs42_copy_notify_args), GFP_KERNEL);
+	args = kzalloc(sizeof(struct nfs42_copy_notify_args), GFP_NOFS);
 	if (args == NULL)
 		return -ENOMEM;
 
@@ -696,7 +678,6 @@ static loff_t _nfs42_proc_llseek(struct file *filep,
 
 	status = nfs4_call_sync(server->client, server, &msg,
 				&args.seq_args, &res.seq_res, 0);
-	trace_nfs4_llseek(inode, &args, &res, status);
 	if (status == -ENOTSUPP)
 		server->caps &= ~NFS_CAP_SEEK;
 	if (status)
@@ -1024,7 +1005,7 @@ int nfs42_proc_layouterror(struct pnfs_layout_segment *lseg,
 		return -EOPNOTSUPP;
 	if (n > NFS42_LAYOUTERROR_MAX)
 		return -EINVAL;
-	data = nfs42_alloc_layouterror_data(lseg, nfs_io_gfp_mask());
+	data = nfs42_alloc_layouterror_data(lseg, GFP_NOFS);
 	if (!data)
 		return -ENOMEM;
 	for (i = 0; i < n; i++) {
@@ -1053,14 +1034,13 @@ static int _nfs42_proc_clone(struct rpc_message *msg, struct file *src_f,
 	struct inode *src_inode = file_inode(src_f);
 	struct inode *dst_inode = file_inode(dst_f);
 	struct nfs_server *server = NFS_SERVER(dst_inode);
-	__u32 dst_bitmask[NFS_BITMASK_SZ];
 	struct nfs42_clone_args args = {
 		.src_fh = NFS_FH(src_inode),
 		.dst_fh = NFS_FH(dst_inode),
 		.src_offset = src_offset,
 		.dst_offset = dst_offset,
 		.count = count,
-		.dst_bitmask = dst_bitmask,
+		.dst_bitmask = server->cache_consistency_bitmask,
 	};
 	struct nfs42_clone_res res = {
 		.server	= server,
@@ -1089,16 +1069,9 @@ static int _nfs42_proc_clone(struct rpc_message *msg, struct file *src_f,
 	if (!res.dst_fattr)
 		return -ENOMEM;
 
-	nfs4_bitmask_set(dst_bitmask, server->cache_consistency_bitmask,
-			 dst_inode, NFS_INO_INVALID_BLOCKS);
-
 	status = nfs4_call_sync(server->client, server, msg,
 				&args.seq_args, &res.seq_res, 0);
-	trace_nfs4_clone(src_inode, dst_inode, &args, status);
 	if (status == 0) {
-		/* a zero-length count means clone to EOF in src */
-		if (count == 0 && res.dst_fattr->valid & NFS_ATTR_FATTR_SIZE)
-			count = nfs_size_to_loff_t(res.dst_fattr->size) - dst_offset;
 		nfs42_copy_dest_done(dst_inode, dst_offset, count);
 		status = nfs_post_op_update_inode(dst_inode, res.dst_fattr);
 	}
@@ -1181,7 +1154,6 @@ static int _nfs42_proc_removexattr(struct inode *inode, const char *name)
 
 	ret = nfs4_call_sync(server->client, server, &msg, &args.seq_args,
 	    &res.seq_res, 1);
-	trace_nfs4_removexattr(inode, name, ret);
 	if (!ret)
 		nfs4_update_changeattr(inode, &res.cinfo, timestamp, 0);
 
@@ -1192,19 +1164,15 @@ static int _nfs42_proc_setxattr(struct inode *inode, const char *name,
 				const void *buf, size_t buflen, int flags)
 {
 	struct nfs_server *server = NFS_SERVER(inode);
-	__u32 bitmask[NFS_BITMASK_SZ];
 	struct page *pages[NFS4XATTR_MAXPAGES];
 	struct nfs42_setxattrargs arg = {
 		.fh		= NFS_FH(inode),
-		.bitmask	= bitmask,
 		.xattr_pages	= pages,
 		.xattr_len	= buflen,
 		.xattr_name	= name,
 		.xattr_flags	= flags,
 	};
-	struct nfs42_setxattrres res = {
-		.server		= server,
-	};
+	struct nfs42_setxattrres res;
 	struct rpc_message msg = {
 		.rpc_proc	= &nfs4_procedures[NFSPROC4_CLNT_SETXATTR],
 		.rpc_argp	= &arg,
@@ -1216,36 +1184,22 @@ static int _nfs42_proc_setxattr(struct inode *inode, const char *name,
 	if (buflen > server->sxasize)
 		return -ERANGE;
 
-	res.fattr = nfs_alloc_fattr();
-	if (!res.fattr)
-		return -ENOMEM;
-
 	if (buflen > 0) {
 		np = nfs4_buf_to_pages_noslab(buf, buflen, arg.xattr_pages);
-		if (np < 0) {
-			ret = np;
-			goto out;
-		}
+		if (np < 0)
+			return np;
 	} else
 		np = 0;
 
-	nfs4_bitmask_set(bitmask, server->cache_consistency_bitmask,
-			 inode, NFS_INO_INVALID_CHANGE);
-
 	ret = nfs4_call_sync(server->client, server, &msg, &arg.seq_args,
 	    &res.seq_res, 1);
-	trace_nfs4_setxattr(inode, name, ret);
 
 	for (; np > 0; np--)
 		put_page(pages[np - 1]);
 
-	if (!ret) {
+	if (!ret)
 		nfs4_update_changeattr(inode, &res.cinfo, timestamp, 0);
-		ret = nfs_post_op_update_inode(inode, res.fattr);
-	}
 
-out:
-	kfree(res.fattr);
 	return ret;
 }
 
@@ -1271,7 +1225,6 @@ static ssize_t _nfs42_proc_getxattr(struct inode *inode, const char *name,
 
 	ret = nfs4_call_sync(server->client, server, &msg, &arg.seq_args,
 	    &res.seq_res, 0);
-	trace_nfs4_getxattr(inode, name, ret);
 	if (ret < 0)
 		return ret;
 
@@ -1343,7 +1296,6 @@ static ssize_t _nfs42_proc_listxattrs(struct inode *inode, void *buf,
 
 	ret = nfs4_call_sync(server->client, server, &msg, &arg.seq_args,
 	    &res.seq_res, 0);
-	trace_nfs4_listxattr(inode, ret);
 
 	if (ret >= 0) {
 		ret = res.copied;
@@ -1379,6 +1331,7 @@ ssize_t nfs42_proc_getxattr(struct inode *inode, const char *name,
 	for (i = 0; i < np; i++) {
 		pages[i] = alloc_page(GFP_KERNEL);
 		if (!pages[i]) {
+			np = i + 1;
 			err = -ENOMEM;
 			goto out;
 		}
@@ -1402,8 +1355,8 @@ ssize_t nfs42_proc_getxattr(struct inode *inode, const char *name,
 	} while (exception.retry);
 
 out:
-	while (--i >= 0)
-		__free_page(pages[i]);
+	while (--np >= 0)
+		__free_page(pages[np]);
 	kfree(pages);
 
 	return err;

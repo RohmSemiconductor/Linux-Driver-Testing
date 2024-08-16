@@ -45,8 +45,10 @@
  */
 
 #include <linux/module.h>
-#include <linux/comedi/comedidev.h>
+#include "../comedidev.h"
+
 #include <asm/div64.h>
+
 #include <linux/timer.h>
 #include <linux/ktime.h>
 #include <linux/jiffies.h>
@@ -60,9 +62,7 @@
 static bool config_mode;
 static unsigned int set_amplitude;
 static unsigned int set_period;
-static const struct class ctcls = {
-	.name = CLASS_NAME,
-};
+static struct class *ctcls;
 static struct device *ctdev;
 
 module_param_named(noauto, config_mode, bool, 0444);
@@ -87,8 +87,6 @@ struct waveform_private {
 	struct comedi_device *dev;	/* parent comedi device */
 	u64 ao_last_scan_time;		/* time of previous AO scan in usec */
 	unsigned int ao_scan_period;	/* AO scan period in usec */
-	bool ai_timer_enable:1;		/* should AI timer be running? */
-	bool ao_timer_enable:1;		/* should AO timer be running? */
 	unsigned short ao_loopbacks[N_CHANS];
 };
 
@@ -238,12 +236,8 @@ static void waveform_ai_timer(struct timer_list *t)
 			time_increment = devpriv->ai_convert_time - now;
 		else
 			time_increment = 1;
-		spin_lock(&dev->spinlock);
-		if (devpriv->ai_timer_enable) {
-			mod_timer(&devpriv->ai_timer,
-				  jiffies + usecs_to_jiffies(time_increment));
-		}
-		spin_unlock(&dev->spinlock);
+		mod_timer(&devpriv->ai_timer,
+			  jiffies + usecs_to_jiffies(time_increment));
 	}
 
 overrun:
@@ -399,12 +393,9 @@ static int waveform_ai_cmd(struct comedi_device *dev,
 	 * Seem to need an extra jiffy here, otherwise timer expires slightly
 	 * early!
 	 */
-	spin_lock_bh(&dev->spinlock);
-	devpriv->ai_timer_enable = true;
 	devpriv->ai_timer.expires =
 		jiffies + usecs_to_jiffies(devpriv->ai_convert_period) + 1;
 	add_timer(&devpriv->ai_timer);
-	spin_unlock_bh(&dev->spinlock);
 	return 0;
 }
 
@@ -413,9 +404,6 @@ static int waveform_ai_cancel(struct comedi_device *dev,
 {
 	struct waveform_private *devpriv = dev->private;
 
-	spin_lock_bh(&dev->spinlock);
-	devpriv->ai_timer_enable = false;
-	spin_unlock_bh(&dev->spinlock);
 	if (in_softirq()) {
 		/* Assume we were called from the timer routine itself. */
 		del_timer(&devpriv->ai_timer);
@@ -507,12 +495,8 @@ static void waveform_ao_timer(struct timer_list *t)
 		unsigned int time_inc = devpriv->ao_last_scan_time +
 					devpriv->ao_scan_period - now;
 
-		spin_lock(&dev->spinlock);
-		if (devpriv->ao_timer_enable) {
-			mod_timer(&devpriv->ao_timer,
-				  jiffies + usecs_to_jiffies(time_inc));
-		}
-		spin_unlock(&dev->spinlock);
+		mod_timer(&devpriv->ao_timer,
+			  jiffies + usecs_to_jiffies(time_inc));
 	}
 
 underrun:
@@ -533,12 +517,9 @@ static int waveform_ao_inttrig_start(struct comedi_device *dev,
 	async->inttrig = NULL;
 
 	devpriv->ao_last_scan_time = ktime_to_us(ktime_get());
-	spin_lock_bh(&dev->spinlock);
-	devpriv->ao_timer_enable = true;
 	devpriv->ao_timer.expires =
 		jiffies + usecs_to_jiffies(devpriv->ao_scan_period);
 	add_timer(&devpriv->ao_timer);
-	spin_unlock_bh(&dev->spinlock);
 
 	return 1;
 }
@@ -623,9 +604,6 @@ static int waveform_ao_cancel(struct comedi_device *dev,
 	struct waveform_private *devpriv = dev->private;
 
 	s->async->inttrig = NULL;
-	spin_lock_bh(&dev->spinlock);
-	devpriv->ao_timer_enable = false;
-	spin_unlock_bh(&dev->spinlock);
 	if (in_softirq()) {
 		/* Assume we were called from the timer routine itself. */
 		del_timer(&devpriv->ao_timer);
@@ -819,13 +797,13 @@ static int __init comedi_test_init(void)
 	}
 
 	if (!config_mode) {
-		ret = class_register(&ctcls);
-		if (ret) {
+		ctcls = class_create(THIS_MODULE, CLASS_NAME);
+		if (IS_ERR(ctcls)) {
 			pr_warn("comedi_test: unable to create class\n");
 			goto clean3;
 		}
 
-		ctdev = device_create(&ctcls, NULL, MKDEV(0, 0), NULL, DEV_NAME);
+		ctdev = device_create(ctcls, NULL, MKDEV(0, 0), NULL, DEV_NAME);
 		if (IS_ERR(ctdev)) {
 			pr_warn("comedi_test: unable to create device\n");
 			goto clean2;
@@ -841,10 +819,13 @@ static int __init comedi_test_init(void)
 	return 0;
 
 clean:
-	device_destroy(&ctcls, MKDEV(0, 0));
+	device_destroy(ctcls, MKDEV(0, 0));
 clean2:
-	class_unregister(&ctcls);
+	class_destroy(ctcls);
+	ctdev = NULL;
 clean3:
+	ctcls = NULL;
+
 	return 0;
 }
 module_init(comedi_test_init);
@@ -854,9 +835,9 @@ static void __exit comedi_test_exit(void)
 	if (ctdev)
 		comedi_auto_unconfig(ctdev);
 
-	if (class_is_registered(&ctcls)) {
-		device_destroy(&ctcls, MKDEV(0, 0));
-		class_unregister(&ctcls);
+	if (ctcls) {
+		device_destroy(ctcls, MKDEV(0, 0));
+		class_destroy(ctcls);
 	}
 
 	comedi_driver_unregister(&waveform_driver);

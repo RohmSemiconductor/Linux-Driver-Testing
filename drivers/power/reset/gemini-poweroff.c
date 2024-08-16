@@ -91,6 +91,7 @@ static void gemini_poweroff(void)
 static int gemini_poweroff_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
+	struct resource *res;
 	struct gemini_powercon *gpw;
 	u32 val;
 	int irq;
@@ -100,13 +101,14 @@ static int gemini_poweroff_probe(struct platform_device *pdev)
 	if (!gpw)
 		return -ENOMEM;
 
-	gpw->base = devm_platform_ioremap_resource(pdev, 0);
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	gpw->base = devm_ioremap_resource(dev, res);
 	if (IS_ERR(gpw->base))
 		return PTR_ERR(gpw->base);
 
 	irq = platform_get_irq(pdev, 0);
-	if (irq < 0)
-		return irq;
+	if (!irq)
+		return -EINVAL;
 
 	gpw->dev = dev;
 

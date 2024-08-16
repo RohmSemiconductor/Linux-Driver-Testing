@@ -115,7 +115,7 @@ static int bcm6368_mdiomux_probe(struct platform_device *pdev)
 	md->mii_bus = devm_mdiobus_alloc(&pdev->dev);
 	if (!md->mii_bus) {
 		dev_err(&pdev->dev, "mdiomux bus alloc failed\n");
-		return -ENOMEM;
+		return ENOMEM;
 	}
 
 	bus = md->mii_bus;
@@ -153,12 +153,14 @@ out_register:
 	return rc;
 }
 
-static void bcm6368_mdiomux_remove(struct platform_device *pdev)
+static int bcm6368_mdiomux_remove(struct platform_device *pdev)
 {
 	struct bcm6368_mdiomux_desc *md = platform_get_drvdata(pdev);
 
 	mdio_mux_uninit(md->mux_handle);
 	mdiobus_unregister(md->mii_bus);
+
+	return 0;
 }
 
 static const struct of_device_id bcm6368_mdiomux_ids[] = {
@@ -173,7 +175,7 @@ static struct platform_driver bcm6368_mdiomux_driver = {
 		.of_match_table = bcm6368_mdiomux_ids,
 	},
 	.probe	= bcm6368_mdiomux_probe,
-	.remove_new = bcm6368_mdiomux_remove,
+	.remove	= bcm6368_mdiomux_remove,
 };
 module_platform_driver(bcm6368_mdiomux_driver);
 

@@ -150,8 +150,8 @@ TEST(check_huge_pages)
 		MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB,
 		-1, 0);
 	if (addr == MAP_FAILED) {
-		if (errno == ENOMEM || errno == EINVAL)
-			SKIP(return, "No huge pages available or CONFIG_HUGETLB_PAGE disabled.");
+		if (errno == ENOMEM)
+			SKIP(return, "No huge pages available.");
 		else
 			TH_LOG("mmap error: %s", strerror(errno));
 	}
@@ -207,21 +207,15 @@ TEST(check_file_mmap)
 
 	errno = 0;
 	fd = open(".", O_TMPFILE | O_RDWR, 0600);
-	if (fd < 0) {
-		ASSERT_EQ(errno, EOPNOTSUPP) {
-			TH_LOG("Can't create temporary file: %s",
-			       strerror(errno));
-		}
-		SKIP(goto out_free, "O_TMPFILE not supported by filesystem.");
+	ASSERT_NE(-1, fd) {
+		TH_LOG("Can't create temporary file: %s",
+			strerror(errno));
 	}
 	errno = 0;
 	retval = fallocate(fd, 0, 0, FILE_SIZE);
-	if (retval) {
-		ASSERT_EQ(errno, EOPNOTSUPP) {
-			TH_LOG("Error allocating space for the temporary file: %s",
-			       strerror(errno));
-		}
-		SKIP(goto out_close, "fallocate not supported by filesystem.");
+	ASSERT_EQ(0, retval) {
+		TH_LOG("Error allocating space for the temporary file: %s",
+			strerror(errno));
 	}
 
 	/*
@@ -277,9 +271,7 @@ TEST(check_file_mmap)
 	}
 
 	munmap(addr, FILE_SIZE);
-out_close:
 	close(fd);
-out_free:
 	free(vec);
 }
 

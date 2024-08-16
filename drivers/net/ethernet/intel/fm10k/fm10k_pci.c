@@ -3,6 +3,7 @@
 
 #include <linux/module.h>
 #include <linux/interrupt.h>
+#include <linux/aer.h>
 
 #include "fm10k.h"
 
@@ -299,7 +300,7 @@ static int fm10k_handle_reset(struct fm10k_intfc *interface)
 		if (is_valid_ether_addr(hw->mac.perm_addr)) {
 			ether_addr_copy(hw->mac.addr, hw->mac.perm_addr);
 			ether_addr_copy(netdev->perm_addr, hw->mac.perm_addr);
-			eth_hw_addr_set(netdev, hw->mac.perm_addr);
+			ether_addr_copy(netdev->dev_addr, hw->mac.perm_addr);
 			netdev->addr_assign_type &= ~NET_ADDR_RANDOM;
 		}
 
@@ -2044,7 +2045,7 @@ static int fm10k_sw_init(struct fm10k_intfc *interface,
 		netdev->addr_assign_type |= NET_ADDR_RANDOM;
 	}
 
-	eth_hw_addr_set(netdev, hw->mac.addr);
+	ether_addr_copy(netdev->dev_addr, hw->mac.addr);
 	ether_addr_copy(netdev->perm_addr, hw->mac.addr);
 
 	if (!is_valid_ether_addr(netdev->perm_addr)) {
@@ -2125,6 +2126,8 @@ static int fm10k_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 			"pci_request_selected_regions failed: %d\n", err);
 		goto err_pci_reg;
 	}
+
+	pci_enable_pcie_error_reporting(pdev);
 
 	pci_set_master(pdev);
 	pci_save_state(pdev);
@@ -2224,6 +2227,7 @@ err_sw_init:
 err_ioremap:
 	free_netdev(netdev);
 err_alloc_netdev:
+	pci_disable_pcie_error_reporting(pdev);
 	pci_release_mem_regions(pdev);
 err_pci_reg:
 err_dma:
@@ -2276,6 +2280,8 @@ static void fm10k_remove(struct pci_dev *pdev)
 	free_netdev(netdev);
 
 	pci_release_mem_regions(pdev);
+
+	pci_disable_pcie_error_reporting(pdev);
 
 	pci_disable_device(pdev);
 }

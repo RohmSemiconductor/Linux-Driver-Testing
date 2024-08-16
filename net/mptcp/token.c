@@ -134,7 +134,7 @@ int mptcp_token_new_request(struct request_sock *req)
 
 /**
  * mptcp_token_new_connect - create new key/idsn/token for subflow
- * @ssk: the socket that will initiate a connection
+ * @sk: the socket that will initiate a connection
  *
  * This function is called when a new outgoing mptcp connection is
  * initiated.
@@ -148,12 +148,11 @@ int mptcp_token_new_request(struct request_sock *req)
  *
  * returns 0 on success.
  */
-int mptcp_token_new_connect(struct sock *ssk)
+int mptcp_token_new_connect(struct sock *sk)
 {
-	struct mptcp_subflow_context *subflow = mptcp_subflow_ctx(ssk);
+	struct mptcp_subflow_context *subflow = mptcp_subflow_ctx(sk);
 	struct mptcp_sock *msk = mptcp_sk(subflow->conn);
 	int retries = MPTCP_TOKEN_MAX_RETRIES;
-	struct sock *sk = subflow->conn;
 	struct token_bucket *bucket;
 
 again:
@@ -170,13 +169,12 @@ again:
 	}
 
 	pr_debug("ssk=%p, local_key=%llu, token=%u, idsn=%llu\n",
-		 ssk, subflow->local_key, subflow->token, subflow->idsn);
+		 sk, subflow->local_key, subflow->token, subflow->idsn);
 
 	WRITE_ONCE(msk->token, subflow->token);
 	__sk_nulls_add_node_rcu((struct sock *)msk, &bucket->msk_chain);
 	bucket->chain_len++;
 	spin_unlock_bh(&bucket->lock);
-	sock_prot_inuse_add(sock_net(sk), sk->sk_prot, 1);
 	return 0;
 }
 
@@ -192,10 +190,8 @@ void mptcp_token_accept(struct mptcp_subflow_request_sock *req,
 			struct mptcp_sock *msk)
 {
 	struct mptcp_subflow_request_sock *pos;
-	struct sock *sk = (struct sock *)msk;
 	struct token_bucket *bucket;
 
-	sock_prot_inuse_add(sock_net(sk), sk->sk_prot, 1);
 	bucket = token_bucket(req->token);
 	spin_lock_bh(&bucket->lock);
 
@@ -235,7 +231,6 @@ found:
 
 /**
  * mptcp_token_get_sock - retrieve mptcp connection sock using its token
- * @net: restrict to this namespace
  * @token: token of the mptcp connection to retrieve
  *
  * This function returns the mptcp connection structure with the given token.
@@ -243,7 +238,7 @@ found:
  *
  * returns NULL if no connection with the given token value exists.
  */
-struct mptcp_sock *mptcp_token_get_sock(struct net *net, u32 token)
+struct mptcp_sock *mptcp_token_get_sock(u32 token)
 {
 	struct hlist_nulls_node *pos;
 	struct token_bucket *bucket;
@@ -256,15 +251,11 @@ struct mptcp_sock *mptcp_token_get_sock(struct net *net, u32 token)
 again:
 	sk_nulls_for_each_rcu(sk, pos, &bucket->msk_chain) {
 		msk = mptcp_sk(sk);
-		if (READ_ONCE(msk->token) != token ||
-		    !net_eq(sock_net(sk), net))
+		if (READ_ONCE(msk->token) != token)
 			continue;
-
 		if (!refcount_inc_not_zero(&sk->sk_refcnt))
 			goto not_found;
-
-		if (READ_ONCE(msk->token) != token ||
-		    !net_eq(sock_net(sk), net)) {
+		if (READ_ONCE(msk->token) != token) {
 			sock_put(sk);
 			goto again;
 		}
@@ -291,8 +282,8 @@ EXPORT_SYMBOL_GPL(mptcp_token_get_sock);
  * This function returns the first mptcp connection structure found inside the
  * token container starting from the specified position, or NULL.
  *
- * On successful iteration, the iterator is moved to the next position and
- * a reference to the returned socket is acquired.
+ * On successful iteration, the iterator is move to the next position and the
+ * the acquires a reference to the returned socket.
  */
 struct mptcp_sock *mptcp_token_iter_next(const struct net *net, long *s_slot,
 					 long *s_num)
@@ -374,14 +365,12 @@ void mptcp_token_destroy_request(struct request_sock *req)
  */
 void mptcp_token_destroy(struct mptcp_sock *msk)
 {
-	struct sock *sk = (struct sock *)msk;
 	struct token_bucket *bucket;
 	struct mptcp_sock *pos;
 
 	if (sk_unhashed((struct sock *)msk))
 		return;
 
-	sock_prot_inuse_add(sock_net(sk), sk->sk_prot, -1);
 	bucket = token_bucket(msk->token);
 	spin_lock_bh(&bucket->lock);
 	pos = __token_lookup_msk(bucket, msk->token);
@@ -390,7 +379,6 @@ void mptcp_token_destroy(struct mptcp_sock *msk)
 		bucket->chain_len--;
 	}
 	spin_unlock_bh(&bucket->lock);
-	WRITE_ONCE(msk->token, 0);
 }
 
 void __init mptcp_token_init(void)

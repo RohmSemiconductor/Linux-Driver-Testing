@@ -2,6 +2,8 @@
 #ifndef _ASM_X86_PKEYS_H
 #define _ASM_X86_PKEYS_H
 
+#define ARCH_DEFAULT_PKEY	0
+
 /*
  * If more than 16 keys are ever supported, a thorough audit
  * will be necessary to ensure that the types that store key
@@ -40,6 +42,9 @@ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
 
 	return __arch_override_mprotect_pkey(vma, prot, pkey);
 }
+
+extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+		unsigned long init_val);
 
 #define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | VM_PKEY_BIT3)
 
@@ -114,6 +119,11 @@ int mm_pkey_free(struct mm_struct *mm, int pkey)
 
 	return 0;
 }
+
+extern int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+		unsigned long init_val);
+extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+		unsigned long init_val);
 
 static inline int vma_pkey(struct vm_area_struct *vma)
 {

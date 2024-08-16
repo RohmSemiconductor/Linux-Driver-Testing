@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-#include <linux/export.h>
 #include <linux/linkage.h>
+#include <asm/export.h>
 
 #include <asm/asm.h>
 
@@ -32,16 +32,12 @@ SYM_FUNC_START(__sw_hweight32)
 	imull $0x01010101, %eax, %eax		# w_tmp *= 0x01010101
 	shrl $24, %eax				# w = w_tmp >> 24
 	__ASM_SIZE(pop,) %__ASM_REG(dx)
-	RET
+	ret
 SYM_FUNC_END(__sw_hweight32)
 EXPORT_SYMBOL(__sw_hweight32)
 
-/*
- * No 32-bit variant, because it's implemented as an inline wrapper
- * on top of __arch_hweight32():
- */
-#ifdef CONFIG_X86_64
 SYM_FUNC_START(__sw_hweight64)
+#ifdef CONFIG_X86_64
 	pushq   %rdi
 	pushq   %rdx
 
@@ -69,7 +65,19 @@ SYM_FUNC_START(__sw_hweight64)
 
 	popq    %rdx
 	popq    %rdi
-	RET
+	ret
+#else /* CONFIG_X86_32 */
+	/* We're getting an u64 arg in (%eax,%edx): unsigned long hweight64(__u64 w) */
+	pushl   %ecx
+
+	call    __sw_hweight32
+	movl    %eax, %ecx                      # stash away result
+	movl    %edx, %eax                      # second part of input
+	call    __sw_hweight32
+	addl    %ecx, %eax                      # result
+
+	popl    %ecx
+	ret
+#endif
 SYM_FUNC_END(__sw_hweight64)
 EXPORT_SYMBOL(__sw_hweight64)
-#endif

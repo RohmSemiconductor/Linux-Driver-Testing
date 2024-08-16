@@ -91,12 +91,6 @@ static void snd_hda_gen_spec_free(struct hda_gen_spec *spec)
 	free_kctls(spec);
 	snd_array_free(&spec->paths);
 	snd_array_free(&spec->loopback_list);
-#ifdef CONFIG_SND_HDA_GENERIC_LEDS
-	if (spec->led_cdevs[LED_AUDIO_MUTE])
-		led_classdev_unregister(spec->led_cdevs[LED_AUDIO_MUTE]);
-	if (spec->led_cdevs[LED_AUDIO_MICMUTE])
-		led_classdev_unregister(spec->led_cdevs[LED_AUDIO_MICMUTE]);
-#endif
 }
 
 /*
@@ -998,11 +992,7 @@ static int add_control_with_pfx(struct hda_gen_spec *spec, int type,
 				const char *sfx, int cidx, unsigned long val)
 {
 	char name[SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
-	int len;
-
-	len = snprintf(name, sizeof(name), "%s %s %s", pfx, dir, sfx);
-	if (snd_BUG_ON(len >= sizeof(name)))
-		return -EINVAL;
+	snprintf(name, sizeof(name), "%s %s %s", pfx, dir, sfx);
 	if (!add_control(spec, type, name, cidx, val))
 		return -ENOMEM;
 	return 0;
@@ -1159,8 +1149,8 @@ static bool path_has_mixer(struct hda_codec *codec, int path_idx, int ctl_type)
 	return path && path->ctls[ctl_type];
 }
 
-static const char * const channel_name[] = {
-	"Front", "Surround", "CLFE", "Side", "Back",
+static const char * const channel_name[4] = {
+	"Front", "Surround", "CLFE", "Side"
 };
 
 /* give some appropriate ctl name prefix for the given line out channel */
@@ -1186,7 +1176,7 @@ static const char *get_line_out_pfx(struct hda_codec *codec, int ch,
 
 	/* multi-io channels */
 	if (ch >= cfg->line_outs)
-		goto fixed_name;
+		return channel_name[ch];
 
 	switch (cfg->line_out_type) {
 	case AUTO_PIN_SPEAKER_OUT:
@@ -1238,7 +1228,6 @@ static const char *get_line_out_pfx(struct hda_codec *codec, int ch,
 	if (cfg->line_outs == 1 && !spec->multi_ios)
 		return "Line Out";
 
- fixed_name:
 	if (ch >= ARRAY_SIZE(channel_name)) {
 		snd_BUG();
 		return "PCM";
@@ -3933,10 +3922,7 @@ static int create_mute_led_cdev(struct hda_codec *codec,
 						enum led_brightness),
 				bool micmute)
 {
-	struct hda_gen_spec *spec = codec->spec;
 	struct led_classdev *cdev;
-	int idx = micmute ? LED_AUDIO_MICMUTE : LED_AUDIO_MUTE;
-	int err;
 
 	cdev = devm_kzalloc(&codec->core.dev, sizeof(*cdev), GFP_KERNEL);
 	if (!cdev)
@@ -3946,13 +3932,10 @@ static int create_mute_led_cdev(struct hda_codec *codec,
 	cdev->max_brightness = 1;
 	cdev->default_trigger = micmute ? "audio-micmute" : "audio-mute";
 	cdev->brightness_set_blocking = callback;
+	cdev->brightness = ledtrig_audio_get(micmute ? LED_AUDIO_MICMUTE : LED_AUDIO_MUTE);
 	cdev->flags = LED_CORE_SUSPENDRESUME;
 
-	err = led_classdev_register(&codec->core.dev, cdev);
-	if (err < 0)
-		return err;
-	spec->led_cdevs[idx] = cdev;
-	return 0;
+	return devm_led_classdev_register(&codec->core.dev, cdev);
 }
 
 /**

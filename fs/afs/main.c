@@ -41,6 +41,8 @@ const char afs_init_sysname[] = "arm_linux26";
 const char afs_init_sysname[] = "aarch64_linux26";
 #elif defined(CONFIG_X86_32)
 const char afs_init_sysname[] = "i386_linux26";
+#elif defined(CONFIG_IA64)
+const char afs_init_sysname[] = "ia64_linux26";
 #elif defined(CONFIG_PPC64)
 const char afs_init_sysname[] = "ppc64_linux26";
 #elif defined(CONFIG_PPC32)
@@ -90,7 +92,8 @@ static int __net_init afs_net_init(struct net *net_ns)
 	INIT_LIST_HEAD(&net->fs_probe_slow);
 	INIT_HLIST_HEAD(&net->fs_proc);
 
-	INIT_HLIST_HEAD(&net->fs_addresses);
+	INIT_HLIST_HEAD(&net->fs_addresses4);
+	INIT_HLIST_HEAD(&net->fs_addresses6);
 	seqlock_init(&net->fs_addr_lock);
 
 	INIT_WORK(&net->fs_manager, afs_manage_servers);
@@ -155,7 +158,6 @@ static void __net_exit afs_net_exit(struct net *net_ns)
 	afs_close_socket(net);
 	afs_proc_cleanup(net);
 	afs_put_sysnames(net->sysnames);
-	kfree_rcu(rcu_access_pointer(net->address_prefs), rcu);
 }
 
 static struct pernet_operations afs_net_ops = {
@@ -184,6 +186,13 @@ static int __init afs_init(void)
 	if (!afs_lock_manager)
 		goto error_lockmgr;
 
+#ifdef CONFIG_AFS_FSCACHE
+	/* we want to be able to cache */
+	ret = fscache_register_netfs(&afs_cache_netfs);
+	if (ret < 0)
+		goto error_cache;
+#endif
+
 	ret = register_pernet_device(&afs_net_ops);
 	if (ret < 0)
 		goto error_net;
@@ -206,6 +215,10 @@ error_proc:
 error_fs:
 	unregister_pernet_device(&afs_net_ops);
 error_net:
+#ifdef CONFIG_AFS_FSCACHE
+	fscache_unregister_netfs(&afs_cache_netfs);
+error_cache:
+#endif
 	destroy_workqueue(afs_lock_manager);
 error_lockmgr:
 	destroy_workqueue(afs_async_calls);
@@ -232,6 +245,9 @@ static void __exit afs_exit(void)
 	proc_remove(afs_proc_symlink);
 	afs_fs_exit();
 	unregister_pernet_device(&afs_net_ops);
+#ifdef CONFIG_AFS_FSCACHE
+	fscache_unregister_netfs(&afs_cache_netfs);
+#endif
 	destroy_workqueue(afs_lock_manager);
 	destroy_workqueue(afs_async_calls);
 	destroy_workqueue(afs_wq);

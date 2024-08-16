@@ -1,7 +1,6 @@
-// SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
+// SPDX-License-Identifier: GPL-2.0 or BSD-3-Clause
 /*
  * Copyright(c) 2015 - 2020 Intel Corporation.
- * Copyright(c) 2021 Cornelis Networks.
  */
 
 /*
@@ -1056,7 +1055,7 @@ static void read_link_down_reason(struct hfi1_devdata *dd, u8 *ldr);
 static void handle_temp_err(struct hfi1_devdata *dd);
 static void dc_shutdown(struct hfi1_devdata *dd);
 static void dc_start(struct hfi1_devdata *dd);
-static int qos_rmt_entries(unsigned int n_krcv_queues, unsigned int *mp,
+static int qos_rmt_entries(struct hfi1_devdata *dd, unsigned int *mp,
 			   unsigned int *np);
 static void clear_full_mgmt_pkey(struct hfi1_pportdata *ppd);
 static int wait_link_transfer_active(struct hfi1_devdata *dd, int wait_ms);
@@ -1461,8 +1460,7 @@ static u64 dc_access_lcb_cntr(const struct cntr_entry *entry, void *context,
 		ret = write_lcb_csr(dd, csr, data);
 
 	if (ret) {
-		if (!(dd->flags & HFI1_SHUTDOWN))
-			dd_dev_err(dd, "Could not acquire LCB for counter 0x%x", csr);
+		dd_dev_err(dd, "Could not acquire LCB for counter 0x%x", csr);
 		return 0;
 	}
 
@@ -5334,7 +5332,7 @@ static const char * const cce_misc_names[] = {
 static char *is_misc_err_name(char *buf, size_t bsize, unsigned int source)
 {
 	if (source < ARRAY_SIZE(cce_misc_names))
-		strscpy_pad(buf, cce_misc_names[source], bsize);
+		strncpy(buf, cce_misc_names[source], bsize);
 	else
 		snprintf(buf, bsize, "Reserved%u",
 			 source + IS_GENERAL_ERR_START);
@@ -5374,7 +5372,7 @@ static const char * const various_names[] = {
 static char *is_various_name(char *buf, size_t bsize, unsigned int source)
 {
 	if (source < ARRAY_SIZE(various_names))
-		strscpy_pad(buf, various_names[source], bsize);
+		strncpy(buf, various_names[source], bsize);
 	else
 		snprintf(buf, bsize, "Reserved%u", source + IS_VARIOUS_START);
 	return buf;
@@ -6161,7 +6159,7 @@ static int request_host_lcb_access(struct hfi1_devdata *dd)
 	ret = do_8051_command(dd, HCMD_MISC,
 			      (u64)HCMD_MISC_REQUEST_LCB_ACCESS <<
 			      LOAD_DATA_FIELD_ID_SHIFT, NULL);
-	if (ret != HCMD_SUCCESS && !(dd->flags & HFI1_SHUTDOWN)) {
+	if (ret != HCMD_SUCCESS) {
 		dd_dev_err(dd, "%s: command failed with error %d\n",
 			   __func__, ret);
 	}
@@ -6242,8 +6240,7 @@ int acquire_lcb_access(struct hfi1_devdata *dd, int sleep_ok)
 	if (dd->lcb_access_count == 0) {
 		ret = request_host_lcb_access(dd);
 		if (ret) {
-			if (!(dd->flags & HFI1_SHUTDOWN))
-				dd_dev_err(dd,
+			dd_dev_err(dd,
 				   "%s: unable to acquire LCB access, err %d\n",
 				   __func__, ret);
 			goto done;
@@ -8417,8 +8414,6 @@ static void receive_interrupt_common(struct hfi1_ctxtdata *rcd)
  */
 static void __hfi1_rcd_eoi_intr(struct hfi1_ctxtdata *rcd)
 {
-	if (!rcd->rcvhdrq)
-		return;
 	clear_recv_intr(rcd);
 	if (check_packet_present(rcd))
 		force_recv_intr(rcd);
@@ -8755,7 +8750,7 @@ static int do_8051_command(struct hfi1_devdata *dd, u32 type, u64 in_data,
 
 	/*
 	 * When writing a LCB CSR, out_data contains the full value to
-	 * be written, while in_data contains the relative LCB
+	 * to be written, while in_data contains the relative LCB
 	 * address in 7:0.  Do the work here, rather than the caller,
 	 * of distrubting the write data to where it needs to go:
 	 *
@@ -12137,7 +12132,7 @@ void hfi1_rcvctrl(struct hfi1_devdata *dd, unsigned int op,
 		set_intr_bits(dd, IS_RCVURGENT_START + rcd->ctxt,
 			      IS_RCVURGENT_START + rcd->ctxt, false);
 
-	hfi1_cdbg(RCVCTRL, "ctxt %d rcvctrl 0x%llx", ctxt, rcvctrl);
+	hfi1_cdbg(RCVCTRL, "ctxt %d rcvctrl 0x%llx\n", ctxt, rcvctrl);
 	write_kctxt_csr(dd, ctxt, RCV_CTXT_CTRL, rcvctrl);
 
 	/* work around sticky RcvCtxtStatus.BlockedRHQFull */
@@ -12207,10 +12202,10 @@ u32 hfi1_read_cntrs(struct hfi1_devdata *dd, char **namep, u64 **cntrp)
 			hfi1_cdbg(CNTR, "reading %s", entry->name);
 			if (entry->flags & CNTR_DISABLED) {
 				/* Nothing */
-				hfi1_cdbg(CNTR, "\tDisabled");
+				hfi1_cdbg(CNTR, "\tDisabled\n");
 			} else {
 				if (entry->flags & CNTR_VL) {
-					hfi1_cdbg(CNTR, "\tPer VL");
+					hfi1_cdbg(CNTR, "\tPer VL\n");
 					for (j = 0; j < C_VL_COUNT; j++) {
 						val = entry->rw_cntr(entry,
 								  dd, j,
@@ -12218,21 +12213,21 @@ u32 hfi1_read_cntrs(struct hfi1_devdata *dd, char **namep, u64 **cntrp)
 								  0);
 						hfi1_cdbg(
 						   CNTR,
-						   "\t\tRead 0x%llx for %d",
+						   "\t\tRead 0x%llx for %d\n",
 						   val, j);
 						dd->cntrs[entry->offset + j] =
 									    val;
 					}
 				} else if (entry->flags & CNTR_SDMA) {
 					hfi1_cdbg(CNTR,
-						  "\t Per SDMA Engine");
+						  "\t Per SDMA Engine\n");
 					for (j = 0; j < chip_sdma_engines(dd);
 					     j++) {
 						val =
 						entry->rw_cntr(entry, dd, j,
 							       CNTR_MODE_R, 0);
 						hfi1_cdbg(CNTR,
-							  "\t\tRead 0x%llx for %d",
+							  "\t\tRead 0x%llx for %d\n",
 							  val, j);
 						dd->cntrs[entry->offset + j] =
 									val;
@@ -12273,7 +12268,7 @@ u32 hfi1_read_portcntrs(struct hfi1_pportdata *ppd, char **namep, u64 **cntrp)
 			hfi1_cdbg(CNTR, "reading %s", entry->name);
 			if (entry->flags & CNTR_DISABLED) {
 				/* Nothing */
-				hfi1_cdbg(CNTR, "\tDisabled");
+				hfi1_cdbg(CNTR, "\tDisabled\n");
 				continue;
 			}
 
@@ -12309,7 +12304,6 @@ static void free_cntrs(struct hfi1_devdata *dd)
 
 	if (dd->synth_stats_timer.function)
 		del_timer_sync(&dd->synth_stats_timer);
-	cancel_work_sync(&dd->update_cntr_work);
 	ppd = (struct hfi1_pportdata *)(dd + 1);
 	for (i = 0; i < dd->num_pports; i++, ppd++) {
 		kfree(ppd->cntrs);
@@ -12516,7 +12510,7 @@ static void do_update_synth_timer(struct work_struct *work)
 
 	hfi1_cdbg(
 	    CNTR,
-	    "[%d] curr tx=0x%llx rx=0x%llx :: last tx=0x%llx rx=0x%llx",
+	    "[%d] curr tx=0x%llx rx=0x%llx :: last tx=0x%llx rx=0x%llx\n",
 	    dd->unit, cur_tx, cur_rx, dd->last_tx, dd->last_rx);
 
 	if ((cur_tx < dd->last_tx) || (cur_rx < dd->last_rx)) {
@@ -12530,7 +12524,7 @@ static void do_update_synth_timer(struct work_struct *work)
 	} else {
 		total_flits = (cur_tx - dd->last_tx) + (cur_rx - dd->last_rx);
 		hfi1_cdbg(CNTR,
-			  "[%d] total flits 0x%llx limit 0x%llx", dd->unit,
+			  "[%d] total flits 0x%llx limit 0x%llx\n", dd->unit,
 			  total_flits, (u64)CNTR_32BIT_MAX);
 		if (total_flits >= CNTR_32BIT_MAX) {
 			hfi1_cdbg(CNTR, "[%d] 32bit limit hit, updating",
@@ -13185,16 +13179,15 @@ static void read_mod_write(struct hfi1_devdata *dd, u16 src, u64 bits,
 {
 	u64 reg;
 	u16 idx = src / BITS_PER_REGISTER;
-	unsigned long flags;
 
-	spin_lock_irqsave(&dd->irq_src_lock, flags);
+	spin_lock(&dd->irq_src_lock);
 	reg = read_csr(dd, CCE_INT_MASK + (8 * idx));
 	if (set)
 		reg |= bits;
 	else
 		reg &= ~bits;
 	write_csr(dd, CCE_INT_MASK + (8 * idx), reg);
-	spin_unlock_irqrestore(&dd->irq_src_lock, flags);
+	spin_unlock(&dd->irq_src_lock);
 }
 
 /**
@@ -13366,6 +13359,7 @@ static int set_up_context_variables(struct hfi1_devdata *dd)
 	int ret;
 	unsigned ngroups;
 	int rmt_count;
+	int user_rmt_reduced;
 	u32 n_usr_ctxts;
 	u32 send_contexts = chip_send_contexts(dd);
 	u32 rcv_contexts = chip_rcv_contexts(dd);
@@ -13424,34 +13418,28 @@ static int set_up_context_variables(struct hfi1_devdata *dd)
 					 (num_kernel_contexts + n_usr_ctxts),
 					 &node_affinity.real_cpu_mask);
 	/*
-	 * RMT entries are allocated as follows:
-	 * 1. QOS (0 to 128 entries)
-	 * 2. FECN (num_kernel_context - 1 [a] + num_user_contexts +
-	 *          num_netdev_contexts [b])
-	 * 3. netdev (NUM_NETDEV_MAP_ENTRIES)
-	 *
-	 * Notes:
-	 * [a] Kernel contexts (except control) are included in FECN if kernel
-	 *     TID_RDMA is active.
-	 * [b] Netdev and user contexts are randomly allocated from the same
-	 *     context pool, so FECN must cover all contexts in the pool.
+	 * The RMT entries are currently allocated as shown below:
+	 * 1. QOS (0 to 128 entries);
+	 * 2. FECN (num_kernel_context - 1 + num_user_contexts +
+	 *    num_netdev_contexts);
+	 * 3. netdev (num_netdev_contexts).
+	 * It should be noted that FECN oversubscribe num_netdev_contexts
+	 * entries of RMT because both netdev and PSM could allocate any receive
+	 * context between dd->first_dyn_alloc_text and dd->num_rcv_contexts,
+	 * and PSM FECN must reserve an RMT entry for each possible PSM receive
+	 * context.
 	 */
-	rmt_count = qos_rmt_entries(num_kernel_contexts - 1, NULL, NULL)
-		    + (HFI1_CAP_IS_KSET(TID_RDMA) ? num_kernel_contexts - 1
-						  : 0)
-		    + n_usr_ctxts
-		    + num_netdev_contexts
-		    + NUM_NETDEV_MAP_ENTRIES;
-	if (rmt_count > NUM_MAP_ENTRIES) {
-		int over = rmt_count - NUM_MAP_ENTRIES;
-		/* try to squish user contexts, minimum of 1 */
-		if (over >= n_usr_ctxts) {
-			dd_dev_err(dd, "RMT overflow: reduce the requested number of contexts\n");
-			return -EINVAL;
-		}
-		dd_dev_err(dd, "RMT overflow: reducing # user contexts from %u to %u\n",
-			   n_usr_ctxts, n_usr_ctxts - over);
-		n_usr_ctxts -= over;
+	rmt_count = qos_rmt_entries(dd, NULL, NULL) + (num_netdev_contexts * 2);
+	if (HFI1_CAP_IS_KSET(TID_RDMA))
+		rmt_count += num_kernel_contexts - 1;
+	if (rmt_count + n_usr_ctxts > NUM_MAP_ENTRIES) {
+		user_rmt_reduced = NUM_MAP_ENTRIES - rmt_count;
+		dd_dev_err(dd,
+			   "RMT size is reducing the number of user receive contexts from %u to %d\n",
+			   n_usr_ctxts,
+			   user_rmt_reduced);
+		/* recalculate */
+		n_usr_ctxts = user_rmt_reduced;
 	}
 
 	/* the first N are kernel contexts, the rest are user/netdev contexts */
@@ -14308,15 +14296,15 @@ static void clear_rsm_rule(struct hfi1_devdata *dd, u8 rule_index)
 }
 
 /* return the number of RSM map table entries that will be used for QOS */
-static int qos_rmt_entries(unsigned int n_krcv_queues, unsigned int *mp,
+static int qos_rmt_entries(struct hfi1_devdata *dd, unsigned int *mp,
 			   unsigned int *np)
 {
 	int i;
 	unsigned int m, n;
-	uint max_by_vl = 0;
+	u8 max_by_vl = 0;
 
 	/* is QOS active at all? */
-	if (n_krcv_queues < MIN_KERNEL_KCTXTS ||
+	if (dd->n_krcv_queues <= MIN_KERNEL_KCTXTS ||
 	    num_vls == 1 ||
 	    krcvqsset <= 1)
 		goto no_qos;
@@ -14374,7 +14362,7 @@ static void init_qos(struct hfi1_devdata *dd, struct rsm_map_table *rmt)
 
 	if (!rmt)
 		goto bail;
-	rmt_entries = qos_rmt_entries(dd->n_krcv_queues - 1, &m, &n);
+	rmt_entries = qos_rmt_entries(dd, &m, &n);
 	if (rmt_entries == 0)
 		goto bail;
 	qpns_per_vl = 1 << m;
@@ -14930,7 +14918,7 @@ static int obtain_boardname(struct hfi1_devdata *dd)
 {
 	/* generic board description */
 	const char generic[] =
-		"Cornelis Omni-Path Host Fabric Interface Adapter 100 Series";
+		"Intel Omni-Path Host Fabric Interface Adapter 100 Series";
 	unsigned long size;
 	int ret;
 

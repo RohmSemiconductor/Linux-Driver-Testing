@@ -212,7 +212,8 @@ static int ssc_probe(struct platform_device *pdev)
 			of_property_read_bool(np, "atmel,clk-from-rk-pin");
 	}
 
-	ssc->regs = devm_platform_get_and_ioremap_resource(pdev, 0, &regs);
+	regs = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	ssc->regs = devm_ioremap_resource(&pdev->dev, regs);
 	if (IS_ERR(ssc->regs))
 		return PTR_ERR(ssc->regs);
 
@@ -231,9 +232,9 @@ static int ssc_probe(struct platform_device *pdev)
 	clk_disable_unprepare(ssc->clk);
 
 	ssc->irq = platform_get_irq(pdev, 0);
-	if (ssc->irq < 0) {
+	if (!ssc->irq) {
 		dev_dbg(&pdev->dev, "could not get irq\n");
-		return ssc->irq;
+		return -ENXIO;
 	}
 
 	mutex_lock(&user_lock);
@@ -275,7 +276,7 @@ static struct platform_driver ssc_driver = {
 };
 module_platform_driver(ssc_driver);
 
-MODULE_AUTHOR("Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>");
-MODULE_DESCRIPTION("SSC driver for Atmel AT91");
+MODULE_AUTHOR("Hans-Christian Egtvedt <hcegtvedt@atmel.com>");
+MODULE_DESCRIPTION("SSC driver for Atmel AVR32 and AT91");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:ssc");

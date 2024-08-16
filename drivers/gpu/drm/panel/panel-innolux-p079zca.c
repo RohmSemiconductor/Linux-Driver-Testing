@@ -7,6 +7,7 @@
 #include <linux/gpio/consumer.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/regulator/consumer.h>
 
 #include <video/mipi_display.h>
@@ -483,7 +484,6 @@ static void innolux_panel_del(struct innolux_panel *innolux)
 static int innolux_panel_probe(struct mipi_dsi_device *dsi)
 {
 	const struct panel_desc *desc;
-	struct innolux_panel *innolux;
 	int err;
 
 	desc = of_device_get_match_data(&dsi->dev);
@@ -495,17 +495,10 @@ static int innolux_panel_probe(struct mipi_dsi_device *dsi)
 	if (err < 0)
 		return err;
 
-	err = mipi_dsi_attach(dsi);
-	if (err < 0) {
-		innolux = mipi_dsi_get_drvdata(dsi);
-		innolux_panel_del(innolux);
-		return err;
-	}
-
-	return 0;
+	return mipi_dsi_attach(dsi);
 }
 
-static void innolux_panel_remove(struct mipi_dsi_device *dsi)
+static int innolux_panel_remove(struct mipi_dsi_device *dsi)
 {
 	struct innolux_panel *innolux = mipi_dsi_get_drvdata(dsi);
 	int err;
@@ -523,6 +516,8 @@ static void innolux_panel_remove(struct mipi_dsi_device *dsi)
 		dev_err(&dsi->dev, "failed to detach from DSI host: %d\n", err);
 
 	innolux_panel_del(innolux);
+
+	return 0;
 }
 
 static void innolux_panel_shutdown(struct mipi_dsi_device *dsi)

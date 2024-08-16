@@ -320,24 +320,46 @@ snd_rme96_playback_silence(struct snd_pcm_substream *substream,
 static int
 snd_rme96_playback_copy(struct snd_pcm_substream *substream,
 			int channel, unsigned long pos,
-			struct iov_iter *src, unsigned long count)
+			void __user *src, unsigned long count)
 {
 	struct rme96 *rme96 = snd_pcm_substream_chip(substream);
 
-	return copy_from_iter_toio(rme96->iobase + RME96_IO_PLAY_BUFFER + pos,
+	return copy_from_user_toio(rme96->iobase + RME96_IO_PLAY_BUFFER + pos,
 				   src, count);
+}
+
+static int
+snd_rme96_playback_copy_kernel(struct snd_pcm_substream *substream,
+			       int channel, unsigned long pos,
+			       void *src, unsigned long count)
+{
+	struct rme96 *rme96 = snd_pcm_substream_chip(substream);
+
+	memcpy_toio(rme96->iobase + RME96_IO_PLAY_BUFFER + pos, src, count);
+	return 0;
 }
 
 static int
 snd_rme96_capture_copy(struct snd_pcm_substream *substream,
 		       int channel, unsigned long pos,
-		       struct iov_iter *dst, unsigned long count)
+		       void __user *dst, unsigned long count)
 {
 	struct rme96 *rme96 = snd_pcm_substream_chip(substream);
 
-	return copy_to_iter_fromio(dst,
+	return copy_to_user_fromio(dst,
 				   rme96->iobase + RME96_IO_REC_BUFFER + pos,
 				   count);
+}
+
+static int
+snd_rme96_capture_copy_kernel(struct snd_pcm_substream *substream,
+			      int channel, unsigned long pos,
+			      void *dst, unsigned long count)
+{
+	struct rme96 *rme96 = snd_pcm_substream_chip(substream);
+
+	memcpy_fromio(dst, rme96->iobase + RME96_IO_REC_BUFFER + pos, count);
+	return 0;
 }
 
 /*
@@ -1496,7 +1518,8 @@ static const struct snd_pcm_ops snd_rme96_playback_spdif_ops = {
 	.prepare =	snd_rme96_playback_prepare,
 	.trigger =	snd_rme96_playback_trigger,
 	.pointer =	snd_rme96_playback_pointer,
-	.copy =		snd_rme96_playback_copy,
+	.copy_user =	snd_rme96_playback_copy,
+	.copy_kernel =	snd_rme96_playback_copy_kernel,
 	.fill_silence =	snd_rme96_playback_silence,
 	.mmap =		snd_pcm_lib_mmap_iomem,
 };
@@ -1508,7 +1531,8 @@ static const struct snd_pcm_ops snd_rme96_capture_spdif_ops = {
 	.prepare =	snd_rme96_capture_prepare,
 	.trigger =	snd_rme96_capture_trigger,
 	.pointer =	snd_rme96_capture_pointer,
-	.copy =		snd_rme96_capture_copy,
+	.copy_user =	snd_rme96_capture_copy,
+	.copy_kernel =	snd_rme96_capture_copy_kernel,
 	.mmap =		snd_pcm_lib_mmap_iomem,
 };
 
@@ -1519,7 +1543,8 @@ static const struct snd_pcm_ops snd_rme96_playback_adat_ops = {
 	.prepare =	snd_rme96_playback_prepare,
 	.trigger =	snd_rme96_playback_trigger,
 	.pointer =	snd_rme96_playback_pointer,
-	.copy =		snd_rme96_playback_copy,
+	.copy_user =	snd_rme96_playback_copy,
+	.copy_kernel =	snd_rme96_playback_copy_kernel,
 	.fill_silence =	snd_rme96_playback_silence,
 	.mmap =		snd_pcm_lib_mmap_iomem,
 };
@@ -1531,7 +1556,8 @@ static const struct snd_pcm_ops snd_rme96_capture_adat_ops = {
 	.prepare =	snd_rme96_capture_prepare,
 	.trigger =	snd_rme96_capture_trigger,
 	.pointer =	snd_rme96_capture_pointer,
-	.copy =		snd_rme96_capture_copy,
+	.copy_user =	snd_rme96_capture_copy,
+	.copy_kernel =	snd_rme96_capture_copy_kernel,
 	.mmap =		snd_pcm_lib_mmap_iomem,
 };
 
@@ -2404,8 +2430,8 @@ static void snd_rme96_card_free(struct snd_card *card)
 }
 
 static int
-__snd_rme96_probe(struct pci_dev *pci,
-		  const struct pci_device_id *pci_id)
+snd_rme96_probe(struct pci_dev *pci,
+		const struct pci_device_id *pci_id)
 {
 	static int dev;
 	struct rme96 *rme96;
@@ -2470,12 +2496,6 @@ __snd_rme96_probe(struct pci_dev *pci,
 	pci_set_drvdata(pci, card);
 	dev++;
 	return 0;
-}
-
-static int snd_rme96_probe(struct pci_dev *pci,
-			   const struct pci_device_id *pci_id)
-{
-	return snd_card_free_on_error(&pci->dev, __snd_rme96_probe(pci, pci_id));
 }
 
 static struct pci_driver rme96_driver = {

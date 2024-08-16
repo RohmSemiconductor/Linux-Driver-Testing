@@ -3,8 +3,6 @@
  * Copyright © 2021 Intel Corporation
  */
 
-#include <linux/jiffies.h>
-
 //#include "gt/intel_engine_user.h"
 #include "gt/intel_gt.h"
 #include "i915_drv.h"
@@ -14,23 +12,12 @@
 
 #define REDUCED_TIMESLICE	5
 #define REDUCED_PREEMPT		10
-#define WAIT_FOR_RESET_TIME_MS	10000
-
-struct intel_engine_cs *intel_selftest_find_any_engine(struct intel_gt *gt)
-{
-	struct intel_engine_cs *engine;
-	enum intel_engine_id id;
-
-	for_each_engine(engine, gt, id)
-		return engine;
-
-	pr_err("No valid engine found!\n");
-	return NULL;
-}
+#define WAIT_FOR_RESET_TIME	10000
 
 int intel_selftest_modify_policy(struct intel_engine_cs *engine,
 				 struct intel_selftest_saved_policy *saved,
-				 enum selftest_scheduler_modify modify_type)
+				 u32 modify_type)
+
 {
 	int err;
 
@@ -93,7 +80,7 @@ int intel_selftest_wait_for_rq(struct i915_request *rq)
 {
 	long ret;
 
-	ret = i915_request_wait(rq, 0, msecs_to_jiffies(WAIT_FOR_RESET_TIME_MS));
+	ret = i915_request_wait(rq, 0, WAIT_FOR_RESET_TIME);
 	if (ret < 0)
 		return ret;
 

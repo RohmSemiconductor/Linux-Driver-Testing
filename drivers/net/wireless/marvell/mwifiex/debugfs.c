@@ -1,8 +1,20 @@
-// SPDX-License-Identifier: GPL-2.0-only
 /*
  * NXP Wireless LAN device driver: debugfs
  *
  * Copyright 2011-2020 NXP
+ *
+ * This software file (the "File") is distributed by NXP
+ * under the terms of the GNU General Public License Version 2, June 1991
+ * (the "License").  You may use, redistribute and/or modify this File in
+ * accordance with the terms and conditions of the License, a copy of which
+ * is available by writing to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or on the
+ * worldwide web at http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
+ *
+ * THE FILE IS DISTRIBUTED AS-IS, WITHOUT WARRANTY OF ANY KIND, AND THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE
+ * ARE EXPRESSLY DISCLAIMED.  The License provides additional details about
+ * this warranty disclaimer.
  */
 
 #include <linux/debugfs.h>
@@ -253,11 +265,8 @@ mwifiex_histogram_read(struct file *file, char __user *ubuf,
 	if (!p)
 		return -ENOMEM;
 
-	if (!priv || !priv->hist_data) {
-		ret = -EFAULT;
-		goto free_and_exit;
-	}
-
+	if (!priv || !priv->hist_data)
+		return -EFAULT;
 	phist_data = priv->hist_data;
 
 	p += sprintf(p, "\n"
@@ -312,8 +321,6 @@ mwifiex_histogram_read(struct file *file, char __user *ubuf,
 	ret = simple_read_from_buffer(ubuf, count, ppos, (char *)page,
 				      (unsigned long)p - page);
 
-free_and_exit:
-	free_page(page);
 	return ret;
 }
 
@@ -425,10 +432,7 @@ mwifiex_regrdwr_write(struct file *file,
 	if (IS_ERR(buf))
 		return PTR_ERR(buf);
 
-	if (sscanf(buf, "%u %x %x", &reg_type, &reg_offset, &reg_value) != 3) {
-		ret = -EINVAL;
-		goto done;
-	}
+	sscanf(buf, "%u %x %x", &reg_type, &reg_offset, &reg_value);
 
 	if (reg_type == 0 || reg_offset == 0) {
 		ret = -EINVAL;
@@ -694,10 +698,7 @@ mwifiex_rdeeprom_write(struct file *file,
 	if (IS_ERR(buf))
 		return PTR_ERR(buf);
 
-	if (sscanf(buf, "%d %d", &offset, &bytes) != 2) {
-		ret = -EINVAL;
-		goto done;
-	}
+	sscanf(buf, "%d %d", &offset, &bytes);
 
 	if (offset == -1 || bytes == -1) {
 		ret = -EINVAL;
@@ -885,7 +886,7 @@ mwifiex_timeshare_coex_write(struct file *file, const char __user *ubuf,
 	if (copy_from_user(&kbuf, ubuf, min_t(size_t, sizeof(kbuf) - 1, count)))
 		return -EFAULT;
 
-	if (kstrtobool(kbuf, &timeshare_coex))
+	if (strtobool(kbuf, &timeshare_coex))
 		return -EINVAL;
 
 	ret = mwifiex_send_cmd(priv, HostCmd_CMD_ROBUST_COEX,

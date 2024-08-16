@@ -6,6 +6,7 @@
  */
 
 #include <linux/syscalls.h>
+#include <asm/unistd.h>
 #include <asm/cacheflush.h>
 #include <asm-generic/mman-common.h>
 
@@ -16,6 +17,10 @@ static long riscv_sys_mmap(unsigned long addr, unsigned long len,
 {
 	if (unlikely(offset & (~PAGE_MASK >> page_shift_offset)))
 		return -EINVAL;
+
+	if ((prot & PROT_WRITE) && (prot & PROT_EXEC))
+		if (unlikely(!(prot & PROT_READ)))
+			return -EINVAL;
 
 	return ksys_mmap_pgoff(addr, len, prot, flags, fd,
 			       offset >> (PAGE_SHIFT - page_shift_offset));
@@ -28,9 +33,7 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
 {
 	return riscv_sys_mmap(addr, len, prot, flags, fd, offset, 0);
 }
-#endif
-
-#if defined(CONFIG_32BIT) || defined(CONFIG_COMPAT)
+#else
 SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
 	unsigned long, prot, unsigned long, flags,
 	unsigned long, fd, off_t, offset)
@@ -41,7 +44,7 @@ SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
 	 */
 	return riscv_sys_mmap(addr, len, prot, flags, fd, offset, 12);
 }
-#endif
+#endif /* !CONFIG_64BIT */
 
 /*
  * Allows the instruction cache to be flushed from userspace.  Despite RISC-V
@@ -67,10 +70,4 @@ SYSCALL_DEFINE3(riscv_flush_icache, uintptr_t, start, uintptr_t, end,
 	flush_icache_mm(current->mm, flags & SYS_RISCV_FLUSH_ICACHE_LOCAL);
 
 	return 0;
-}
-
-/* Not defined using SYSCALL_DEFINE0 to avoid error injection */
-asmlinkage long __riscv_sys_ni_syscall(const struct pt_regs *__unused)
-{
-	return -ENOSYS;
 }
