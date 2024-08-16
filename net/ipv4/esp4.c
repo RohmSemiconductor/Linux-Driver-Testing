@@ -134,7 +134,6 @@ static void esp_free_tcp_sk(struct rcu_head *head)
 static struct sock *esp_find_tcp_sk(struct xfrm_state *x)
 {
 	struct xfrm_encap_tmpl *encap = x->encap;
-	struct net *net = xs_net(x);
 	struct esp_tcp_sk *esk;
 	__be16 sport, dport;
 	struct sock *nsk;
@@ -161,7 +160,7 @@ static struct sock *esp_find_tcp_sk(struct xfrm_state *x)
 	}
 	spin_unlock_bh(&x->lock);
 
-	sk = inet_lookup_established(net, net->ipv4.tcp_death_row.hashinfo, x->id.daddr.a4,
+	sk = inet_lookup_established(xs_net(x), &tcp_hashinfo, x->id.daddr.a4,
 				     dport, x->props.saddr.a4, sport, 0);
 	if (!sk)
 		return ERR_PTR(-ENOENT);
@@ -244,9 +243,9 @@ static int esp_output_tail_tcp(struct xfrm_state *x, struct sk_buff *skb)
 }
 #endif
 
-static void esp_output_done(void *data, int err)
+static void esp_output_done(struct crypto_async_request *base, int err)
 {
-	struct sk_buff *skb = data;
+	struct sk_buff *skb = base->data;
 	struct xfrm_offload *xo = xfrm_offload(skb);
 	void *tmp;
 	struct xfrm_state *x;
@@ -332,12 +331,12 @@ static struct ip_esp_hdr *esp_output_set_extra(struct sk_buff *skb,
 	return esph;
 }
 
-static void esp_output_done_esn(void *data, int err)
+static void esp_output_done_esn(struct crypto_async_request *base, int err)
 {
-	struct sk_buff *skb = data;
+	struct sk_buff *skb = base->data;
 
 	esp_output_restore_header(skb);
-	esp_output_done(data, err);
+	esp_output_done(base, err);
 }
 
 static struct ip_esp_hdr *esp_output_udp_encap(struct sk_buff *skb,
@@ -456,10 +455,6 @@ int esp_output_head(struct xfrm_state *x, struct sk_buff *skb, struct esp_info *
 			return err;
 	}
 
-	if (ALIGN(tailen, L1_CACHE_BYTES) > PAGE_SIZE ||
-	    ALIGN(skb->data_len, L1_CACHE_BYTES) > PAGE_SIZE)
-		goto cow;
-
 	if (!skb_cloned(skb)) {
 		if (tailen <= skb_tailroom(skb)) {
 			nfrags = 1;
@@ -503,7 +498,9 @@ int esp_output_head(struct xfrm_state *x, struct sk_buff *skb, struct esp_info *
 
 			nfrags++;
 
-			skb_len_add(skb, tailen);
+			skb->len += tailen;
+			skb->data_len += tailen;
+			skb->truesize += tailen;
 			if (sk && sk_fullsock(sk))
 				refcount_add(tailen, &sk->sk_wmem_alloc);
 
@@ -674,7 +671,7 @@ static int esp_output(struct xfrm_state *x, struct sk_buff *skb)
 		struct xfrm_dst *dst = (struct xfrm_dst *)skb_dst(skb);
 		u32 padto;
 
-		padto = min(x->tfcpad, xfrm_state_mtu(x, dst->child_mtu_cached));
+		padto = min(x->tfcpad, __xfrm_state_mtu(x, dst->child_mtu_cached));
 		if (skb->len < padto)
 			esp.tfclen = padto - skb->len;
 	}
@@ -704,6 +701,7 @@ static int esp_output(struct xfrm_state *x, struct sk_buff *skb)
 static inline int esp_remove_trailer(struct sk_buff *skb)
 {
 	struct xfrm_state *x = xfrm_input_state(skb);
+	struct xfrm_offload *xo = xfrm_offload(skb);
 	struct crypto_aead *aead = x->data;
 	int alen, hlen, elen;
 	int padlen, trimlen;
@@ -714,6 +712,11 @@ static inline int esp_remove_trailer(struct sk_buff *skb)
 	alen = crypto_aead_authsize(aead);
 	hlen = sizeof(struct ip_esp_hdr) + crypto_aead_ivsize(aead);
 	elen = skb->len - hlen;
+
+	if (xo && (xo->flags & XFRM_ESP_NO_TRAILER)) {
+		ret = xo->proto;
+		goto out;
+	}
 
 	if (skb_copy_bits(skb, skb->len - alen - 2, nexthdr, 2))
 		BUG();
@@ -732,9 +735,7 @@ static inline int esp_remove_trailer(struct sk_buff *skb)
 		skb->csum = csum_block_sub(skb->csum, csumdiff,
 					   skb->len - trimlen);
 	}
-	ret = pskb_trim(skb, skb->len - trimlen);
-	if (unlikely(ret))
-		return ret;
+	pskb_trim(skb, skb->len - trimlen);
 
 	ret = nexthdr[1];
 
@@ -786,7 +787,7 @@ int esp_input_done2(struct sk_buff *skb, int err)
 
 		/*
 		 * 1) if the NAT-T peer's IP or port changed then
-		 *    advertise the change to the keying daemon.
+		 *    advertize the change to the keying daemon.
 		 *    This is an inbound SA, so just compare
 		 *    SRC ports.
 		 */
@@ -832,9 +833,9 @@ out:
 }
 EXPORT_SYMBOL_GPL(esp_input_done2);
 
-static void esp_input_done(void *data, int err)
+static void esp_input_done(struct crypto_async_request *base, int err)
 {
-	struct sk_buff *skb = data;
+	struct sk_buff *skb = base->data;
 
 	xfrm_input_resume(skb, esp_input_done2(skb, err));
 }
@@ -862,12 +863,12 @@ static void esp_input_set_header(struct sk_buff *skb, __be32 *seqhi)
 	}
 }
 
-static void esp_input_done_esn(void *data, int err)
+static void esp_input_done_esn(struct crypto_async_request *base, int err)
 {
-	struct sk_buff *skb = data;
+	struct sk_buff *skb = base->data;
 
 	esp_input_restore_header(skb);
-	esp_input_done(data, err);
+	esp_input_done(base, err);
 }
 
 /*
@@ -1010,17 +1011,16 @@ static void esp_destroy(struct xfrm_state *x)
 	crypto_free_aead(aead);
 }
 
-static int esp_init_aead(struct xfrm_state *x, struct netlink_ext_ack *extack)
+static int esp_init_aead(struct xfrm_state *x)
 {
 	char aead_name[CRYPTO_MAX_ALG_NAME];
 	struct crypto_aead *aead;
 	int err;
 
+	err = -ENAMETOOLONG;
 	if (snprintf(aead_name, CRYPTO_MAX_ALG_NAME, "%s(%s)",
-		     x->geniv, x->aead->alg_name) >= CRYPTO_MAX_ALG_NAME) {
-		NL_SET_ERR_MSG(extack, "Algorithm name is too long");
-		return -ENAMETOOLONG;
-	}
+		     x->geniv, x->aead->alg_name) >= CRYPTO_MAX_ALG_NAME)
+		goto error;
 
 	aead = crypto_alloc_aead(aead_name, 0, 0);
 	err = PTR_ERR(aead);
@@ -1038,15 +1038,11 @@ static int esp_init_aead(struct xfrm_state *x, struct netlink_ext_ack *extack)
 	if (err)
 		goto error;
 
-	return 0;
-
 error:
-	NL_SET_ERR_MSG(extack, "Kernel was unable to initialize cryptographic operations");
 	return err;
 }
 
-static int esp_init_authenc(struct xfrm_state *x,
-			    struct netlink_ext_ack *extack)
+static int esp_init_authenc(struct xfrm_state *x)
 {
 	struct crypto_aead *aead;
 	struct crypto_authenc_key_param *param;
@@ -1057,6 +1053,10 @@ static int esp_init_authenc(struct xfrm_state *x,
 	unsigned int keylen;
 	int err;
 
+	err = -EINVAL;
+	if (!x->ealg)
+		goto error;
+
 	err = -ENAMETOOLONG;
 
 	if ((x->props.flags & XFRM_STATE_ESN)) {
@@ -1065,28 +1065,22 @@ static int esp_init_authenc(struct xfrm_state *x,
 			     x->geniv ?: "", x->geniv ? "(" : "",
 			     x->aalg ? x->aalg->alg_name : "digest_null",
 			     x->ealg->alg_name,
-			     x->geniv ? ")" : "") >= CRYPTO_MAX_ALG_NAME) {
-			NL_SET_ERR_MSG(extack, "Algorithm name is too long");
+			     x->geniv ? ")" : "") >= CRYPTO_MAX_ALG_NAME)
 			goto error;
-		}
 	} else {
 		if (snprintf(authenc_name, CRYPTO_MAX_ALG_NAME,
 			     "%s%sauthenc(%s,%s)%s",
 			     x->geniv ?: "", x->geniv ? "(" : "",
 			     x->aalg ? x->aalg->alg_name : "digest_null",
 			     x->ealg->alg_name,
-			     x->geniv ? ")" : "") >= CRYPTO_MAX_ALG_NAME) {
-			NL_SET_ERR_MSG(extack, "Algorithm name is too long");
+			     x->geniv ? ")" : "") >= CRYPTO_MAX_ALG_NAME)
 			goto error;
-		}
 	}
 
 	aead = crypto_alloc_aead(authenc_name, 0, 0);
 	err = PTR_ERR(aead);
-	if (IS_ERR(aead)) {
-		NL_SET_ERR_MSG(extack, "Kernel was unable to initialize cryptographic operations");
+	if (IS_ERR(aead))
 		goto error;
-	}
 
 	x->data = aead;
 
@@ -1116,16 +1110,17 @@ static int esp_init_authenc(struct xfrm_state *x,
 		err = -EINVAL;
 		if (aalg_desc->uinfo.auth.icv_fullbits / 8 !=
 		    crypto_aead_authsize(aead)) {
-			NL_SET_ERR_MSG(extack, "Kernel was unable to initialize cryptographic operations");
+			pr_info("ESP: %s digestsize %u != %hu\n",
+				x->aalg->alg_name,
+				crypto_aead_authsize(aead),
+				aalg_desc->uinfo.auth.icv_fullbits / 8);
 			goto free_key;
 		}
 
 		err = crypto_aead_setauthsize(
 			aead, x->aalg->alg_trunc_len / 8);
-		if (err) {
-			NL_SET_ERR_MSG(extack, "Kernel was unable to initialize cryptographic operations");
+		if (err)
 			goto free_key;
-		}
 	}
 
 	param->enckeylen = cpu_to_be32((x->ealg->alg_key_len + 7) / 8);
@@ -1134,13 +1129,13 @@ static int esp_init_authenc(struct xfrm_state *x,
 	err = crypto_aead_setkey(aead, key, keylen);
 
 free_key:
-	kfree_sensitive(key);
+	kfree(key);
 
 error:
 	return err;
 }
 
-static int esp_init_state(struct xfrm_state *x, struct netlink_ext_ack *extack)
+static int esp_init_state(struct xfrm_state *x)
 {
 	struct crypto_aead *aead;
 	u32 align;
@@ -1148,14 +1143,10 @@ static int esp_init_state(struct xfrm_state *x, struct netlink_ext_ack *extack)
 
 	x->data = NULL;
 
-	if (x->aead) {
-		err = esp_init_aead(x, extack);
-	} else if (x->ealg) {
-		err = esp_init_authenc(x, extack);
-	} else {
-		NL_SET_ERR_MSG(extack, "ESP: AEAD or CRYPT must be provided");
-		err = -EINVAL;
-	}
+	if (x->aead)
+		err = esp_init_aead(x);
+	else
+		err = esp_init_authenc(x);
 
 	if (err)
 		goto error;
@@ -1173,7 +1164,6 @@ static int esp_init_state(struct xfrm_state *x, struct netlink_ext_ack *extack)
 
 		switch (encap->encap_type) {
 		default:
-			NL_SET_ERR_MSG(extack, "Unsupported encapsulation type for ESP");
 			err = -EINVAL;
 			goto error;
 		case UDP_ENCAP_ESPINUDP:
@@ -1247,6 +1237,5 @@ static void __exit esp4_fini(void)
 
 module_init(esp4_init);
 module_exit(esp4_fini);
-MODULE_DESCRIPTION("IPv4 ESP transformation library");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS_XFRM_TYPE(AF_INET, XFRM_PROTO_ESP);

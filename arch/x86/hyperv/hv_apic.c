@@ -46,7 +46,7 @@ static void hv_apic_icr_write(u32 low, u32 id)
 {
 	u64 reg_val;
 
-	reg_val = SET_XAPIC_DEST_FIELD(id);
+	reg_val = SET_APIC_DEST_FIELD(id);
 	reg_val = reg_val << 32;
 	reg_val |= low;
 
@@ -86,27 +86,22 @@ static void hv_apic_write(u32 reg, u32 val)
 	}
 }
 
-static void hv_apic_eoi_write(void)
+static void hv_apic_eoi_write(u32 reg, u32 val)
 {
 	struct hv_vp_assist_page *hvp = hv_vp_assist_page[smp_processor_id()];
 
 	if (hvp && (xchg(&hvp->apic_assist, 0) & 0x1))
 		return;
 
-	wrmsr(HV_X64_MSR_EOI, APIC_EOI_ACK, 0);
-}
-
-static bool cpu_is_self(int cpu)
-{
-	return cpu == smp_processor_id();
+	wrmsr(HV_X64_MSR_EOI, val, 0);
 }
 
 /*
  * IPI implementation on Hyper-V.
  */
-static bool __send_ipi_mask_ex(const struct cpumask *mask, int vector,
-		bool exclude_self)
+static bool __send_ipi_mask_ex(const struct cpumask *mask, int vector)
 {
+	struct hv_send_ipi_ex **arg;
 	struct hv_send_ipi_ex *ipi_arg;
 	unsigned long flags;
 	int nr_bank = 0;
@@ -116,8 +111,9 @@ static bool __send_ipi_mask_ex(const struct cpumask *mask, int vector,
 		return false;
 
 	local_irq_save(flags);
-	ipi_arg = *this_cpu_ptr(hyperv_pcpu_input_arg);
+	arg = (struct hv_send_ipi_ex **)this_cpu_ptr(hyperv_pcpu_input_arg);
 
+	ipi_arg = *arg;
 	if (unlikely(!ipi_arg))
 		goto ipi_mask_ex_done;
 
@@ -125,26 +121,14 @@ static bool __send_ipi_mask_ex(const struct cpumask *mask, int vector,
 	ipi_arg->reserved = 0;
 	ipi_arg->vp_set.valid_bank_mask = 0;
 
-	/*
-	 * Use HV_GENERIC_SET_ALL and avoid converting cpumask to VP_SET
-	 * when the IPI is sent to all currently present CPUs.
-	 */
-	if (!cpumask_equal(mask, cpu_present_mask) || exclude_self) {
+	if (!cpumask_equal(mask, cpu_present_mask)) {
 		ipi_arg->vp_set.format = HV_GENERIC_SET_SPARSE_4K;
-
-		nr_bank = cpumask_to_vpset_skip(&(ipi_arg->vp_set), mask,
-				exclude_self ? cpu_is_self : NULL);
-
-		/*
-		 * 'nr_bank <= 0' means some CPUs in cpumask can't be
-		 * represented in VP_SET. Return an error and fall back to
-		 * native (architectural) method of sending IPIs.
-		 */
-		if (nr_bank <= 0)
-			goto ipi_mask_ex_done;
-	} else {
-		ipi_arg->vp_set.format = HV_GENERIC_SET_ALL;
+		nr_bank = cpumask_to_vpset(&(ipi_arg->vp_set), mask);
 	}
+	if (nr_bank < 0)
+		goto ipi_mask_ex_done;
+	if (!nr_bank)
+		ipi_arg->vp_set.format = HV_GENERIC_SET_ALL;
 
 	status = hv_do_rep_hypercall(HVCALL_SEND_IPI_EX, 0, nr_bank,
 			      ipi_arg, NULL);
@@ -154,32 +138,19 @@ ipi_mask_ex_done:
 	return hv_result_success(status);
 }
 
-static bool __send_ipi_mask(const struct cpumask *mask, int vector,
-		bool exclude_self)
+static bool __send_ipi_mask(const struct cpumask *mask, int vector)
 {
-	int cur_cpu, vcpu, this_cpu = smp_processor_id();
+	int cur_cpu, vcpu;
 	struct hv_send_ipi ipi_arg;
 	u64 status;
-	unsigned int weight;
 
 	trace_hyperv_send_ipi_mask(mask, vector);
 
-	weight = cpumask_weight(mask);
-
-	/*
-	 * Do nothing if
-	 *   1. the mask is empty
-	 *   2. the mask only contains self when exclude_self is true
-	 */
-	if (weight == 0 ||
-	    (exclude_self && weight == 1 && cpumask_test_cpu(this_cpu, mask)))
+	if (cpumask_empty(mask))
 		return true;
 
-	/* A fully enlightened TDX VM uses GHCI rather than hv_hypercall_pg. */
-	if (!hv_hypercall_pg) {
-		if (ms_hyperv.paravisor_present || !hv_isolation_type_tdx())
-			return false;
-	}
+	if (!hv_hypercall_pg)
+		return false;
 
 	if ((vector < HV_IPI_LOW_VECTOR) || (vector > HV_IPI_HIGH_VECTOR))
 		return false;
@@ -201,15 +172,13 @@ static bool __send_ipi_mask(const struct cpumask *mask, int vector,
 	ipi_arg.cpu_mask = 0;
 
 	for_each_cpu(cur_cpu, mask) {
-		if (exclude_self && cur_cpu == this_cpu)
-			continue;
 		vcpu = hv_cpu_number_to_vp_number(cur_cpu);
 		if (vcpu == VP_INVAL)
 			return false;
 
 		/*
 		 * This particular version of the IPI hypercall can
-		 * only target up to 64 CPUs.
+		 * only target upto 64 CPUs.
 		 */
 		if (vcpu >= 64)
 			goto do_ex_hypercall;
@@ -222,7 +191,7 @@ static bool __send_ipi_mask(const struct cpumask *mask, int vector,
 	return hv_result_success(status);
 
 do_ex_hypercall:
-	return __send_ipi_mask_ex(mask, vector, exclude_self);
+	return __send_ipi_mask_ex(mask, vector);
 }
 
 static bool __send_ipi_one(int cpu, int vector)
@@ -232,20 +201,14 @@ static bool __send_ipi_one(int cpu, int vector)
 
 	trace_hyperv_send_ipi_one(cpu, vector);
 
-	if (vp == VP_INVAL)
+	if (!hv_hypercall_pg || (vp == VP_INVAL))
 		return false;
-
-	/* A fully enlightened TDX VM uses GHCI rather than hv_hypercall_pg. */
-	if (!hv_hypercall_pg) {
-		if (ms_hyperv.paravisor_present || !hv_isolation_type_tdx())
-			return false;
-	}
 
 	if ((vector < HV_IPI_LOW_VECTOR) || (vector > HV_IPI_HIGH_VECTOR))
 		return false;
 
 	if (vp >= 64)
-		return __send_ipi_mask_ex(cpumask_of(cpu), vector, false);
+		return __send_ipi_mask_ex(cpumask_of(cpu), vector);
 
 	status = hv_do_fast_hypercall16(HVCALL_SEND_IPI, vector, BIT_ULL(vp));
 	return hv_result_success(status);
@@ -259,13 +222,20 @@ static void hv_send_ipi(int cpu, int vector)
 
 static void hv_send_ipi_mask(const struct cpumask *mask, int vector)
 {
-	if (!__send_ipi_mask(mask, vector, false))
+	if (!__send_ipi_mask(mask, vector))
 		orig_apic.send_IPI_mask(mask, vector);
 }
 
 static void hv_send_ipi_mask_allbutself(const struct cpumask *mask, int vector)
 {
-	if (!__send_ipi_mask(mask, vector, true))
+	unsigned int this_cpu = smp_processor_id();
+	struct cpumask new_mask;
+	const struct cpumask *local_mask;
+
+	cpumask_copy(&new_mask, mask);
+	cpumask_clear_cpu(this_cpu, &new_mask);
+	local_mask = &new_mask;
+	if (!__send_ipi_mask(local_mask, vector))
 		orig_apic.send_IPI_mask_allbutself(mask, vector);
 }
 
@@ -276,7 +246,7 @@ static void hv_send_ipi_allbutself(int vector)
 
 static void hv_send_ipi_all(int vector)
 {
-	if (!__send_ipi_mask(cpu_online_mask, vector, false))
+	if (!__send_ipi_mask(cpu_online_mask, vector))
 		orig_apic.send_IPI_all(vector);
 }
 
@@ -295,12 +265,12 @@ void __init hv_apic_init(void)
 		 */
 		orig_apic = *apic;
 
-		apic_update_callback(send_IPI, hv_send_ipi);
-		apic_update_callback(send_IPI_mask, hv_send_ipi_mask);
-		apic_update_callback(send_IPI_mask_allbutself, hv_send_ipi_mask_allbutself);
-		apic_update_callback(send_IPI_allbutself, hv_send_ipi_allbutself);
-		apic_update_callback(send_IPI_all, hv_send_ipi_all);
-		apic_update_callback(send_IPI_self, hv_send_ipi_self);
+		apic->send_IPI = hv_send_ipi;
+		apic->send_IPI_mask = hv_send_ipi_mask;
+		apic->send_IPI_mask_allbutself = hv_send_ipi_mask_allbutself;
+		apic->send_IPI_allbutself = hv_send_ipi_allbutself;
+		apic->send_IPI_all = hv_send_ipi_all;
+		apic->send_IPI_self = hv_send_ipi_self;
 	}
 
 	if (ms_hyperv.hints & HV_X64_APIC_ACCESS_RECOMMENDED) {
@@ -317,12 +287,12 @@ void __init hv_apic_init(void)
 		 * lazy EOI when available, but the same accessor works for
 		 * both xapic and x2apic because the field layout is the same.
 		 */
-		apic_update_callback(eoi, hv_apic_eoi_write);
+		apic_set_eoi_write(hv_apic_eoi_write);
 		if (!x2apic_enabled()) {
-			apic_update_callback(read, hv_apic_read);
-			apic_update_callback(write, hv_apic_write);
-			apic_update_callback(icr_write, hv_apic_icr_write);
-			apic_update_callback(icr_read, hv_apic_icr_read);
+			apic->read      = hv_apic_read;
+			apic->write     = hv_apic_write;
+			apic->icr_write = hv_apic_icr_write;
+			apic->icr_read  = hv_apic_icr_read;
 		}
 	}
 }

@@ -9,7 +9,6 @@
 #include <net/net_namespace.h>
 #include <net/netns/generic.h>
 #include <linux/fs.h>
-#include <linux/filelock.h>
 
 static unsigned int grace_net_id;
 static DEFINE_SPINLOCK(grace_lock);
@@ -43,6 +42,7 @@ EXPORT_SYMBOL_GPL(locks_start_grace);
 
 /**
  * locks_end_grace
+ * @net: net namespace that this lock manager belongs to
  * @lm: who this grace period is for
  *
  * Call this function to state that the given lock manager is ready to

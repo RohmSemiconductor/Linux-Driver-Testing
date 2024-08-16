@@ -6,6 +6,7 @@
 #include <linux/net/intel/i40e_client.h>
 
 #include "i40e.h"
+#include "i40e_prototype.h"
 
 static LIST_HEAD(i40e_devices);
 static DEFINE_MUTEX(i40e_device_mutex);
@@ -174,10 +175,6 @@ void i40e_notify_client_of_netdev_close(struct i40e_vsi *vsi, bool reset)
 	if (!cdev->client->ops || !cdev->client->ops->close) {
 		dev_dbg(&vsi->back->pdev->dev,
 			"Cannot locate client instance close routine\n");
-		return;
-	}
-	if (!test_bit(__I40E_CLIENT_INSTANCE_OPENED, &cdev->state)) {
-		dev_dbg(&pf->pdev->dev, "Client is not open, abort close\n");
 		return;
 	}
 	cdev->client->ops->close(&cdev->lan_info, cdev->client, reset);
@@ -432,6 +429,7 @@ void i40e_client_subtask(struct i40e_pf *pf)
 				/* Remove failed client instance */
 				clear_bit(__I40E_CLIENT_INSTANCE_OPENED,
 					  &cdev->state);
+				i40e_client_del_instance(pf);
 				return;
 			}
 		}
@@ -540,9 +538,9 @@ static int i40e_client_virtchnl_send(struct i40e_info *ldev,
 {
 	struct i40e_pf *pf = ldev->pf;
 	struct i40e_hw *hw = &pf->hw;
-	int err;
+	i40e_status err;
 
-	err = i40e_aq_send_msg_to_vf(hw, vf_id, VIRTCHNL_OP_RDMA,
+	err = i40e_aq_send_msg_to_vf(hw, vf_id, VIRTCHNL_OP_IWARP,
 				     0, msg, len, NULL);
 	if (err)
 		dev_err(&pf->pdev->dev, "Unable to send iWarp message to VF, error %d, aq status %d\n",
@@ -673,7 +671,7 @@ static int i40e_client_update_vsi_ctxt(struct i40e_info *ldev,
 	struct i40e_vsi *vsi = pf->vsi[pf->lan_vsi];
 	struct i40e_vsi_context ctxt;
 	bool update = true;
-	int err;
+	i40e_status err;
 
 	/* TODO: for now do not allow setting VF's VSI setting */
 	if (is_vf)
@@ -685,8 +683,8 @@ static int i40e_client_update_vsi_ctxt(struct i40e_info *ldev,
 	ctxt.flags = I40E_AQ_VSI_TYPE_PF;
 	if (err) {
 		dev_info(&pf->pdev->dev,
-			 "couldn't get PF vsi config, err %pe aq_err %s\n",
-			 ERR_PTR(err),
+			 "couldn't get PF vsi config, err %s aq_err %s\n",
+			 i40e_stat_str(&pf->hw, err),
 			 i40e_aq_str(&pf->hw,
 				     pf->hw.aq.asq_last_status));
 		return -ENOENT;
@@ -713,8 +711,8 @@ static int i40e_client_update_vsi_ctxt(struct i40e_info *ldev,
 		err = i40e_aq_update_vsi_params(&vsi->back->hw, &ctxt, NULL);
 		if (err) {
 			dev_info(&pf->pdev->dev,
-				 "update VSI ctxt for PE failed, err %pe aq_err %s\n",
-				 ERR_PTR(err),
+				 "update VSI ctxt for PE failed, err %s aq_err %s\n",
+				 i40e_stat_str(&pf->hw, err),
 				 i40e_aq_str(&pf->hw,
 					     pf->hw.aq.asq_last_status));
 		}

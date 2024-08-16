@@ -9,7 +9,6 @@
 #ifndef _ASM_ACPI_H
 #define _ASM_ACPI_H
 
-#include <linux/cpuidle.h>
 #include <linux/efi.h>
 #include <linux/memblock.h>
 #include <linux/psci.h>
@@ -43,27 +42,6 @@
 #define ACPI_MADT_GICC_SPE  (offsetof(struct acpi_madt_generic_interrupt, \
 	spe_interrupt) + sizeof(u16))
 
-#define ACPI_MADT_GICC_TRBE  (offsetof(struct acpi_madt_generic_interrupt, \
-	trbe_interrupt) + sizeof(u16))
-/*
- * Arm® Functional Fixed Hardware Specification Version 1.2.
- * Table 2: Arm Architecture context loss flags
- */
-#define CPUIDLE_CORE_CTXT		BIT(0) /* Core context Lost */
-
-static inline unsigned int arch_get_idle_state_flags(u32 arch_flags)
-{
-	if (arch_flags & CPUIDLE_CORE_CTXT)
-		return CPUIDLE_FLAG_TIMER_STOP;
-
-	return 0;
-}
-#define arch_get_idle_state_flags arch_get_idle_state_flags
-
-#define CPUIDLE_TRACE_CTXT		BIT(1) /* Trace context loss */
-#define CPUIDLE_GICR_CTXT		BIT(2) /* GICR */
-#define CPUIDLE_GICD_CTXT		BIT(3) /* GICD */
-
 /* Basic configuration for ACPI */
 #ifdef	CONFIG_ACPI
 pgprot_t __acpi_get_mem_attribute(phys_addr_t addr);
@@ -71,6 +49,9 @@ pgprot_t __acpi_get_mem_attribute(phys_addr_t addr);
 /* ACPI table mapping after acpi_permanent_mmap is set */
 void __iomem *acpi_os_ioremap(acpi_physical_address phys, acpi_size size);
 #define acpi_os_ioremap acpi_os_ioremap
+
+void __iomem *acpi_os_memmap(acpi_physical_address phys, acpi_size size);
+#define acpi_os_memmap acpi_os_memmap
 
 typedef u64 phys_cpuid_t;
 #define PHYS_CPUID_INVALID INVALID_HWID

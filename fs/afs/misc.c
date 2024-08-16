@@ -69,7 +69,6 @@ int afs_abort_to_error(u32 abort_code)
 		/* Unified AFS error table */
 	case UAEPERM:			return -EPERM;
 	case UAENOENT:			return -ENOENT;
-	case UAEAGAIN:			return -EAGAIN;
 	case UAEACCES:			return -EACCES;
 	case UAEBUSY:			return -EBUSY;
 	case UAEEXIST:			return -EEXIST;
@@ -116,8 +115,6 @@ void afs_prioritise_error(struct afs_error *e, int error, u32 abort_code)
 {
 	switch (error) {
 	case 0:
-		e->aborted = false;
-		e->error = 0;
 		return;
 	default:
 		if (e->error == -ETIMEDOUT ||
@@ -163,18 +160,11 @@ void afs_prioritise_error(struct afs_error *e, int error, u32 abort_code)
 		if (e->responded)
 			return;
 		e->error = error;
-		e->aborted = false;
 		return;
 
 	case -ECONNABORTED:
+		e->responded = true;
 		e->error = afs_abort_to_error(abort_code);
-		e->aborted = true;
-		e->responded = true;
-		return;
-	case -ENETRESET: /* Responded, but we seem to have changed address */
-		e->aborted = false;
-		e->responded = true;
-		e->error = error;
 		return;
 	}
 }

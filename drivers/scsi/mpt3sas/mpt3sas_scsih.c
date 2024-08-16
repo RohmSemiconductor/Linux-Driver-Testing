@@ -52,6 +52,7 @@
 #include <linux/delay.h>
 #include <linux/pci.h>
 #include <linux/interrupt.h>
+#include <linux/aer.h>
 #include <linux/raid_class.h>
 #include <linux/blk-mq-pci.h>
 #include <asm/unaligned.h>
@@ -2431,7 +2432,8 @@ _scsih_get_volume_capabilities(struct MPT3SAS_ADAPTER *ioc,
 	}
 
 	raid_device->num_pds = num_pds;
-	sz = struct_size(vol_pg0, PhysDisk, num_pds);
+	sz = offsetof(Mpi2RaidVolPage0_t, PhysDisk) + (num_pds *
+	    sizeof(Mpi2RaidVol0PhysDisk_t));
 	vol_pg0 = kzalloc(sz, GFP_KERNEL);
 	if (!vol_pg0) {
 		dfailprintk(ioc,
@@ -3312,7 +3314,7 @@ scsih_abort(struct scsi_cmnd *scmd)
 		sdev_printk(KERN_INFO, scmd->device,
 		    "device been deleted! scmd(0x%p)\n", scmd);
 		scmd->result = DID_NO_CONNECT << 16;
-		scsi_done(scmd);
+		scmd->scsi_done(scmd);
 		r = SUCCESS;
 		goto out;
 	}
@@ -3388,7 +3390,7 @@ scsih_dev_reset(struct scsi_cmnd *scmd)
 		sdev_printk(KERN_INFO, scmd->device,
 		    "device been deleted! scmd(0x%p)\n", scmd);
 		scmd->result = DID_NO_CONNECT << 16;
-		scsi_done(scmd);
+		scmd->scsi_done(scmd);
 		r = SUCCESS;
 		goto out;
 	}
@@ -3468,7 +3470,7 @@ scsih_target_reset(struct scsi_cmnd *scmd)
 		starget_printk(KERN_INFO, starget,
 		    "target been deleted! scmd(0x%p)\n", scmd);
 		scmd->result = DID_NO_CONNECT << 16;
-		scsi_done(scmd);
+		scmd->scsi_done(scmd);
 		r = SUCCESS;
 		goto out;
 	}
@@ -3668,7 +3670,6 @@ static struct fw_event_work *dequeue_next_fw_event(struct MPT3SAS_ADAPTER *ioc)
 		fw_event = list_first_entry(&ioc->fw_event_list,
 				struct fw_event_work, list);
 		list_del_init(&fw_event->list);
-		fw_event_work_put(fw_event);
 	}
 	spin_unlock_irqrestore(&ioc->fw_event_lock, flags);
 
@@ -3750,6 +3751,7 @@ _scsih_fw_event_cleanup_queue(struct MPT3SAS_ADAPTER *ioc)
 		if (cancel_work_sync(&fw_event->work))
 			fw_event_work_put(fw_event);
 
+		fw_event_work_put(fw_event);
 	}
 	ioc->fw_events_cleanup = 0;
 }
@@ -3867,7 +3869,7 @@ _scsih_ublock_io_device(struct MPT3SAS_ADAPTER *ioc,
 
 	shost_for_each_device(sdev, ioc->shost) {
 		sas_device_priv_data = sdev->hostdata;
-		if (!sas_device_priv_data || !sas_device_priv_data->sas_target)
+		if (!sas_device_priv_data)
 			continue;
 		if (sas_device_priv_data->sas_target->sas_address
 		    != sas_address)
@@ -5028,7 +5030,7 @@ _scsih_flush_running_cmds(struct MPT3SAS_ADAPTER *ioc)
 			scmd->result = DID_NO_CONNECT << 16;
 		else
 			scmd->result = DID_RESET << 16;
-		scsi_done(scmd);
+		scmd->scsi_done(scmd);
 	}
 	dtmprintk(ioc, ioc_info(ioc, "completing %d cmds\n", count));
 }
@@ -5063,12 +5065,9 @@ _scsih_setup_eedp(struct MPT3SAS_ADAPTER *ioc, struct scsi_cmnd *scmd,
 	if (scmd->prot_flags & SCSI_PROT_GUARD_CHECK)
 		eedp_flags |= MPI2_SCSIIO_EEDPFLAGS_CHECK_GUARD;
 
-	if (scmd->prot_flags & SCSI_PROT_REF_CHECK)
-		eedp_flags |= MPI2_SCSIIO_EEDPFLAGS_CHECK_REFTAG;
-
-	if (scmd->prot_flags & SCSI_PROT_REF_INCREMENT) {
-		eedp_flags |= MPI2_SCSIIO_EEDPFLAGS_INC_PRI_REFTAG;
-
+	if (scmd->prot_flags & SCSI_PROT_REF_CHECK) {
+		eedp_flags |= MPI2_SCSIIO_EEDPFLAGS_INC_PRI_REFTAG |
+			MPI2_SCSIIO_EEDPFLAGS_CHECK_REFTAG;
 		mpi_request->CDB.EEDP32.PrimaryReferenceTag =
 			cpu_to_be32(scsi_prot_ref_tag(scmd));
 	}
@@ -5140,13 +5139,13 @@ scsih_qcmd(struct Scsi_Host *shost, struct scsi_cmnd *scmd)
 	sas_device_priv_data = scmd->device->hostdata;
 	if (!sas_device_priv_data || !sas_device_priv_data->sas_target) {
 		scmd->result = DID_NO_CONNECT << 16;
-		scsi_done(scmd);
+		scmd->scsi_done(scmd);
 		return 0;
 	}
 
 	if (!(_scsih_allow_scmd_to_device(ioc, scmd))) {
 		scmd->result = DID_NO_CONNECT << 16;
-		scsi_done(scmd);
+		scmd->scsi_done(scmd);
 		return 0;
 	}
 
@@ -5154,22 +5153,9 @@ scsih_qcmd(struct Scsi_Host *shost, struct scsi_cmnd *scmd)
 
 	/* invalid device handle */
 	handle = sas_target_priv_data->handle;
-
-	/*
-	 * Avoid error handling escallation when device is disconnected
-	 */
-	if (handle == MPT3SAS_INVALID_DEVICE_HANDLE || sas_device_priv_data->block) {
-		if (scmd->device->host->shost_state == SHOST_RECOVERY &&
-		    scmd->cmnd[0] == TEST_UNIT_READY) {
-			scsi_build_sense(scmd, 0, UNIT_ATTENTION, 0x29, 0x07);
-			scsi_done(scmd);
-			return 0;
-		}
-	}
-
 	if (handle == MPT3SAS_INVALID_DEVICE_HANDLE) {
 		scmd->result = DID_NO_CONNECT << 16;
-		scsi_done(scmd);
+		scmd->scsi_done(scmd);
 		return 0;
 	}
 
@@ -5180,7 +5166,7 @@ scsih_qcmd(struct Scsi_Host *shost, struct scsi_cmnd *scmd)
 	} else if (sas_target_priv_data->deleted) {
 		/* device has been deleted */
 		scmd->result = DID_NO_CONNECT << 16;
-		scsi_done(scmd);
+		scmd->scsi_done(scmd);
 		return 0;
 	} else if (sas_target_priv_data->tm_busy ||
 		   sas_device_priv_data->block) {
@@ -5305,7 +5291,7 @@ _scsih_normalize_sense(char *sense_buffer, struct sense_info *data)
 }
 
 /**
- * _scsih_scsi_ioc_info - translated non-successful SCSI_IO request
+ * _scsih_scsi_ioc_info - translated non-succesfull SCSI_IO request
  * @ioc: per adapter object
  * @scmd: pointer to scsi command object
  * @mpi_reply: reply mf payload returned from firmware
@@ -5923,7 +5909,7 @@ _scsih_io_done(struct MPT3SAS_ADAPTER *ioc, u16 smid, u8 msix_index, u32 reply)
 
 	scsi_dma_unmap(scmd);
 	mpt3sas_base_free_smid(ioc, smid);
-	scsi_done(scmd);
+	scmd->scsi_done(scmd);
 	return 0;
 }
 
@@ -5965,7 +5951,8 @@ _scsih_update_vphys_after_reset(struct MPT3SAS_ADAPTER *ioc)
 	/*
 	 * Read SASIOUnitPage0 to get each HBA Phy's data.
 	 */
-	sz = struct_size(sas_iounit_pg0, PhyData, ioc->sas_hba.num_phys);
+	sz = offsetof(Mpi2SasIOUnitPage0_t, PhyData) +
+	    (ioc->sas_hba.num_phys * sizeof(Mpi2SasIOUnit0PhyData_t));
 	sas_iounit_pg0 = kzalloc(sz, GFP_KERNEL);
 	if (!sas_iounit_pg0) {
 		ioc_err(ioc, "failure at %s:%d/%s()!\n",
@@ -6143,7 +6130,8 @@ _scsih_get_port_table_after_reset(struct MPT3SAS_ADAPTER *ioc,
 	u64 attached_sas_addr;
 	u8 found = 0, port_count = 0, port_id;
 
-	sz = struct_size(sas_iounit_pg0, PhyData, ioc->sas_hba.num_phys);
+	sz = offsetof(Mpi2SasIOUnitPage0_t, PhyData) + (ioc->sas_hba.num_phys
+	    * sizeof(Mpi2SasIOUnit0PhyData_t));
 	sas_iounit_pg0 = kzalloc(sz, GFP_KERNEL);
 	if (!sas_iounit_pg0) {
 		ioc_err(ioc, "failure at %s:%d/%s()!\n",
@@ -6415,25 +6403,10 @@ _scsih_sas_port_refresh(struct MPT3SAS_ADAPTER *ioc)
 	int i, j, count = 0, lcount = 0;
 	int ret;
 	u64 sas_addr;
-	u8 num_phys;
 
 	drsprintk(ioc, ioc_info(ioc,
 	    "updating ports for sas_host(0x%016llx)\n",
 	    (unsigned long long)ioc->sas_hba.sas_address));
-
-	mpt3sas_config_get_number_hba_phys(ioc, &num_phys);
-	if (!num_phys) {
-		ioc_err(ioc, "failure at %s:%d/%s()!\n",
-		    __FILE__, __LINE__, __func__);
-		return;
-	}
-
-	if (num_phys > ioc->sas_hba.nr_phys_allocated) {
-		ioc_err(ioc, "failure at %s:%d/%s()!\n",
-		   __FILE__, __LINE__, __func__);
-		return;
-	}
-	ioc->sas_hba.num_phys = num_phys;
 
 	port_table = kcalloc(ioc->sas_hba.num_phys,
 	    sizeof(struct hba_port), GFP_KERNEL);
@@ -6576,7 +6549,8 @@ _scsih_sas_host_refresh(struct MPT3SAS_ADAPTER *ioc)
 		  ioc_info(ioc, "updating handles for sas_host(0x%016llx)\n",
 			   (u64)ioc->sas_hba.sas_address));
 
-	sz = struct_size(sas_iounit_pg0, PhyData, ioc->sas_hba.num_phys);
+	sz = offsetof(Mpi2SasIOUnitPage0_t, PhyData) + (ioc->sas_hba.num_phys
+	    * sizeof(Mpi2SasIOUnit0PhyData_t));
 	sas_iounit_pg0 = kzalloc(sz, GFP_KERNEL);
 	if (!sas_iounit_pg0) {
 		ioc_err(ioc, "failure at %s:%d/%s()!\n",
@@ -6634,30 +6608,6 @@ _scsih_sas_host_refresh(struct MPT3SAS_ADAPTER *ioc)
 			ioc->sas_hba.phy[i].hba_vphy = 1;
 		}
 
-		/*
-		 * Add new HBA phys to STL if these new phys got added as part
-		 * of HBA Firmware upgrade/downgrade operation.
-		 */
-		if (!ioc->sas_hba.phy[i].phy) {
-			if ((mpt3sas_config_get_phy_pg0(ioc, &mpi_reply,
-							&phy_pg0, i))) {
-				ioc_err(ioc, "failure at %s:%d/%s()!\n",
-					__FILE__, __LINE__, __func__);
-				continue;
-			}
-			ioc_status = le16_to_cpu(mpi_reply.IOCStatus) &
-				MPI2_IOCSTATUS_MASK;
-			if (ioc_status != MPI2_IOCSTATUS_SUCCESS) {
-				ioc_err(ioc, "failure at %s:%d/%s()!\n",
-					__FILE__, __LINE__, __func__);
-				continue;
-			}
-			ioc->sas_hba.phy[i].phy_id = i;
-			mpt3sas_transport_add_host_phy(ioc,
-				&ioc->sas_hba.phy[i], phy_pg0,
-				ioc->sas_hba.parent_dev);
-			continue;
-		}
 		ioc->sas_hba.phy[i].handle = ioc->sas_hba.handle;
 		attached_handle = le16_to_cpu(sas_iounit_pg0->PhyData[i].
 		    AttachedDevHandle);
@@ -6668,19 +6618,6 @@ _scsih_sas_host_refresh(struct MPT3SAS_ADAPTER *ioc)
 		mpt3sas_transport_update_links(ioc, ioc->sas_hba.sas_address,
 		    attached_handle, i, link_rate,
 		    ioc->sas_hba.phy[i].port);
-	}
-	/*
-	 * Clear the phy details if this phy got disabled as part of
-	 * HBA Firmware upgrade/downgrade operation.
-	 */
-	for (i = ioc->sas_hba.num_phys;
-	     i < ioc->sas_hba.nr_phys_allocated; i++) {
-		if (ioc->sas_hba.phy[i].phy &&
-		    ioc->sas_hba.phy[i].phy->negotiated_linkrate >=
-		    SAS_LINK_RATE_1_5_GBPS)
-			mpt3sas_transport_update_links(ioc,
-				ioc->sas_hba.sas_address, 0, i,
-				MPI2_SAS_NEG_LINK_RATE_PHY_DISABLED, NULL);
 	}
  out:
 	kfree(sas_iounit_pg0);
@@ -6714,10 +6651,7 @@ _scsih_sas_host_add(struct MPT3SAS_ADAPTER *ioc)
 			__FILE__, __LINE__, __func__);
 		return;
 	}
-
-	ioc->sas_hba.nr_phys_allocated = max_t(u8,
-	    MPT_MAX_HBA_NUM_PHYS, num_phys);
-	ioc->sas_hba.phy = kcalloc(ioc->sas_hba.nr_phys_allocated,
+	ioc->sas_hba.phy = kcalloc(num_phys,
 	    sizeof(struct _sas_phy), GFP_KERNEL);
 	if (!ioc->sas_hba.phy) {
 		ioc_err(ioc, "failure at %s:%d/%s()!\n",
@@ -6727,7 +6661,8 @@ _scsih_sas_host_add(struct MPT3SAS_ADAPTER *ioc)
 	ioc->sas_hba.num_phys = num_phys;
 
 	/* sas_iounit page 0 */
-	sz = struct_size(sas_iounit_pg0, PhyData, ioc->sas_hba.num_phys);
+	sz = offsetof(Mpi2SasIOUnitPage0_t, PhyData) + (ioc->sas_hba.num_phys *
+	    sizeof(Mpi2SasIOUnit0PhyData_t));
 	sas_iounit_pg0 = kzalloc(sz, GFP_KERNEL);
 	if (!sas_iounit_pg0) {
 		ioc_err(ioc, "failure at %s:%d/%s()!\n",
@@ -6749,7 +6684,8 @@ _scsih_sas_host_add(struct MPT3SAS_ADAPTER *ioc)
 	}
 
 	/* sas_iounit page 1 */
-	sz = struct_size(sas_iounit_pg1, PhyData, ioc->sas_hba.num_phys);
+	sz = offsetof(Mpi2SasIOUnitPage1_t, PhyData) + (ioc->sas_hba.num_phys *
+	    sizeof(Mpi2SasIOUnit1PhyData_t));
 	sas_iounit_pg1 = kzalloc(sz, GFP_KERNEL);
 	if (!sas_iounit_pg1) {
 		ioc_err(ioc, "failure at %s:%d/%s()!\n",
@@ -10370,8 +10306,8 @@ _scsih_scan_for_devices_after_reset(struct MPT3SAS_ADAPTER *ioc)
 	Mpi2ExpanderPage0_t expander_pg0;
 	Mpi2SasDevicePage0_t sas_device_pg0;
 	Mpi26PCIeDevicePage0_t pcie_device_pg0;
-	Mpi2RaidVolPage1_t volume_pg1;
-	Mpi2RaidVolPage0_t volume_pg0;
+	Mpi2RaidVolPage1_t *volume_pg1;
+	Mpi2RaidVolPage0_t *volume_pg0;
 	Mpi2RaidPhysDiskPage0_t pd_pg0;
 	Mpi2EventIrConfigElement_t element;
 	Mpi2ConfigReply_t mpi_reply;
@@ -10385,6 +10321,16 @@ _scsih_scan_for_devices_after_reset(struct MPT3SAS_ADAPTER *ioc)
 	static struct _raid_device *raid_device;
 	u8 retry_count;
 	unsigned long flags;
+
+	volume_pg0 = kzalloc(sizeof(*volume_pg0), GFP_KERNEL);
+	if (!volume_pg0)
+		return;
+
+	volume_pg1 = kzalloc(sizeof(*volume_pg1), GFP_KERNEL);
+	if (!volume_pg1) {
+		kfree(volume_pg0);
+		return;
+	}
 
 	ioc_info(ioc, "scan devices: start\n");
 
@@ -10495,7 +10441,7 @@ _scsih_scan_for_devices_after_reset(struct MPT3SAS_ADAPTER *ioc)
 	/* volumes */
 	handle = 0xFFFF;
 	while (!(mpt3sas_config_get_raid_volume_pg1(ioc, &mpi_reply,
-	    &volume_pg1, MPI2_RAID_VOLUME_PGAD_FORM_GET_NEXT_HANDLE, handle))) {
+	    volume_pg1, MPI2_RAID_VOLUME_PGAD_FORM_GET_NEXT_HANDLE, handle))) {
 		ioc_status = le16_to_cpu(mpi_reply.IOCStatus) &
 		    MPI2_IOCSTATUS_MASK;
 		if (ioc_status != MPI2_IOCSTATUS_SUCCESS) {
@@ -10503,15 +10449,15 @@ _scsih_scan_for_devices_after_reset(struct MPT3SAS_ADAPTER *ioc)
 				 ioc_status, le32_to_cpu(mpi_reply.IOCLogInfo));
 			break;
 		}
-		handle = le16_to_cpu(volume_pg1.DevHandle);
+		handle = le16_to_cpu(volume_pg1->DevHandle);
 		spin_lock_irqsave(&ioc->raid_device_lock, flags);
 		raid_device = _scsih_raid_device_find_by_wwid(ioc,
-		    le64_to_cpu(volume_pg1.WWID));
+		    le64_to_cpu(volume_pg1->WWID));
 		spin_unlock_irqrestore(&ioc->raid_device_lock, flags);
 		if (raid_device)
 			continue;
 		if (mpt3sas_config_get_raid_volume_pg0(ioc, &mpi_reply,
-		    &volume_pg0, MPI2_RAID_VOLUME_PGAD_FORM_HANDLE, handle,
+		    volume_pg0, MPI2_RAID_VOLUME_PGAD_FORM_HANDLE, handle,
 		     sizeof(Mpi2RaidVolPage0_t)))
 			continue;
 		ioc_status = le16_to_cpu(mpi_reply.IOCStatus) &
@@ -10521,17 +10467,17 @@ _scsih_scan_for_devices_after_reset(struct MPT3SAS_ADAPTER *ioc)
 				 ioc_status, le32_to_cpu(mpi_reply.IOCLogInfo));
 			break;
 		}
-		if (volume_pg0.VolumeState == MPI2_RAID_VOL_STATE_OPTIMAL ||
-		    volume_pg0.VolumeState == MPI2_RAID_VOL_STATE_ONLINE ||
-		    volume_pg0.VolumeState == MPI2_RAID_VOL_STATE_DEGRADED) {
+		if (volume_pg0->VolumeState == MPI2_RAID_VOL_STATE_OPTIMAL ||
+		    volume_pg0->VolumeState == MPI2_RAID_VOL_STATE_ONLINE ||
+		    volume_pg0->VolumeState == MPI2_RAID_VOL_STATE_DEGRADED) {
 			memset(&element, 0, sizeof(Mpi2EventIrConfigElement_t));
 			element.ReasonCode = MPI2_EVENT_IR_CHANGE_RC_ADDED;
-			element.VolDevHandle = volume_pg1.DevHandle;
+			element.VolDevHandle = volume_pg1->DevHandle;
 			ioc_info(ioc, "\tBEFORE adding volume: handle (0x%04x)\n",
-				 volume_pg1.DevHandle);
+				 volume_pg1->DevHandle);
 			_scsih_sas_volume_add(ioc, &element);
 			ioc_info(ioc, "\tAFTER adding volume: handle (0x%04x)\n",
-				 volume_pg1.DevHandle);
+				 volume_pg1->DevHandle);
 		}
 	}
 
@@ -10619,6 +10565,9 @@ _scsih_scan_for_devices_after_reset(struct MPT3SAS_ADAPTER *ioc)
 		ioc_info(ioc, "\tAFTER adding pcie end device: handle (0x%04x), wwid(0x%016llx)\n",
 			 handle, (u64)le64_to_cpu(pcie_device_pg0.WWID));
 	}
+
+	kfree(volume_pg0);
+	kfree(volume_pg1);
 
 	ioc_info(ioc, "\tpcie devices: pcie end devices complete\n");
 	ioc_info(ioc, "scan devices: complete\n");
@@ -10800,7 +10749,8 @@ _mpt3sas_fw_work(struct MPT3SAS_ADAPTER *ioc, struct fw_event_work *fw_event)
 	case MPI2_EVENT_PCIE_TOPOLOGY_CHANGE_LIST:
 		_scsih_pcie_topology_change_event(ioc, fw_event);
 		ioc->current_event = NULL;
-		return;
+			return;
+	break;
 	}
 out:
 	fw_event_work_put(fw_event);
@@ -10919,20 +10869,20 @@ mpt3sas_scsih_event_callback(struct MPT3SAS_ADAPTER *ioc, u8 msix_index,
 	case MPI2_EVENT_LOG_ENTRY_ADDED:
 	{
 		Mpi2EventDataLogEntryAdded_t *log_entry;
-		u32 log_code;
+		u32 *log_code;
 
 		if (!ioc->is_warpdrive)
 			break;
 
 		log_entry = (Mpi2EventDataLogEntryAdded_t *)
 		    mpi_reply->EventData;
-		log_code = le32_to_cpu(*(__le32 *)log_entry->LogData);
+		log_code = (u32 *)log_entry->LogData;
 
 		if (le16_to_cpu(log_entry->LogEntryQualifier)
 		    != MPT2_WARPDRIVE_LOGENTRY)
 			break;
 
-		switch (log_code) {
+		switch (le32_to_cpu(*log_code)) {
 		case MPT2_WARPDRIVE_LC_SSDT:
 			ioc_warn(ioc, "WarpDrive Warning: IO Throttling has occurred in the WarpDrive subsystem. Check WarpDrive documentation for additional details.\n");
 			break;
@@ -11028,7 +10978,6 @@ _scsih_expander_node_remove(struct MPT3SAS_ADAPTER *ioc,
 {
 	struct _sas_port *mpt3sas_port, *next;
 	unsigned long flags;
-	int port_id;
 
 	/* remove sibling ports attached to this expander */
 	list_for_each_entry_safe(mpt3sas_port, next,
@@ -11049,8 +10998,6 @@ _scsih_expander_node_remove(struct MPT3SAS_ADAPTER *ioc,
 			    mpt3sas_port->hba_port);
 	}
 
-	port_id = sas_expander->port->port_id;
-
 	mpt3sas_transport_port_remove(ioc, sas_expander->sas_address,
 	    sas_expander->sas_address_parent, sas_expander->port);
 
@@ -11058,7 +11005,7 @@ _scsih_expander_node_remove(struct MPT3SAS_ADAPTER *ioc,
 	    "expander_remove: handle(0x%04x), sas_addr(0x%016llx), port:%d\n",
 	    sas_expander->handle, (unsigned long long)
 	    sas_expander->sas_address,
-	    port_id);
+	    sas_expander->port->port_id);
 
 	spin_lock_irqsave(&ioc->sas_node_lock, flags);
 	list_del(&sas_expander->list);
@@ -11331,7 +11278,6 @@ static void scsih_remove(struct pci_dev *pdev)
 	}
 
 	mpt3sas_base_detach(ioc);
-	mpt3sas_ctl_release(ioc);
 	spin_lock(&gioc_lock);
 	list_del(&ioc->list);
 	spin_unlock(&gioc_lock);
@@ -11380,7 +11326,6 @@ scsih_shutdown(struct pci_dev *pdev)
 	_scsih_ir_shutdown(ioc);
 	_scsih_nvme_shutdown(ioc);
 	mpt3sas_base_mask_interrupts(ioc);
-	mpt3sas_base_stop_watchdog(ioc);
 	ioc->shost_recovery = 1;
 	mpt3sas_base_make_ioc_ready(ioc, SOFT_RESET);
 	ioc->shost_recovery = 0;
@@ -11866,7 +11811,7 @@ out:
  * scsih_map_queues - map reply queues with request queues
  * @shost: SCSI host pointer
  */
-static void scsih_map_queues(struct Scsi_Host *shost)
+static int scsih_map_queues(struct Scsi_Host *shost)
 {
 	struct MPT3SAS_ADAPTER *ioc =
 	    (struct MPT3SAS_ADAPTER *)shost->hostdata;
@@ -11876,7 +11821,7 @@ static void scsih_map_queues(struct Scsi_Host *shost)
 	int iopoll_q_count = ioc->reply_queue_count - nr_msix_vectors;
 
 	if (shost->nr_hw_queues == 1)
-		return;
+		return 0;
 
 	for (i = 0, qoff = 0; i < shost->nr_maps; i++) {
 		map = &shost->tag_set.map[i];
@@ -11904,10 +11849,11 @@ static void scsih_map_queues(struct Scsi_Host *shost)
 
 		qoff += map->nr_queues;
 	}
+	return 0;
 }
 
 /* shost template for SAS 2.0 HBA devices */
-static const struct scsi_host_template mpt2sas_driver_template = {
+static struct scsi_host_template mpt2sas_driver_template = {
 	.module				= THIS_MODULE,
 	.name				= "Fusion MPT SAS Host",
 	.proc_name			= MPT2SAS_DRIVER_NAME,
@@ -11930,8 +11876,8 @@ static const struct scsi_host_template mpt2sas_driver_template = {
 	.sg_tablesize			= MPT2SAS_SG_DEPTH,
 	.max_sectors			= 32767,
 	.cmd_per_lun			= 7,
-	.shost_groups			= mpt3sas_host_groups,
-	.sdev_groups			= mpt3sas_dev_groups,
+	.shost_attrs			= mpt3sas_host_attrs,
+	.sdev_attrs			= mpt3sas_dev_attrs,
 	.track_queue_depth		= 1,
 	.cmd_size			= sizeof(struct scsiio_tracker),
 };
@@ -11945,7 +11891,7 @@ static struct raid_function_template mpt2sas_raid_functions = {
 };
 
 /* shost template for SAS 3.0 HBA devices */
-static const struct scsi_host_template mpt3sas_driver_template = {
+static struct scsi_host_template mpt3sas_driver_template = {
 	.module				= THIS_MODULE,
 	.name				= "Fusion MPT SAS Host",
 	.proc_name			= MPT3SAS_DRIVER_NAME,
@@ -11968,9 +11914,9 @@ static const struct scsi_host_template mpt3sas_driver_template = {
 	.sg_tablesize			= MPT3SAS_SG_DEPTH,
 	.max_sectors			= 32767,
 	.max_segment_size		= 0xffffffff,
-	.cmd_per_lun			= 128,
-	.shost_groups			= mpt3sas_host_groups,
-	.sdev_groups			= mpt3sas_dev_groups,
+	.cmd_per_lun			= 7,
+	.shost_attrs			= mpt3sas_host_attrs,
+	.sdev_attrs			= mpt3sas_dev_attrs,
 	.track_queue_depth		= 1,
 	.cmd_size			= sizeof(struct scsiio_tracker),
 	.map_queues			= scsih_map_queues,
@@ -12403,6 +12349,7 @@ scsih_suspend(struct device *dev)
 		return rc;
 
 	mpt3sas_base_stop_watchdog(ioc);
+	flush_scheduled_work();
 	scsi_block_requests(shost);
 	_scsih_nvme_shutdown(ioc);
 	ioc_info(ioc, "pdev=0x%p, slot=%s, entering operating state\n",
@@ -12581,18 +12528,20 @@ scsih_pci_mmio_enabled(struct pci_dev *pdev)
  */
 bool scsih_ncq_prio_supp(struct scsi_device *sdev)
 {
-	struct scsi_vpd *vpd;
+	unsigned char *buf;
 	bool ncq_prio_supp = false;
 
-	rcu_read_lock();
-	vpd = rcu_dereference(sdev->vpd_pg89);
-	if (!vpd || vpd->len < 214)
-		goto out;
+	if (!scsi_device_supports_vpd(sdev))
+		return ncq_prio_supp;
 
-	ncq_prio_supp = (vpd->data[213] >> 4) & 1;
-out:
-	rcu_read_unlock();
+	buf = kmalloc(SCSI_VPD_PG_LEN, GFP_KERNEL);
+	if (!buf)
+		return ncq_prio_supp;
 
+	if (!scsi_get_vpd_page(sdev, 0x89, buf, SCSI_VPD_PG_LEN))
+		ncq_prio_supp = (buf[213] >> 4) & 1;
+
+	kfree(buf);
 	return ncq_prio_supp;
 }
 /*
@@ -12723,12 +12672,6 @@ static const struct pci_device_id mpt3sas_pci_table[] = {
 	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_CFG_SEC_3816,
 		PCI_ANY_ID, PCI_ANY_ID },
 	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_HARD_SEC_3816,
-		PCI_ANY_ID, PCI_ANY_ID },
-
-	/*
-	 * ATTO Branded ExpressSAS H12xx GT
-	 */
-	{ MPI2_MFGPAGE_VENDORID_ATTO, MPI26_MFGPAGE_DEVID_HARD_SEC_3816,
 		PCI_ANY_ID, PCI_ANY_ID },
 
 	/*
@@ -12895,10 +12838,8 @@ _mpt3sas_init(void)
 	mpt3sas_ctl_init(hbas_to_enumerate);
 
 	error = pci_register_driver(&mpt3sas_driver);
-	if (error) {
-		mpt3sas_ctl_exit(hbas_to_enumerate);
+	if (error)
 		scsih_exit();
-	}
 
 	return error;
 }
@@ -12913,9 +12854,9 @@ _mpt3sas_exit(void)
 	pr_info("mpt3sas version %s unloading\n",
 				MPT3SAS_DRIVER_VERSION);
 
-	pci_unregister_driver(&mpt3sas_driver);
-
 	mpt3sas_ctl_exit(hbas_to_enumerate);
+
+	pci_unregister_driver(&mpt3sas_driver);
 
 	scsih_exit();
 }

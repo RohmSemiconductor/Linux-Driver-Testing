@@ -199,11 +199,7 @@ static bool radeon_atrm_get_bios(struct radeon_device *rdev)
 	if (rdev->flags & RADEON_IS_IGP)
 		return false;
 
-	while ((pdev = pci_get_base_class(PCI_BASE_CLASS_DISPLAY, pdev))) {
-		if ((pdev->class != PCI_CLASS_DISPLAY_VGA << 8) &&
-		    (pdev->class != PCI_CLASS_DISPLAY_OTHER << 8))
-			continue;
-
+	while ((pdev = pci_get_class(PCI_CLASS_DISPLAY_VGA << 8, pdev)) != NULL) {
 		dhandle = ACPI_HANDLE(&pdev->dev);
 		if (!dhandle)
 			continue;
@@ -215,9 +211,22 @@ static bool radeon_atrm_get_bios(struct radeon_device *rdev)
 		}
 	}
 
+	if (!found) {
+		while ((pdev = pci_get_class(PCI_CLASS_DISPLAY_OTHER << 8, pdev)) != NULL) {
+			dhandle = ACPI_HANDLE(&pdev->dev);
+			if (!dhandle)
+				continue;
+
+			status = acpi_get_handle(dhandle, "ATRM", &atrm_handle);
+			if (ACPI_SUCCESS(status)) {
+				found = true;
+				break;
+			}
+		}
+	}
+
 	if (!found)
 		return false;
-	pci_dev_put(pdev);
 
 	rdev->bios = kmalloc(size, GFP_KERNEL);
 	if (!rdev->bios) {
@@ -603,14 +612,13 @@ static bool radeon_acpi_vfct_bios(struct radeon_device *rdev)
 	acpi_size tbl_size;
 	UEFI_ACPI_VFCT *vfct;
 	unsigned offset;
-	bool r = false;
 
 	if (!ACPI_SUCCESS(acpi_get_table("VFCT", 1, &hdr)))
 		return false;
 	tbl_size = hdr->length;
 	if (tbl_size < sizeof(UEFI_ACPI_VFCT)) {
 		DRM_ERROR("ACPI VFCT table present but broken (too short #1)\n");
-		goto out;
+		return false;
 	}
 
 	vfct = (UEFI_ACPI_VFCT *)hdr;
@@ -623,13 +631,13 @@ static bool radeon_acpi_vfct_bios(struct radeon_device *rdev)
 		offset += sizeof(VFCT_IMAGE_HEADER);
 		if (offset > tbl_size) {
 			DRM_ERROR("ACPI VFCT image header truncated\n");
-			goto out;
+			return false;
 		}
 
 		offset += vhdr->ImageLength;
 		if (offset > tbl_size) {
 			DRM_ERROR("ACPI VFCT image truncated\n");
-			goto out;
+			return false;
 		}
 
 		if (vhdr->ImageLength &&
@@ -641,18 +649,15 @@ static bool radeon_acpi_vfct_bios(struct radeon_device *rdev)
 			rdev->bios = kmemdup(&vbios->VbiosContent,
 					     vhdr->ImageLength,
 					     GFP_KERNEL);
-			if (rdev->bios)
-				r = true;
 
-			goto out;
+			if (!rdev->bios)
+				return false;
+			return true;
 		}
 	}
 
 	DRM_ERROR("ACPI VFCT table present but broken (too short #2)\n");
-
-out:
-	acpi_put_table(hdr);
-	return r;
+	return false;
 }
 #else
 static inline bool radeon_acpi_vfct_bios(struct radeon_device *rdev)

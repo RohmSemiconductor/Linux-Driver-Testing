@@ -9,8 +9,7 @@
 
 #include <linux/kernel.h>
 #include <linux/platform_data/simplefb.h>
-
-struct screen_info;
+#include <linux/screen_info.h>
 
 enum {
 	M_I17,		/* 17-Inch iMac */
@@ -56,31 +55,14 @@ struct efifb_dmi_info {
 	int flags;
 };
 
-#ifdef CONFIG_SYSFB
-
-void sysfb_disable(void);
-
-#else /* CONFIG_SYSFB */
-
-static inline void sysfb_disable(void)
-{
-}
-
-#endif /* CONFIG_SYSFB */
-
 #ifdef CONFIG_EFI
 
 extern struct efifb_dmi_info efifb_dmi_list[];
-void sysfb_apply_efi_quirks(void);
-void sysfb_set_efifb_fwnode(struct platform_device *pd);
+void sysfb_apply_efi_quirks(struct platform_device *pd);
 
 #else /* CONFIG_EFI */
 
-static inline void sysfb_apply_efi_quirks(void)
-{
-}
-
-static inline void sysfb_set_efifb_fwnode(struct platform_device *pd)
+static inline void sysfb_apply_efi_quirks(struct platform_device *pd)
 {
 }
 
@@ -90,8 +72,8 @@ static inline void sysfb_set_efifb_fwnode(struct platform_device *pd)
 
 bool sysfb_parse_mode(const struct screen_info *si,
 		      struct simplefb_platform_data *mode);
-struct platform_device *sysfb_create_simplefb(const struct screen_info *si,
-					      const struct simplefb_platform_data *mode);
+int sysfb_create_simplefb(const struct screen_info *si,
+			  const struct simplefb_platform_data *mode);
 
 #else /* CONFIG_SYSFB_SIMPLE */
 
@@ -101,10 +83,10 @@ static inline bool sysfb_parse_mode(const struct screen_info *si,
 	return false;
 }
 
-static inline struct platform_device *sysfb_create_simplefb(const struct screen_info *si,
-							    const struct simplefb_platform_data *mode)
+static inline int sysfb_create_simplefb(const struct screen_info *si,
+					 const struct simplefb_platform_data *mode)
 {
-	return ERR_PTR(-EINVAL);
+	return -EINVAL;
 }
 
 #endif /* CONFIG_SYSFB_SIMPLE */

@@ -306,9 +306,10 @@ static int aspeed_lpc_ctrl_probe(struct platform_device *pdev)
 	}
 
 	lpc_ctrl->clk = devm_clk_get(dev, NULL);
-	if (IS_ERR(lpc_ctrl->clk))
-		return dev_err_probe(dev, PTR_ERR(lpc_ctrl->clk),
-				     "couldn't get clock\n");
+	if (IS_ERR(lpc_ctrl->clk)) {
+		dev_err(dev, "couldn't get clock\n");
+		return PTR_ERR(lpc_ctrl->clk);
+	}
 	rc = clk_prepare_enable(lpc_ctrl->clk);
 	if (rc) {
 		dev_err(dev, "couldn't enable clock\n");
@@ -332,12 +333,14 @@ err:
 	return rc;
 }
 
-static void aspeed_lpc_ctrl_remove(struct platform_device *pdev)
+static int aspeed_lpc_ctrl_remove(struct platform_device *pdev)
 {
 	struct aspeed_lpc_ctrl *lpc_ctrl = dev_get_drvdata(&pdev->dev);
 
 	misc_deregister(&lpc_ctrl->miscdev);
 	clk_disable_unprepare(lpc_ctrl->clk);
+
+	return 0;
 }
 
 static const struct of_device_id aspeed_lpc_ctrl_match[] = {
@@ -353,7 +356,7 @@ static struct platform_driver aspeed_lpc_ctrl_driver = {
 		.of_match_table = aspeed_lpc_ctrl_match,
 	},
 	.probe = aspeed_lpc_ctrl_probe,
-	.remove_new = aspeed_lpc_ctrl_remove,
+	.remove = aspeed_lpc_ctrl_remove,
 };
 
 module_platform_driver(aspeed_lpc_ctrl_driver);

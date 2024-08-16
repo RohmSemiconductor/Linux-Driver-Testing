@@ -16,8 +16,7 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/mutex.h>
-#include <linux/of.h>
-#include <linux/platform_device.h>
+#include <linux/of_device.h>
 #include <linux/reset.h>
 #include <linux/slab.h>
 #include <linux/time.h>
@@ -69,21 +68,14 @@
  */
 #define TEGRA194_NUM_SDO_LINES	  4
 
-struct hda_tegra_soc {
-	bool has_hda2codec_2x_reset;
-	bool has_hda2hdmi;
-};
-
 struct hda_tegra {
 	struct azx chip;
 	struct device *dev;
-	struct reset_control_bulk_data resets[3];
+	struct reset_control *reset;
 	struct clk_bulk_data clocks[3];
-	unsigned int nresets;
 	unsigned int nclocks;
 	void __iomem *regs;
 	struct work_struct probe_work;
-	const struct hda_tegra_soc *soc;
 };
 
 #ifdef CONFIG_PM
@@ -178,7 +170,7 @@ static int __maybe_unused hda_tegra_runtime_resume(struct device *dev)
 	int rc;
 
 	if (!chip->running) {
-		rc = reset_control_bulk_assert(hda->nresets, hda->resets);
+		rc = reset_control_assert(hda->reset);
 		if (rc)
 			return rc;
 	}
@@ -195,7 +187,7 @@ static int __maybe_unused hda_tegra_runtime_resume(struct device *dev)
 	} else {
 		usleep_range(10, 100);
 
-		rc = reset_control_bulk_deassert(hda->nresets, hda->resets);
+		rc = reset_control_deassert(hda->reset);
 		if (rc)
 			return rc;
 	}
@@ -316,18 +308,6 @@ static int hda_tegra_first_init(struct azx *chip, struct platform_device *pdev)
 	 * hardcoded value
 	 */
 	chip->capture_streams = (gcap >> 8) & 0x0f;
-
-	/* The GCAP register on Tegra234 implies no Input Streams(ISS) support,
-	 * but the HW output stream descriptor programming should start with
-	 * offset 0x20*4 from base stream descriptor address. This will be a
-	 * problem while calculating the offset for output stream descriptor
-	 * which will be considering input stream also. So here output stream
-	 * starts with offset 0 which is wrong as HW register for output stream
-	 * offset starts with 4.
-	 */
-	if (of_device_is_compatible(np, "nvidia,tegra234-hda"))
-		chip->capture_streams = 4;
-
 	chip->playback_streams = (gcap >> 12) & 0x0f;
 	if (!chip->playback_streams && !chip->capture_streams) {
 		/* gcap didn't give any info, switching to old method */
@@ -379,14 +359,14 @@ static int hda_tegra_first_init(struct azx *chip, struct platform_device *pdev)
 	}
 
 	/* driver name */
-	strscpy(card->driver, drv_name, sizeof(card->driver));
+	strncpy(card->driver, drv_name, sizeof(card->driver));
 	/* shortname for card */
 	sname = of_get_property(np, "nvidia,model", NULL);
 	if (!sname)
 		sname = drv_name;
 	if (strlen(sname) > sizeof(card->shortname))
 		dev_info(card->dev, "truncating shortname for card\n");
-	strscpy(card->shortname, sname, sizeof(card->shortname));
+	strncpy(card->shortname, sname, sizeof(card->shortname));
 
 	/* longname for card */
 	snprintf(card->longname, sizeof(card->longname),
@@ -421,7 +401,6 @@ static int hda_tegra_create(struct snd_card *card,
 	chip->driver_caps = driver_caps;
 	chip->driver_type = driver_caps & 0xff;
 	chip->dev_index = 0;
-	chip->jackpoll_interval = msecs_to_jiffies(5000);
 	INIT_LIST_HEAD(&chip->pcm_list);
 
 	chip->codec_probe_mask = -1;
@@ -438,7 +417,6 @@ static int hda_tegra_create(struct snd_card *card,
 	chip->bus.core.sync_write = 0;
 	chip->bus.core.needs_damn_long_delay = 1;
 	chip->bus.core.aligned_mmio = 1;
-	chip->bus.jackpoll_in_suspend = 1;
 
 	err = snd_device_new(card, SNDRV_DEV_LOWLEVEL, chip, &ops);
 	if (err < 0) {
@@ -449,25 +427,9 @@ static int hda_tegra_create(struct snd_card *card,
 	return 0;
 }
 
-static const struct hda_tegra_soc tegra30_data = {
-	.has_hda2codec_2x_reset = true,
-	.has_hda2hdmi = true,
-};
-
-static const struct hda_tegra_soc tegra194_data = {
-	.has_hda2codec_2x_reset = false,
-	.has_hda2hdmi = true,
-};
-
-static const struct hda_tegra_soc tegra234_data = {
-	.has_hda2codec_2x_reset = true,
-	.has_hda2hdmi = false,
-};
-
 static const struct of_device_id hda_tegra_match[] = {
-	{ .compatible = "nvidia,tegra30-hda", .data = &tegra30_data },
-	{ .compatible = "nvidia,tegra194-hda", .data = &tegra194_data },
-	{ .compatible = "nvidia,tegra234-hda", .data = &tegra234_data },
+	{ .compatible = "nvidia,tegra30-hda" },
+	{ .compatible = "nvidia,tegra194-hda" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, hda_tegra_match);
@@ -475,8 +437,7 @@ MODULE_DEVICE_TABLE(of, hda_tegra_match);
 static int hda_tegra_probe(struct platform_device *pdev)
 {
 	const unsigned int driver_flags = AZX_DCAPS_CORBRP_SELF_CLEAR |
-					  AZX_DCAPS_PM_RUNTIME |
-					  AZX_DCAPS_4K_BDLE_BOUNDARY;
+					  AZX_DCAPS_PM_RUNTIME;
 	struct snd_card *card;
 	struct azx *chip;
 	struct hda_tegra *hda;
@@ -488,8 +449,6 @@ static int hda_tegra_probe(struct platform_device *pdev)
 	hda->dev = &pdev->dev;
 	chip = &hda->chip;
 
-	hda->soc = of_device_get_match_data(&pdev->dev);
-
 	err = snd_card_new(&pdev->dev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1,
 			   THIS_MODULE, 0, &card);
 	if (err < 0) {
@@ -497,31 +456,14 @@ static int hda_tegra_probe(struct platform_device *pdev)
 		return err;
 	}
 
-	hda->resets[hda->nresets++].id = "hda";
-
-	/*
-	 * "hda2hdmi" is not applicable for Tegra234. This is because the
-	 * codec is separate IP and not under display SOR partition now.
-	 */
-	if (hda->soc->has_hda2hdmi)
-		hda->resets[hda->nresets++].id = "hda2hdmi";
-
-	/*
-	 * "hda2codec_2x" reset is not present on Tegra194. Though DT would
-	 * be updated to reflect this, but to have backward compatibility
-	 * below is necessary.
-	 */
-	if (hda->soc->has_hda2codec_2x_reset)
-		hda->resets[hda->nresets++].id = "hda2codec_2x";
-
-	err = devm_reset_control_bulk_get_exclusive(&pdev->dev, hda->nresets,
-						    hda->resets);
-	if (err)
+	hda->reset = devm_reset_control_array_get_exclusive(&pdev->dev);
+	if (IS_ERR(hda->reset)) {
+		err = PTR_ERR(hda->reset);
 		goto out_free;
+	}
 
 	hda->clocks[hda->nclocks++].id = "hda";
-	if (hda->soc->has_hda2hdmi)
-		hda->clocks[hda->nclocks++].id = "hda2hdmi";
+	hda->clocks[hda->nclocks++].id = "hda2hdmi";
 	hda->clocks[hda->nclocks++].id = "hda2codec_2x";
 
 	err = devm_clk_bulk_get(&pdev->dev, hda->nclocks, hda->clocks);
@@ -581,10 +523,14 @@ static void hda_tegra_probe_work(struct work_struct *work)
 	return; /* no error return from async probe */
 }
 
-static void hda_tegra_remove(struct platform_device *pdev)
+static int hda_tegra_remove(struct platform_device *pdev)
 {
-	snd_card_free(dev_get_drvdata(&pdev->dev));
+	int ret;
+
+	ret = snd_card_free(dev_get_drvdata(&pdev->dev));
 	pm_runtime_disable(&pdev->dev);
+
+	return ret;
 }
 
 static void hda_tegra_shutdown(struct platform_device *pdev)
@@ -606,7 +552,7 @@ static struct platform_driver tegra_platform_hda = {
 		.of_match_table = hda_tegra_match,
 	},
 	.probe = hda_tegra_probe,
-	.remove_new = hda_tegra_remove,
+	.remove = hda_tegra_remove,
 	.shutdown = hda_tegra_shutdown,
 };
 module_platform_driver(tegra_platform_hda);

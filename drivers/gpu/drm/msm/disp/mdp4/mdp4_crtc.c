@@ -6,7 +6,6 @@
 
 #include <drm/drm_crtc.h>
 #include <drm/drm_flip_work.h>
-#include <drm/drm_managed.h>
 #include <drm/drm_mode.h>
 #include <drm/drm_probe_helper.h>
 #include <drm/drm_vblank.h>
@@ -122,6 +121,16 @@ static void unref_cursor_worker(struct drm_flip_work *work, void *val)
 
 	msm_gem_unpin_iova(val, kms->aspace);
 	drm_gem_object_put(val);
+}
+
+static void mdp4_crtc_destroy(struct drm_crtc *crtc)
+{
+	struct mdp4_crtc *mdp4_crtc = to_mdp4_crtc(crtc);
+
+	drm_crtc_cleanup(crtc);
+	drm_flip_work_cleanup(&mdp4_crtc->unref_cursor_work);
+
+	kfree(mdp4_crtc);
 }
 
 /* statically (for now) map planes to mixer stage (z-order): */
@@ -260,7 +269,6 @@ static void mdp4_crtc_atomic_disable(struct drm_crtc *crtc,
 {
 	struct mdp4_crtc *mdp4_crtc = to_mdp4_crtc(crtc);
 	struct mdp4_kms *mdp4_kms = get_kms(crtc);
-	unsigned long flags;
 
 	DBG("%s", mdp4_crtc->name);
 
@@ -272,14 +280,6 @@ static void mdp4_crtc_atomic_disable(struct drm_crtc *crtc,
 
 	mdp_irq_unregister(&mdp4_kms->base, &mdp4_crtc->err);
 	mdp4_disable(mdp4_kms);
-
-	if (crtc->state->event && !crtc->state->active) {
-		WARN_ON(mdp4_crtc->event);
-		spin_lock_irqsave(&mdp4_kms->dev->event_lock, flags);
-		drm_crtc_send_vblank_event(crtc, crtc->state->event);
-		crtc->state->event = NULL;
-		spin_unlock_irqrestore(&mdp4_kms->dev->event_lock, flags);
-	}
 
 	mdp4_crtc->enabled = false;
 }
@@ -475,6 +475,7 @@ static int mdp4_crtc_cursor_move(struct drm_crtc *crtc, int x, int y)
 
 static const struct drm_crtc_funcs mdp4_crtc_funcs = {
 	.set_config = drm_atomic_helper_set_config,
+	.destroy = mdp4_crtc_destroy,
 	.page_flip = drm_atomic_helper_page_flip,
 	.cursor_set = mdp4_crtc_cursor_set,
 	.cursor_move = mdp4_crtc_cursor_move,
@@ -615,13 +616,6 @@ static const char *dma_names[] = {
 		"DMA_P", "DMA_S", "DMA_E",
 };
 
-static void mdp4_crtc_flip_cleanup(struct drm_device *dev, void *ptr)
-{
-	struct mdp4_crtc *mdp4_crtc = ptr;
-
-	drm_flip_work_cleanup(&mdp4_crtc->unref_cursor_work);
-}
-
 /* initialize crtc */
 struct drm_crtc *mdp4_crtc_init(struct drm_device *dev,
 		struct drm_plane *plane, int id, int ovlp_id,
@@ -629,13 +623,10 @@ struct drm_crtc *mdp4_crtc_init(struct drm_device *dev,
 {
 	struct drm_crtc *crtc = NULL;
 	struct mdp4_crtc *mdp4_crtc;
-	int ret;
 
-	mdp4_crtc = drmm_crtc_alloc_with_planes(dev, struct mdp4_crtc, base,
-						plane, NULL,
-						&mdp4_crtc_funcs, NULL);
-	if (IS_ERR(mdp4_crtc))
-		return ERR_CAST(mdp4_crtc);
+	mdp4_crtc = kzalloc(sizeof(*mdp4_crtc), GFP_KERNEL);
+	if (!mdp4_crtc)
+		return ERR_PTR(-ENOMEM);
 
 	crtc = &mdp4_crtc->base;
 
@@ -657,10 +648,9 @@ struct drm_crtc *mdp4_crtc_init(struct drm_device *dev,
 
 	drm_flip_work_init(&mdp4_crtc->unref_cursor_work,
 			"unref cursor", unref_cursor_worker);
-	ret = drmm_add_action_or_reset(dev, mdp4_crtc_flip_cleanup, mdp4_crtc);
-	if (ret)
-		return ERR_PTR(ret);
 
+	drm_crtc_init_with_planes(dev, crtc, plane, NULL, &mdp4_crtc_funcs,
+				  NULL);
 	drm_crtc_helper_add(crtc, &mdp4_crtc_helper_funcs);
 
 	return crtc;

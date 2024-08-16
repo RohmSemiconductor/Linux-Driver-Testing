@@ -1111,7 +1111,6 @@ static int mcde_dsi_bind(struct device *dev, struct device *master,
 			bridge = of_drm_find_bridge(child);
 			if (!bridge) {
 				dev_err(dev, "failed to find bridge\n");
-				of_node_put(child);
 				return -EINVAL;
 			}
 		}
@@ -1170,6 +1169,7 @@ static int mcde_dsi_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct mcde_dsi *d;
 	struct mipi_dsi_host *host;
+	struct resource *res;
 	u32 dsi_id;
 	int ret;
 
@@ -1187,7 +1187,8 @@ static int mcde_dsi_probe(struct platform_device *pdev)
 		return PTR_ERR(d->prcmu);
 	}
 
-	d->regs = devm_platform_ioremap_resource(pdev, 0);
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	d->regs = devm_ioremap_resource(dev, res);
 	if (IS_ERR(d->regs))
 		return PTR_ERR(d->regs);
 
@@ -1208,12 +1209,14 @@ static int mcde_dsi_probe(struct platform_device *pdev)
 	return component_add(dev, &mcde_dsi_component_ops);
 }
 
-static void mcde_dsi_remove(struct platform_device *pdev)
+static int mcde_dsi_remove(struct platform_device *pdev)
 {
 	struct mcde_dsi *d = platform_get_drvdata(pdev);
 
 	component_del(&pdev->dev, &mcde_dsi_component_ops);
 	mipi_dsi_host_unregister(&d->dsi_host);
+
+	return 0;
 }
 
 static const struct of_device_id mcde_dsi_of_match[] = {
@@ -1226,8 +1229,8 @@ static const struct of_device_id mcde_dsi_of_match[] = {
 struct platform_driver mcde_dsi_driver = {
 	.driver = {
 		.name           = "mcde-dsi",
-		.of_match_table = mcde_dsi_of_match,
+		.of_match_table = of_match_ptr(mcde_dsi_of_match),
 	},
 	.probe = mcde_dsi_probe,
-	.remove_new = mcde_dsi_remove,
+	.remove = mcde_dsi_remove,
 };

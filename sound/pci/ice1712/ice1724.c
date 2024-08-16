@@ -2392,27 +2392,23 @@ static int snd_vt1724_spdif_build_controls(struct snd_ice1712 *ice)
 	if (err < 0)
 		return err;
 
-	kctl = snd_ctl_new1(&snd_vt1724_spdif_default, ice);
-	kctl->id.device = ice->pcm->device;
-	err = snd_ctl_add(ice->card, kctl);
+	err = snd_ctl_add(ice->card, kctl = snd_ctl_new1(&snd_vt1724_spdif_default, ice));
 	if (err < 0)
 		return err;
-	kctl = snd_ctl_new1(&snd_vt1724_spdif_maskc, ice);
 	kctl->id.device = ice->pcm->device;
-	err = snd_ctl_add(ice->card, kctl);
+	err = snd_ctl_add(ice->card, kctl = snd_ctl_new1(&snd_vt1724_spdif_maskc, ice));
 	if (err < 0)
 		return err;
-	kctl = snd_ctl_new1(&snd_vt1724_spdif_maskp, ice);
 	kctl->id.device = ice->pcm->device;
-	err = snd_ctl_add(ice->card, kctl);
+	err = snd_ctl_add(ice->card, kctl = snd_ctl_new1(&snd_vt1724_spdif_maskp, ice));
 	if (err < 0)
 		return err;
+	kctl->id.device = ice->pcm->device;
 #if 0 /* use default only */
-	kctl = snd_ctl_new1(&snd_vt1724_spdif_stream, ice);
-	kctl->id.device = ice->pcm->device;
-	err = snd_ctl_add(ice->card, kctl);
+	err = snd_ctl_add(ice->card, kctl = snd_ctl_new1(&snd_vt1724_spdif_stream, ice));
 	if (err < 0)
 		return err;
+	kctl->id.device = ice->pcm->device;
 	ice->spdif.stream_ctl = kctl;
 #endif
 	return 0;
@@ -2523,8 +2519,8 @@ static int snd_vt1724_create(struct snd_card *card,
  *
  */
 
-static int __snd_vt1724_probe(struct pci_dev *pci,
-			      const struct pci_device_id *pci_id)
+static int snd_vt1724_probe(struct pci_dev *pci,
+			    const struct pci_device_id *pci_id)
 {
 	static int dev;
 	struct snd_card *card;
@@ -2664,12 +2660,6 @@ static int __snd_vt1724_probe(struct pci_dev *pci,
 	pci_set_drvdata(pci, card);
 	dev++;
 	return 0;
-}
-
-static int snd_vt1724_probe(struct pci_dev *pci,
-			    const struct pci_device_id *pci_id)
-{
-	return snd_card_free_on_error(&pci->dev, __snd_vt1724_probe(pci, pci_id));
 }
 
 #ifdef CONFIG_PM_SLEEP

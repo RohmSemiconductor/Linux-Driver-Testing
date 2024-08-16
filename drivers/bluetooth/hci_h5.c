@@ -11,7 +11,7 @@
 #include <linux/gpio/consumer.h>
 #include <linux/kernel.h>
 #include <linux/mod_devicetable.h>
-#include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/serdev.h>
 #include <linux/skbuff.h>
@@ -313,7 +313,7 @@ static void h5_pkt_cull(struct h5 *h5)
 			break;
 
 		__skb_unlink(skb, &h5->unack);
-		dev_kfree_skb_irq(skb);
+		kfree_skb(skb);
 	}
 
 	if (skb_queue_empty(&h5->unack))
@@ -463,8 +463,6 @@ static int h5_rx_3wire_hdr(struct hci_uart *hu, unsigned char c)
 	if (H5_HDR_RELIABLE(hdr) && H5_HDR_SEQ(hdr) != h5->tx_ack) {
 		bt_dev_err(hu->hdev, "Out-of-order packet arrived (%u != %u)",
 			   H5_HDR_SEQ(hdr), h5->tx_ack);
-		set_bit(H5_TX_ACK_REQ, &h5->flags);
-		hci_uart_tx_wakeup(hu);
 		h5_reset_rx(h5);
 		return 0;
 	}
@@ -589,11 +587,9 @@ static int h5_recv(struct hci_uart *hu, const void *data, int count)
 		count -= processed;
 	}
 
-	if (hu->serdev) {
-		pm_runtime_get(&hu->serdev->dev);
-		pm_runtime_mark_last_busy(&hu->serdev->dev);
-		pm_runtime_put_autosuspend(&hu->serdev->dev);
-	}
+	pm_runtime_get(&hu->serdev->dev);
+	pm_runtime_mark_last_busy(&hu->serdev->dev);
+	pm_runtime_put_autosuspend(&hu->serdev->dev);
 
 	return 0;
 }
@@ -631,11 +627,9 @@ static int h5_enqueue(struct hci_uart *hu, struct sk_buff *skb)
 		break;
 	}
 
-	if (hu->serdev) {
-		pm_runtime_get_sync(&hu->serdev->dev);
-		pm_runtime_mark_last_busy(&hu->serdev->dev);
-		pm_runtime_put_autosuspend(&hu->serdev->dev);
-	}
+	pm_runtime_get_sync(&hu->serdev->dev);
+	pm_runtime_mark_last_busy(&hu->serdev->dev);
+	pm_runtime_put_autosuspend(&hu->serdev->dev);
 
 	return 0;
 }
@@ -820,6 +814,7 @@ static int h5_serdev_probe(struct serdev_device *serdev)
 	struct device *dev = &serdev->dev;
 	struct h5 *h5;
 	const struct h5_device_data *data;
+	int err;
 
 	h5 = devm_kzalloc(dev, sizeof(*h5), GFP_KERNEL);
 	if (!h5)
@@ -851,8 +846,6 @@ static int h5_serdev_probe(struct serdev_device *serdev)
 		h5->vnd = data->vnd;
 	}
 
-	if (data->driver_info & H5_INFO_WAKEUP_DISABLE)
-		set_bit(H5_WAKEUP_DISABLE, &h5->flags);
 
 	h5->enable_gpio = devm_gpiod_get_optional(dev, "enable", GPIOD_OUT_LOW);
 	if (IS_ERR(h5->enable_gpio))
@@ -863,7 +856,14 @@ static int h5_serdev_probe(struct serdev_device *serdev)
 	if (IS_ERR(h5->device_wake_gpio))
 		return PTR_ERR(h5->device_wake_gpio);
 
-	return hci_uart_register_device(&h5->serdev_hu, &h5p);
+	err = hci_uart_register_device(&h5->serdev_hu, &h5p);
+	if (err)
+		return err;
+
+	if (data->driver_info & H5_INFO_WAKEUP_DISABLE)
+		set_bit(H5_WAKEUP_DISABLE, &h5->flags);
+
+	return 0;
 }
 
 static void h5_serdev_remove(struct serdev_device *serdev)
@@ -938,8 +938,6 @@ static int h5_btrtl_setup(struct h5 *h5)
 	err = btrtl_download_firmware(h5->hu->hdev, btrtl_dev);
 	/* Give the device some time before the hci-core sends it a reset */
 	usleep_range(10000, 20000);
-	if (err)
-		goto out_free;
 
 	btrtl_set_quirks(h5->hu->hdev, btrtl_dev);
 
@@ -964,18 +962,11 @@ static void h5_btrtl_open(struct h5 *h5)
 	serdev_device_set_parity(h5->hu->serdev, SERDEV_PARITY_EVEN);
 	serdev_device_set_baudrate(h5->hu->serdev, 115200);
 
-	if (!test_bit(H5_WAKEUP_DISABLE, &h5->flags)) {
-		pm_runtime_set_active(&h5->hu->serdev->dev);
-		pm_runtime_use_autosuspend(&h5->hu->serdev->dev);
-		pm_runtime_set_autosuspend_delay(&h5->hu->serdev->dev,
-						 SUSPEND_TIMEOUT_MS);
-		pm_runtime_enable(&h5->hu->serdev->dev);
-	}
-
-	/* The controller needs reset to startup */
-	gpiod_set_value_cansleep(h5->enable_gpio, 0);
-	gpiod_set_value_cansleep(h5->device_wake_gpio, 0);
-	msleep(100);
+	pm_runtime_set_active(&h5->hu->serdev->dev);
+	pm_runtime_use_autosuspend(&h5->hu->serdev->dev);
+	pm_runtime_set_autosuspend_delay(&h5->hu->serdev->dev,
+					 SUSPEND_TIMEOUT_MS);
+	pm_runtime_enable(&h5->hu->serdev->dev);
 
 	/* The controller needs up to 500ms to wakeup */
 	gpiod_set_value_cansleep(h5->enable_gpio, 1);
@@ -985,8 +976,7 @@ static void h5_btrtl_open(struct h5 *h5)
 
 static void h5_btrtl_close(struct h5 *h5)
 {
-	if (!test_bit(H5_WAKEUP_DISABLE, &h5->flags))
-		pm_runtime_disable(&h5->hu->serdev->dev);
+	pm_runtime_disable(&h5->hu->serdev->dev);
 
 	gpiod_set_value_cansleep(h5->device_wake_gpio, 0);
 	gpiod_set_value_cansleep(h5->enable_gpio, 0);
@@ -1103,8 +1093,6 @@ static const struct of_device_id rtl_bluetooth_of_match[] = {
 	{ .compatible = "realtek,rtl8822cs-bt",
 	  .data = (const void *)&h5_data_rtl8822cs },
 	{ .compatible = "realtek,rtl8723bs-bt",
-	  .data = (const void *)&h5_data_rtl8723bs },
-	{ .compatible = "realtek,rtl8723cs-bt",
 	  .data = (const void *)&h5_data_rtl8723bs },
 	{ .compatible = "realtek,rtl8723ds-bt",
 	  .data = (const void *)&h5_data_rtl8723bs },

@@ -33,7 +33,6 @@
 #include <linux/jiffies.h>
 #include <linux/completion.h>
 #include <linux/of.h>
-#include <linux/pm_wakeirq.h>
 #include <linux/property.h>
 #include <linux/regulator/consumer.h>
 #include <asm/unaligned.h>
@@ -86,6 +85,8 @@ struct elan_tp_data {
 	u16			fw_validpage_count;
 	u16			fw_page_size;
 	u32			fw_signature_address;
+
+	bool			irq_wake;
 
 	u8			min_baseline;
 	u8			max_baseline;
@@ -185,21 +186,55 @@ static int elan_get_fwinfo(u16 ic_type, u8 iap_version, u16 *validpage_count,
 	return 0;
 }
 
-static int elan_set_power(struct elan_tp_data *data, bool on)
+static int elan_enable_power(struct elan_tp_data *data)
 {
 	int repeat = ETP_RETRY_COUNT;
 	int error;
 
+	error = regulator_enable(data->vcc);
+	if (error) {
+		dev_err(&data->client->dev,
+			"failed to enable regulator: %d\n", error);
+		return error;
+	}
+
 	do {
-		error = data->ops->power_control(data->client, on);
+		error = data->ops->power_control(data->client, true);
 		if (error >= 0)
 			return 0;
 
 		msleep(30);
 	} while (--repeat > 0);
 
-	dev_err(&data->client->dev, "failed to set power %s: %d\n",
-		on ? "on" : "off", error);
+	dev_err(&data->client->dev, "failed to enable power: %d\n", error);
+	return error;
+}
+
+static int elan_disable_power(struct elan_tp_data *data)
+{
+	int repeat = ETP_RETRY_COUNT;
+	int error;
+
+	do {
+		error = data->ops->power_control(data->client, false);
+		if (!error) {
+			error = regulator_disable(data->vcc);
+			if (error) {
+				dev_err(&data->client->dev,
+					"failed to disable regulator: %d\n",
+					error);
+				/* Attempt to power the chip back up */
+				data->ops->power_control(data->client, true);
+				break;
+			}
+
+			return 0;
+		}
+
+		msleep(30);
+	} while (--repeat > 0);
+
+	dev_err(&data->client->dev, "failed to disable power: %d\n", error);
 	return error;
 }
 
@@ -572,7 +607,7 @@ static ssize_t elan_sysfs_read_fw_checksum(struct device *dev,
 	struct i2c_client *client = to_i2c_client(dev);
 	struct elan_tp_data *data = i2c_get_clientdata(client);
 
-	return sysfs_emit(buf, "0x%04x\n", data->fw_checksum);
+	return sprintf(buf, "0x%04x\n", data->fw_checksum);
 }
 
 static ssize_t elan_sysfs_read_product_id(struct device *dev,
@@ -582,8 +617,8 @@ static ssize_t elan_sysfs_read_product_id(struct device *dev,
 	struct i2c_client *client = to_i2c_client(dev);
 	struct elan_tp_data *data = i2c_get_clientdata(client);
 
-	return sysfs_emit(buf, ETP_PRODUCT_ID_FORMAT_STRING "\n",
-			  data->product_id);
+	return sprintf(buf, ETP_PRODUCT_ID_FORMAT_STRING "\n",
+		       data->product_id);
 }
 
 static ssize_t elan_sysfs_read_fw_ver(struct device *dev,
@@ -593,7 +628,7 @@ static ssize_t elan_sysfs_read_fw_ver(struct device *dev,
 	struct i2c_client *client = to_i2c_client(dev);
 	struct elan_tp_data *data = i2c_get_clientdata(client);
 
-	return sysfs_emit(buf, "%d.0\n", data->fw_version);
+	return sprintf(buf, "%d.0\n", data->fw_version);
 }
 
 static ssize_t elan_sysfs_read_sm_ver(struct device *dev,
@@ -603,7 +638,7 @@ static ssize_t elan_sysfs_read_sm_ver(struct device *dev,
 	struct i2c_client *client = to_i2c_client(dev);
 	struct elan_tp_data *data = i2c_get_clientdata(client);
 
-	return sysfs_emit(buf, "%d.0\n", data->sm_version);
+	return sprintf(buf, "%d.0\n", data->sm_version);
 }
 
 static ssize_t elan_sysfs_read_iap_ver(struct device *dev,
@@ -613,7 +648,7 @@ static ssize_t elan_sysfs_read_iap_ver(struct device *dev,
 	struct i2c_client *client = to_i2c_client(dev);
 	struct elan_tp_data *data = i2c_get_clientdata(client);
 
-	return sysfs_emit(buf, "%d.0\n", data->iap_version);
+	return sprintf(buf, "%d.0\n", data->iap_version);
 }
 
 static ssize_t elan_sysfs_update_fw(struct device *dev,
@@ -754,7 +789,7 @@ static ssize_t elan_sysfs_read_mode(struct device *dev,
 	if (error)
 		return error;
 
-	return sysfs_emit(buf, "%d\n", (int)mode);
+	return sprintf(buf, "%d\n", (int)mode);
 }
 
 static DEVICE_ATTR(product_id, S_IRUGO, elan_sysfs_read_product_id, NULL);
@@ -858,7 +893,7 @@ static ssize_t min_show(struct device *dev,
 		goto out;
 	}
 
-	retval = sysfs_emit(buf, "%d", data->min_baseline);
+	retval = snprintf(buf, PAGE_SIZE, "%d", data->min_baseline);
 
 out:
 	mutex_unlock(&data->sysfs_mutex);
@@ -881,7 +916,7 @@ static ssize_t max_show(struct device *dev,
 		goto out;
 	}
 
-	retval = sysfs_emit(buf, "%d", data->max_baseline);
+	retval = snprintf(buf, PAGE_SIZE, "%d", data->max_baseline);
 
 out:
 	mutex_unlock(&data->sysfs_mutex);
@@ -1187,7 +1222,8 @@ static void elan_disable_regulator(void *_data)
 	regulator_disable(data->vcc);
 }
 
-static int elan_probe(struct i2c_client *client)
+static int elan_probe(struct i2c_client *client,
+		      const struct i2c_device_id *dev_id)
 {
 	const struct elan_transport_ops *transport_ops;
 	struct device *dev = &client->dev;
@@ -1221,8 +1257,13 @@ static int elan_probe(struct i2c_client *client)
 	mutex_init(&data->sysfs_mutex);
 
 	data->vcc = devm_regulator_get(dev, "vcc");
-	if (IS_ERR(data->vcc))
-		return dev_err_probe(dev, PTR_ERR(data->vcc), "Failed to get 'vcc' regulator\n");
+	if (IS_ERR(data->vcc)) {
+		error = PTR_ERR(data->vcc);
+		if (error != -EPROBE_DEFER)
+			dev_err(dev, "Failed to get 'vcc' regulator: %d\n",
+				error);
+		return error;
+	}
 
 	error = regulator_enable(data->vcc);
 	if (error) {
@@ -1304,6 +1345,12 @@ static int elan_probe(struct i2c_client *client)
 		return error;
 	}
 
+	error = devm_device_add_groups(dev, elan_sysfs_groups);
+	if (error) {
+		dev_err(dev, "failed to create sysfs attributes: %d\n", error);
+		return error;
+	}
+
 	error = input_register_device(data->input);
 	if (error) {
 		dev_err(dev, "failed to register input device: %d\n", error);
@@ -1320,10 +1367,17 @@ static int elan_probe(struct i2c_client *client)
 		}
 	}
 
+	/*
+	 * Systems using device tree should set up wakeup via DTS,
+	 * the rest will configure device as wakeup source by default.
+	 */
+	if (!dev->of_node)
+		device_init_wakeup(dev, true);
+
 	return 0;
 }
 
-static int elan_suspend(struct device *dev)
+static int __maybe_unused elan_suspend(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct elan_tp_data *data = i2c_get_clientdata(client);
@@ -1342,39 +1396,28 @@ static int elan_suspend(struct device *dev)
 
 	if (device_may_wakeup(dev)) {
 		ret = elan_sleep(data);
+		/* Enable wake from IRQ */
+		data->irq_wake = (enable_irq_wake(client->irq) == 0);
 	} else {
-		ret = elan_set_power(data, false);
-		if (ret)
-			goto err;
-
-		ret = regulator_disable(data->vcc);
-		if (ret) {
-			dev_err(dev, "error %d disabling regulator\n", ret);
-			/* Attempt to power the chip back up */
-			elan_set_power(data, true);
-		}
+		ret = elan_disable_power(data);
 	}
 
-err:
 	mutex_unlock(&data->sysfs_mutex);
 	return ret;
 }
 
-static int elan_resume(struct device *dev)
+static int __maybe_unused elan_resume(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct elan_tp_data *data = i2c_get_clientdata(client);
 	int error;
 
-	if (!device_may_wakeup(dev)) {
-		error = regulator_enable(data->vcc);
-		if (error) {
-			dev_err(dev, "error %d enabling regulator\n", error);
-			goto err;
-		}
+	if (device_may_wakeup(dev) && data->irq_wake) {
+		disable_irq_wake(client->irq);
+		data->irq_wake = false;
 	}
 
-	error = elan_set_power(data, true);
+	error = elan_enable_power(data);
 	if (error) {
 		dev_err(dev, "power up when resuming failed: %d\n", error);
 		goto err;
@@ -1389,7 +1432,7 @@ err:
 	return error;
 }
 
-static DEFINE_SIMPLE_DEV_PM_OPS(elan_pm_ops, elan_suspend, elan_resume);
+static SIMPLE_DEV_PM_OPS(elan_pm_ops, elan_suspend, elan_resume);
 
 static const struct i2c_device_id elan_id[] = {
 	{ DRIVER_NAME, 0 },
@@ -1413,11 +1456,10 @@ MODULE_DEVICE_TABLE(of, elan_of_match);
 static struct i2c_driver elan_driver = {
 	.driver = {
 		.name	= DRIVER_NAME,
-		.pm	= pm_sleep_ptr(&elan_pm_ops),
+		.pm	= &elan_pm_ops,
 		.acpi_match_table = ACPI_PTR(elan_acpi_id),
 		.of_match_table = of_match_ptr(elan_of_match),
 		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
-		.dev_groups = elan_sysfs_groups,
 	},
 	.probe		= elan_probe,
 	.id_table	= elan_id,

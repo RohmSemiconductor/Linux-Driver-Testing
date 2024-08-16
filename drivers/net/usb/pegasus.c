@@ -357,7 +357,7 @@ static void set_ethernet_addr(pegasus_t *pegasus)
 			goto err;
 	}
 
-	eth_hw_addr_set(pegasus->net, node_id);
+	memcpy(pegasus->net->dev_addr, node_id, sizeof(node_id));
 
 	return;
 err:
@@ -493,11 +493,11 @@ static void read_bulk_callback(struct urb *urb)
 		goto goon;
 
 	rx_status = buf[count - 2];
-	if (rx_status & 0x1c) {
+	if (rx_status & 0x1e) {
 		netif_dbg(pegasus, rx_err, net,
 			  "RX packet error %x\n", rx_status);
 		net->stats.rx_errors++;
-		if (rx_status & 0x04)	/* runt	*/
+		if (rx_status & 0x06)	/* long or runt	*/
 			net->stats.rx_length_errors++;
 		if (rx_status & 0x08)
 			net->stats.rx_crc_errors++;
@@ -894,7 +894,7 @@ static void pegasus_get_drvinfo(struct net_device *dev,
 {
 	pegasus_t *pegasus = netdev_priv(dev);
 
-	strscpy(info->driver, driver_name, sizeof(info->driver));
+	strlcpy(info->driver, driver_name, sizeof(info->driver));
 	usb_make_path(pegasus->usb, info->bus_info, sizeof(info->bus_info));
 }
 

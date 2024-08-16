@@ -25,7 +25,6 @@
 #include <sound/core.h>
 #include <sound/initval.h>
 #include "hda_controller.h"
-#include "hda_local.h"
 
 #define CREATE_TRACE_POINTS
 #include "hda_controller_trace.h"
@@ -151,7 +150,7 @@ static int azx_pcm_prepare(struct snd_pcm_substream *substream)
 	struct azx_dev *azx_dev = get_azx_dev(substream);
 	struct hda_pcm_stream *hinfo = to_hda_pcm_stream(substream);
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	unsigned int format_val, stream_tag, bits;
+	unsigned int format_val, stream_tag;
 	int err;
 	struct hda_spdif_out *spdif =
 		snd_hda_spdif_out_of_nid(apcm->codec, hinfo->nid);
@@ -165,9 +164,11 @@ static int azx_pcm_prepare(struct snd_pcm_substream *substream)
 	}
 
 	snd_hdac_stream_reset(azx_stream(azx_dev));
-	bits = snd_hdac_stream_format_bits(runtime->format, SNDRV_PCM_SUBFORMAT_STD, hinfo->maxbps);
-
-	format_val = snd_hdac_spdif_stream_format(runtime->channels, bits, runtime->rate, ctls);
+	format_val = snd_hdac_calc_stream_format(runtime->rate,
+						runtime->channels,
+						runtime->format,
+						hinfo->maxbps,
+						ctls);
 	if (!format_val) {
 		dev_err(chip->card->dev,
 			"invalid format_val, rate=%d, ch=%d, format=%d\n",
@@ -180,7 +181,7 @@ static int azx_pcm_prepare(struct snd_pcm_substream *substream)
 	if (err < 0)
 		goto unlock;
 
-	snd_hdac_stream_setup(azx_stream(azx_dev), false);
+	snd_hdac_stream_setup(azx_stream(azx_dev));
 
 	stream_tag = azx_dev->core.stream_tag;
 	/* CA-IBG chips need the playback stream starting from 1 */
@@ -255,7 +256,7 @@ static int azx_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		azx_dev = get_azx_dev(s);
 		if (start) {
 			azx_dev->insufficient = 1;
-			snd_hdac_stream_start(azx_stream(azx_dev));
+			snd_hdac_stream_start(azx_stream(azx_dev), true);
 		} else {
 			snd_hdac_stream_stop(azx_stream(azx_dev));
 		}
@@ -502,6 +503,7 @@ static int azx_get_time_info(struct snd_pcm_substream *substream,
 		snd_pcm_gettime(substream->runtime, system_ts);
 
 		nsec = timecounter_read(&azx_dev->core.tc);
+		nsec = div_u64(nsec, 3); /* can be optimized */
 		if (audio_tstamp_config->report_delay)
 			nsec = azx_adjust_codec_delay(substream, nsec);
 
@@ -1031,8 +1033,10 @@ EXPORT_SYMBOL_GPL(azx_init_chip);
 void azx_stop_all_streams(struct azx *chip)
 {
 	struct hdac_bus *bus = azx_bus(chip);
+	struct hdac_stream *s;
 
-	snd_hdac_stop_streams(bus);
+	list_for_each_entry(s, &bus->stream_list, list)
+		snd_hdac_stream_stop(s);
 }
 EXPORT_SYMBOL_GPL(azx_stop_all_streams);
 
@@ -1207,9 +1211,6 @@ int azx_probe_codecs(struct azx *chip, unsigned int max_slots)
 				dev_warn(chip->card->dev,
 					 "Codec #%d probe error; disabling it...\n", c);
 				bus->codec_mask &= ~(1 << c);
-				/* no codecs */
-				if (bus->codec_mask == 0)
-					break;
 				/* More badly, accessing to a non-existing
 				 * codec often screws up the controller chip,
 				 * and disturbs the further communications.
@@ -1232,7 +1233,6 @@ int azx_probe_codecs(struct azx *chip, unsigned int max_slots)
 				continue;
 			codec->jackpoll_interval = chip->jackpoll_interval;
 			codec->beep_mode = chip->beep_mode;
-			codec->ctl_dev_id = chip->ctl_dev_id;
 			codecs++;
 		}
 	}
@@ -1248,24 +1248,17 @@ EXPORT_SYMBOL_GPL(azx_probe_codecs);
 int azx_codec_configure(struct azx *chip)
 {
 	struct hda_codec *codec, *next;
-	int success = 0;
 
-	list_for_each_codec(codec, &chip->bus) {
-		if (!snd_hda_codec_configure(codec))
-			success++;
+	/* use _safe version here since snd_hda_codec_configure() deregisters
+	 * the device upon error and deletes itself from the bus list.
+	 */
+	list_for_each_codec_safe(codec, next, &chip->bus) {
+		snd_hda_codec_configure(codec);
 	}
 
-	if (success) {
-		/* unregister failed codecs if any codec has been probed */
-		list_for_each_codec_safe(codec, next, &chip->bus) {
-			if (!codec->configured) {
-				codec_err(codec, "Unable to configure, disabling\n");
-				snd_hdac_device_unregister(&codec->core);
-			}
-		}
-	}
-
-	return success ? 0 : -ENODEV;
+	if (!azx_bus(chip)->num_codecs)
+		return -ENODEV;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(azx_codec_configure);
 

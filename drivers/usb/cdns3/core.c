@@ -14,7 +14,6 @@
 #include <linux/dma-mapping.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
@@ -395,6 +394,7 @@ pm_put:
 	return ret;
 }
 
+
 /**
  * cdns_wakeup_irq - interrupt handler for wakeup events
  * @irq: irq number for cdns3/cdnsp core device
@@ -522,8 +522,9 @@ int cdns_suspend(struct cdns *cdns)
 }
 EXPORT_SYMBOL_GPL(cdns_suspend);
 
-int cdns_resume(struct cdns *cdns)
+int cdns_resume(struct cdns *cdns, u8 set_active)
 {
+	struct device *dev = cdns->dev;
 	enum usb_role real_role;
 	bool role_changed = false;
 	int ret = 0;
@@ -555,23 +556,15 @@ int cdns_resume(struct cdns *cdns)
 	if (cdns->roles[cdns->role]->resume)
 		cdns->roles[cdns->role]->resume(cdns, cdns_power_is_lost(cdns));
 
-	return 0;
-}
-EXPORT_SYMBOL_GPL(cdns_resume);
-
-void cdns_set_active(struct cdns *cdns, u8 set_active)
-{
-	struct device *dev = cdns->dev;
-
 	if (set_active) {
 		pm_runtime_disable(dev);
 		pm_runtime_set_active(dev);
 		pm_runtime_enable(dev);
 	}
 
-	return;
+	return 0;
 }
-EXPORT_SYMBOL_GPL(cdns_set_active);
+EXPORT_SYMBOL_GPL(cdns_resume);
 #endif /* CONFIG_PM_SLEEP */
 
 MODULE_AUTHOR("Peter Chen <peter.chen@nxp.com>");

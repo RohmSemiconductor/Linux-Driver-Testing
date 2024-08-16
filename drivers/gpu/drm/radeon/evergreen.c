@@ -26,11 +26,9 @@
 #include <linux/pci.h>
 #include <linux/slab.h>
 
-#include <drm/drm_edid.h>
 #include <drm/drm_vblank.h>
 #include <drm/radeon_drm.h>
 #include <drm/drm_fourcc.h>
-#include <drm/drm_framebuffer.h>
 
 #include "atom.h"
 #include "avivod.h"
@@ -4822,15 +4820,14 @@ restart_ih:
 			break;
 		case 44: /* hdmi */
 			afmt_idx = src_data;
+			if (!(afmt_status[afmt_idx] & AFMT_AZ_FORMAT_WTRIG))
+				DRM_DEBUG("IH: IH event w/o asserted irq bit?\n");
+
 			if (afmt_idx > 5) {
 				DRM_ERROR("Unhandled interrupt: %d %d\n",
 					  src_id, src_data);
 				break;
 			}
-
-			if (!(afmt_status[afmt_idx] & AFMT_AZ_FORMAT_WTRIG))
-				DRM_DEBUG("IH: IH event w/o asserted irq bit?\n");
-
 			afmt_status[afmt_idx] &= ~AFMT_AZ_FORMAT_WTRIG;
 			queue_hdmi = true;
 			DRM_DEBUG("IH: HDMI%d\n", afmt_idx + 1);
@@ -5159,8 +5156,8 @@ int evergreen_suspend(struct radeon_device *rdev)
 	radeon_pm_suspend(rdev);
 	radeon_audio_fini(rdev);
 	if (rdev->has_uvd) {
-		radeon_uvd_suspend(rdev);
 		uvd_v1_0_fini(rdev);
+		radeon_uvd_suspend(rdev);
 	}
 	r700_cp_stop(rdev);
 	r600_dma_stop(rdev);

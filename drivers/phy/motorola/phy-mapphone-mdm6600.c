@@ -122,9 +122,15 @@ static int phy_mdm6600_power_on(struct phy *x)
 {
 	struct phy_mdm6600 *ddata = phy_get_drvdata(x);
 	struct gpio_desc *enable_gpio = ddata->ctrl_gpios[PHY_MDM6600_ENABLE];
+	int error;
 
 	if (!ddata->enabled)
 		return -ENODEV;
+
+	error = pinctrl_pm_select_default_state(ddata->dev);
+	if (error)
+		dev_warn(ddata->dev, "%s: error with default_state: %i\n",
+			 __func__, error);
 
 	gpiod_set_value_cansleep(enable_gpio, 1);
 
@@ -153,6 +159,11 @@ static int phy_mdm6600_power_off(struct phy *x)
 	}
 
 	gpiod_set_value_cansleep(enable_gpio, 0);
+
+	error = pinctrl_pm_select_sleep_state(ddata->dev);
+	if (error)
+		dev_warn(ddata->dev, "%s: error with sleep_state: %i\n",
+			 __func__, error);
 
 	return 0;
 }
@@ -445,7 +456,6 @@ static void phy_mdm6600_device_power_off(struct phy_mdm6600 *ddata)
 {
 	struct gpio_desc *reset_gpio =
 		ddata->ctrl_gpios[PHY_MDM6600_RESET];
-	int error;
 
 	ddata->enabled = false;
 	phy_mdm6600_cmd(ddata, PHY_MDM6600_CMD_BP_SHUTDOWN_REQ);
@@ -461,17 +471,6 @@ static void phy_mdm6600_device_power_off(struct phy_mdm6600 *ddata)
 	} else {
 		dev_err(ddata->dev, "Timed out powering down\n");
 	}
-
-	/*
-	 * Keep reset gpio high with padconf internal pull-up resistor to
-	 * prevent modem from waking up during deeper SoC idle states. The
-	 * gpio bank lines can have glitches if not in the always-on wkup
-	 * domain.
-	 */
-	error = pinctrl_pm_select_sleep_state(ddata->dev);
-	if (error)
-		dev_warn(ddata->dev, "%s: error with sleep_state: %i\n",
-			 __func__, error);
 }
 
 static void phy_mdm6600_deferred_power_on(struct work_struct *work)
@@ -572,6 +571,12 @@ static int phy_mdm6600_probe(struct platform_device *pdev)
 	ddata->dev = &pdev->dev;
 	platform_set_drvdata(pdev, ddata);
 
+	/* Active state selected in phy_mdm6600_power_on() */
+	error = pinctrl_pm_select_sleep_state(ddata->dev);
+	if (error)
+		dev_warn(ddata->dev, "%s: error with sleep_state: %i\n",
+			 __func__, error);
+
 	error = phy_mdm6600_init_lines(ddata);
 	if (error)
 		return error;
@@ -622,21 +627,17 @@ idle:
 	pm_runtime_put_autosuspend(ddata->dev);
 
 cleanup:
-	if (error < 0) {
+	if (error < 0)
 		phy_mdm6600_device_power_off(ddata);
-		pm_runtime_disable(ddata->dev);
-		pm_runtime_dont_use_autosuspend(ddata->dev);
-	}
 
 	return error;
 }
 
-static void phy_mdm6600_remove(struct platform_device *pdev)
+static int phy_mdm6600_remove(struct platform_device *pdev)
 {
 	struct phy_mdm6600 *ddata = platform_get_drvdata(pdev);
 	struct gpio_desc *reset_gpio = ddata->ctrl_gpios[PHY_MDM6600_RESET];
 
-	pm_runtime_get_noresume(ddata->dev);
 	pm_runtime_dont_use_autosuspend(ddata->dev);
 	pm_runtime_put_sync(ddata->dev);
 	pm_runtime_disable(ddata->dev);
@@ -651,11 +652,13 @@ static void phy_mdm6600_remove(struct platform_device *pdev)
 	cancel_delayed_work_sync(&ddata->modem_wake_work);
 	cancel_delayed_work_sync(&ddata->bootup_work);
 	cancel_delayed_work_sync(&ddata->status_work);
+
+	return 0;
 }
 
 static struct platform_driver phy_mdm6600_driver = {
 	.probe = phy_mdm6600_probe,
-	.remove_new = phy_mdm6600_remove,
+	.remove = phy_mdm6600_remove,
 	.driver = {
 		.name = "phy-mapphone-mdm6600",
 		.pm = &phy_mdm6600_pm_ops,

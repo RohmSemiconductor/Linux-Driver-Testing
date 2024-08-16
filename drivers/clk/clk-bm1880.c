@@ -7,10 +7,10 @@
  */
 
 #include <linux/clk-provider.h>
-#include <linux/io.h>
 #include <linux/kernel.h>
-#include <linux/mod_devicetable.h>
 #include <linux/module.h>
+#include <linux/of_address.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 
@@ -522,6 +522,14 @@ static struct clk_hw *bm1880_clk_register_pll(struct bm1880_pll_hw_clock *pll_cl
 	return hw;
 }
 
+static void bm1880_clk_unregister_pll(struct clk_hw *hw)
+{
+	struct bm1880_pll_hw_clock *pll_hw = to_bm1880_pll_clk(hw);
+
+	clk_hw_unregister(hw);
+	kfree(pll_hw);
+}
+
 static int bm1880_clk_register_plls(struct bm1880_pll_hw_clock *clks,
 				    int num_clks,
 				    struct bm1880_clock_data *data)
@@ -547,7 +555,7 @@ static int bm1880_clk_register_plls(struct bm1880_pll_hw_clock *clks,
 
 err_clk:
 	while (i--)
-		clk_hw_unregister(data->hw_data.hws[clks[i].pll.id]);
+		bm1880_clk_unregister_pll(data->hw_data.hws[clks[i].pll.id]);
 
 	return PTR_ERR(hw);
 }
@@ -687,6 +695,14 @@ static struct clk_hw *bm1880_clk_register_div(struct bm1880_div_hw_clock *div_cl
 	return hw;
 }
 
+static void bm1880_clk_unregister_div(struct clk_hw *hw)
+{
+	struct bm1880_div_hw_clock *div_hw = to_bm1880_div_clk(hw);
+
+	clk_hw_unregister(hw);
+	kfree(div_hw);
+}
+
 static int bm1880_clk_register_divs(struct bm1880_div_hw_clock *clks,
 				    int num_clks,
 				    struct bm1880_clock_data *data)
@@ -713,7 +729,7 @@ static int bm1880_clk_register_divs(struct bm1880_div_hw_clock *clks,
 
 err_clk:
 	while (i--)
-		clk_hw_unregister(data->hw_data.hws[clks[i].div.id]);
+		bm1880_clk_unregister_div(data->hw_data.hws[clks[i].div.id]);
 
 	return PTR_ERR(hw);
 }
@@ -876,13 +892,16 @@ static int bm1880_clk_probe(struct platform_device *pdev)
 	struct bm1880_clock_data *clk_data;
 	void __iomem *pll_base, *sys_base;
 	struct device *dev = &pdev->dev;
+	struct resource *res;
 	int num_clks, i;
 
-	pll_base = devm_platform_ioremap_resource(pdev, 0);
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	pll_base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(pll_base))
 		return PTR_ERR(pll_base);
 
-	sys_base = devm_platform_ioremap_resource(pdev, 1);
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	sys_base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(sys_base))
 		return PTR_ERR(sys_base);
 
@@ -946,3 +965,4 @@ module_platform_driver(bm1880_clk_driver);
 
 MODULE_AUTHOR("Manivannan Sadhasivam <manivannan.sadhasivam@linaro.org>");
 MODULE_DESCRIPTION("Clock driver for Bitmain BM1880 SoC");
+MODULE_LICENSE("GPL v2");

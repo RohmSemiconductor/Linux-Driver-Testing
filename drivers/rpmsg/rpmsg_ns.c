@@ -20,10 +20,12 @@
  */
 int rpmsg_ns_register_device(struct rpmsg_device *rpdev)
 {
+	strcpy(rpdev->id.name, "rpmsg_ns");
+	rpdev->driver_override = "rpmsg_ns";
 	rpdev->src = RPMSG_NS_ADDR;
 	rpdev->dst = RPMSG_NS_ADDR;
 
-	return rpmsg_register_device_override(rpdev, "rpmsg_ns");
+	return rpmsg_register_device(rpdev);
 }
 EXPORT_SYMBOL(rpmsg_ns_register_device);
 
@@ -50,7 +52,7 @@ static int rpmsg_ns_cb(struct rpmsg_device *rpdev, void *data, int len,
 	/* don't trust the remote processor for null terminating the name */
 	msg->name[RPMSG_NAME_SIZE - 1] = '\0';
 
-	strscpy_pad(chinfo.name, msg->name, sizeof(chinfo.name));
+	strncpy(chinfo.name, msg->name, sizeof(chinfo.name));
 	chinfo.src = RPMSG_ADDR_ANY;
 	chinfo.dst = rpmsg32_to_cpu(rpdev, msg->addr);
 

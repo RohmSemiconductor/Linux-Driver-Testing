@@ -9,9 +9,7 @@
 
 #include <errno.h>
 #include <linux/landlock.h>
-#include <linux/securebits.h>
 #include <sys/capability.h>
-#include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -19,8 +17,8 @@
 
 #include "../kselftest_harness.h"
 
-#ifndef __maybe_unused
-#define __maybe_unused __attribute__((__unused__))
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #endif
 
 /*
@@ -31,7 +29,6 @@
  * this to be possible, we must not call abort() but instead exit smoothly
  * (hence the step print).
  */
-/* clang-format off */
 #define TEST_F_FORK(fixture_name, test_name) \
 	static void fixture_name##_##test_name##_child( \
 		struct __test_metadata *_metadata, \
@@ -78,12 +75,11 @@
 		FIXTURE_DATA(fixture_name) __attribute__((unused)) *self, \
 		const FIXTURE_VARIANT(fixture_name) \
 			__attribute__((unused)) *variant)
-/* clang-format on */
 
 #ifndef landlock_create_ruleset
-static inline int
-landlock_create_ruleset(const struct landlock_ruleset_attr *const attr,
-			const size_t size, const __u32 flags)
+static inline int landlock_create_ruleset(
+		const struct landlock_ruleset_attr *const attr,
+		const size_t size, const __u32 flags)
 {
 	return syscall(__NR_landlock_create_ruleset, attr, size, flags);
 }
@@ -91,18 +87,17 @@ landlock_create_ruleset(const struct landlock_ruleset_attr *const attr,
 
 #ifndef landlock_add_rule
 static inline int landlock_add_rule(const int ruleset_fd,
-				    const enum landlock_rule_type rule_type,
-				    const void *const rule_attr,
-				    const __u32 flags)
+		const enum landlock_rule_type rule_type,
+		const void *const rule_attr, const __u32 flags)
 {
-	return syscall(__NR_landlock_add_rule, ruleset_fd, rule_type, rule_attr,
-		       flags);
+	return syscall(__NR_landlock_add_rule, ruleset_fd, rule_type,
+			rule_attr, flags);
 }
 #endif
 
 #ifndef landlock_restrict_self
 static inline int landlock_restrict_self(const int ruleset_fd,
-					 const __u32 flags)
+		const __u32 flags)
 {
 	return syscall(__NR_landlock_restrict_self, ruleset_fd, flags);
 }
@@ -113,191 +108,76 @@ static void _init_caps(struct __test_metadata *const _metadata, bool drop_all)
 	cap_t cap_p;
 	/* Only these three capabilities are useful for the tests. */
 	const cap_value_t caps[] = {
-		/* clang-format off */
 		CAP_DAC_OVERRIDE,
 		CAP_MKNOD,
-		CAP_NET_ADMIN,
-		CAP_NET_BIND_SERVICE,
 		CAP_SYS_ADMIN,
 		CAP_SYS_CHROOT,
-		/* clang-format on */
 	};
-	const unsigned int noroot = SECBIT_NOROOT | SECBIT_NOROOT_LOCKED;
-
-	if ((cap_get_secbits() & noroot) != noroot)
-		EXPECT_EQ(0, cap_set_secbits(noroot));
 
 	cap_p = cap_get_proc();
-	EXPECT_NE(NULL, cap_p)
-	{
+	EXPECT_NE(NULL, cap_p) {
 		TH_LOG("Failed to cap_get_proc: %s", strerror(errno));
 	}
-	EXPECT_NE(-1, cap_clear(cap_p))
-	{
+	EXPECT_NE(-1, cap_clear(cap_p)) {
 		TH_LOG("Failed to cap_clear: %s", strerror(errno));
 	}
 	if (!drop_all) {
 		EXPECT_NE(-1, cap_set_flag(cap_p, CAP_PERMITTED,
-					   ARRAY_SIZE(caps), caps, CAP_SET))
-		{
+					ARRAY_SIZE(caps), caps, CAP_SET)) {
 			TH_LOG("Failed to cap_set_flag: %s", strerror(errno));
 		}
 	}
-
-	/* Automatically resets ambient capabilities. */
-	EXPECT_NE(-1, cap_set_proc(cap_p))
-	{
+	EXPECT_NE(-1, cap_set_proc(cap_p)) {
 		TH_LOG("Failed to cap_set_proc: %s", strerror(errno));
 	}
-	EXPECT_NE(-1, cap_free(cap_p))
-	{
+	EXPECT_NE(-1, cap_free(cap_p)) {
 		TH_LOG("Failed to cap_free: %s", strerror(errno));
 	}
-
-	/* Quickly checks that ambient capabilities are cleared. */
-	EXPECT_NE(-1, cap_get_ambient(caps[0]));
 }
 
 /* We cannot put such helpers in a library because of kselftest_harness.h . */
-static void __maybe_unused disable_caps(struct __test_metadata *const _metadata)
+__attribute__((__unused__))
+static void disable_caps(struct __test_metadata *const _metadata)
 {
 	_init_caps(_metadata, false);
 }
 
-static void __maybe_unused drop_caps(struct __test_metadata *const _metadata)
+__attribute__((__unused__))
+static void drop_caps(struct __test_metadata *const _metadata)
 {
 	_init_caps(_metadata, true);
 }
 
-static void _change_cap(struct __test_metadata *const _metadata,
-			const cap_flag_t flag, const cap_value_t cap,
-			const cap_flag_value_t value)
+static void _effective_cap(struct __test_metadata *const _metadata,
+		const cap_value_t caps, const cap_flag_value_t value)
 {
 	cap_t cap_p;
 
 	cap_p = cap_get_proc();
-	EXPECT_NE(NULL, cap_p)
-	{
+	EXPECT_NE(NULL, cap_p) {
 		TH_LOG("Failed to cap_get_proc: %s", strerror(errno));
 	}
-	EXPECT_NE(-1, cap_set_flag(cap_p, flag, 1, &cap, value))
-	{
+	EXPECT_NE(-1, cap_set_flag(cap_p, CAP_EFFECTIVE, 1, &caps, value)) {
 		TH_LOG("Failed to cap_set_flag: %s", strerror(errno));
 	}
-	EXPECT_NE(-1, cap_set_proc(cap_p))
-	{
+	EXPECT_NE(-1, cap_set_proc(cap_p)) {
 		TH_LOG("Failed to cap_set_proc: %s", strerror(errno));
 	}
-	EXPECT_NE(-1, cap_free(cap_p))
-	{
+	EXPECT_NE(-1, cap_free(cap_p)) {
 		TH_LOG("Failed to cap_free: %s", strerror(errno));
 	}
 }
 
-static void __maybe_unused set_cap(struct __test_metadata *const _metadata,
-				   const cap_value_t cap)
+__attribute__((__unused__))
+static void set_cap(struct __test_metadata *const _metadata,
+		const cap_value_t caps)
 {
-	_change_cap(_metadata, CAP_EFFECTIVE, cap, CAP_SET);
+	_effective_cap(_metadata, caps, CAP_SET);
 }
 
-static void __maybe_unused clear_cap(struct __test_metadata *const _metadata,
-				     const cap_value_t cap)
+__attribute__((__unused__))
+static void clear_cap(struct __test_metadata *const _metadata,
+		const cap_value_t caps)
 {
-	_change_cap(_metadata, CAP_EFFECTIVE, cap, CAP_CLEAR);
-}
-
-static void __maybe_unused
-set_ambient_cap(struct __test_metadata *const _metadata, const cap_value_t cap)
-{
-	_change_cap(_metadata, CAP_INHERITABLE, cap, CAP_SET);
-
-	EXPECT_NE(-1, cap_set_ambient(cap, CAP_SET))
-	{
-		TH_LOG("Failed to set ambient capability %d: %s", cap,
-		       strerror(errno));
-	}
-}
-
-static void __maybe_unused clear_ambient_cap(
-	struct __test_metadata *const _metadata, const cap_value_t cap)
-{
-	EXPECT_EQ(1, cap_get_ambient(cap));
-	_change_cap(_metadata, CAP_INHERITABLE, cap, CAP_CLEAR);
-	EXPECT_EQ(0, cap_get_ambient(cap));
-}
-
-/* Receives an FD from a UNIX socket. Returns the received FD, or -errno. */
-static int __maybe_unused recv_fd(int usock)
-{
-	int fd_rx;
-	union {
-		/* Aligned ancillary data buffer. */
-		char buf[CMSG_SPACE(sizeof(fd_rx))];
-		struct cmsghdr _align;
-	} cmsg_rx = {};
-	char data = '\0';
-	struct iovec io = {
-		.iov_base = &data,
-		.iov_len = sizeof(data),
-	};
-	struct msghdr msg = {
-		.msg_iov = &io,
-		.msg_iovlen = 1,
-		.msg_control = &cmsg_rx.buf,
-		.msg_controllen = sizeof(cmsg_rx.buf),
-	};
-	struct cmsghdr *cmsg;
-	int res;
-
-	res = recvmsg(usock, &msg, MSG_CMSG_CLOEXEC);
-	if (res < 0)
-		return -errno;
-
-	cmsg = CMSG_FIRSTHDR(&msg);
-	if (cmsg->cmsg_len != CMSG_LEN(sizeof(fd_rx)))
-		return -EIO;
-
-	memcpy(&fd_rx, CMSG_DATA(cmsg), sizeof(fd_rx));
-	return fd_rx;
-}
-
-/* Sends an FD on a UNIX socket. Returns 0 on success or -errno. */
-static int __maybe_unused send_fd(int usock, int fd_tx)
-{
-	union {
-		/* Aligned ancillary data buffer. */
-		char buf[CMSG_SPACE(sizeof(fd_tx))];
-		struct cmsghdr _align;
-	} cmsg_tx = {};
-	char data_tx = '.';
-	struct iovec io = {
-		.iov_base = &data_tx,
-		.iov_len = sizeof(data_tx),
-	};
-	struct msghdr msg = {
-		.msg_iov = &io,
-		.msg_iovlen = 1,
-		.msg_control = &cmsg_tx.buf,
-		.msg_controllen = sizeof(cmsg_tx.buf),
-	};
-	struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
-
-	cmsg->cmsg_len = CMSG_LEN(sizeof(fd_tx));
-	cmsg->cmsg_level = SOL_SOCKET;
-	cmsg->cmsg_type = SCM_RIGHTS;
-	memcpy(CMSG_DATA(cmsg), &fd_tx, sizeof(fd_tx));
-
-	if (sendmsg(usock, &msg, 0) < 0)
-		return -errno;
-	return 0;
-}
-
-static void __maybe_unused
-enforce_ruleset(struct __test_metadata *const _metadata, const int ruleset_fd)
-{
-	ASSERT_EQ(0, prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0));
-	ASSERT_EQ(0, landlock_restrict_self(ruleset_fd, 0))
-	{
-		TH_LOG("Failed to enforce ruleset: %s", strerror(errno));
-	}
+	_effective_cap(_metadata, caps, CAP_CLEAR);
 }

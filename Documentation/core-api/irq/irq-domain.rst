@@ -67,11 +67,14 @@ variety of methods:
   deprecated
 - generic_handle_domain_irq() handles an interrupt described by a
   domain and a hwirq number
+- handle_domain_irq() does the same thing for root interrupt
+  controllers and deals with the set_irq_reg()/irq_enter() sequences
+  that most architecture requires
 
 Note that irq domain lookups must happen in contexts that are
 compatible with a RCU read-side critical section.
 
-The irq_create_mapping() function must be called *at least once*
+The irq_create_mapping() function must be called *atleast once*
 before any call to irq_find_mapping(), lest the descriptor will not
 be allocated.
 
@@ -172,10 +175,9 @@ for IRQ numbers that are passed to struct device registrations.  In that
 case the Linux IRQ numbers cannot be dynamically assigned and the legacy
 mapping should be used.
 
-As the name implies, the \*_legacy() functions are deprecated and only
+As the name implies, the *_legacy() functions are deprecated and only
 exist to ease the support of ancient platforms. No new users should be
-added. Same goes for the \*_simple() functions when their use results
-in the legacy behaviour.
+added.
 
 The legacy map assumes a contiguous range of IRQ numbers has already
 been allocated for the controller and that the IRQ number can be

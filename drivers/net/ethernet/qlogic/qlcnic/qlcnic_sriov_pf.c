@@ -597,9 +597,7 @@ static int __qlcnic_pci_sriov_enable(struct qlcnic_adapter *adapter,
 	if (err)
 		goto del_flr_queue;
 
-	err = qlcnic_sriov_alloc_vlans(adapter);
-	if (err)
-		goto del_flr_queue;
+	qlcnic_sriov_alloc_vlans(adapter);
 
 	return err;
 
@@ -1869,7 +1867,8 @@ int qlcnic_sriov_set_vf_tx_rate(struct net_device *netdev, int vf,
 	if (!min_tx_rate)
 		min_tx_rate = QLC_VF_MIN_TX_RATE;
 
-	if (max_tx_rate && max_tx_rate >= 10000) {
+	if (max_tx_rate &&
+	    (max_tx_rate >= 10000 || max_tx_rate < min_tx_rate)) {
 		netdev_err(netdev,
 			   "Invalid max Tx rate, allowed range is [%d - %d]",
 			   min_tx_rate, QLC_VF_MAX_TX_RATE);
@@ -1879,7 +1878,8 @@ int qlcnic_sriov_set_vf_tx_rate(struct net_device *netdev, int vf,
 	if (!max_tx_rate)
 		max_tx_rate = 10000;
 
-	if (min_tx_rate && min_tx_rate < QLC_VF_MIN_TX_RATE) {
+	if (min_tx_rate &&
+	    (min_tx_rate > max_tx_rate || min_tx_rate < QLC_VF_MIN_TX_RATE)) {
 		netdev_err(netdev,
 			   "Invalid min Tx rate, allowed range is [%d - %d]",
 			   QLC_VF_MIN_TX_RATE, max_tx_rate);

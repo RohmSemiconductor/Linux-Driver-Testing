@@ -1354,10 +1354,10 @@ static int qlcnic_83xx_copy_fw_file(struct qlcnic_adapter *adapter)
 	struct qlc_83xx_fw_info *fw_info = adapter->ahw->fw_info;
 	const struct firmware *fw = fw_info->fw;
 	u32 dest, *p_cache, *temp;
+	int i, ret = -EIO;
 	__le32 *temp_le;
 	u8 data[16];
 	size_t size;
-	int i, ret;
 	u64 addr;
 
 	temp = vzalloc(fw->size);
@@ -2092,8 +2092,8 @@ static int qlcnic_83xx_run_post(struct qlcnic_adapter *adapter)
 		return -EINVAL;
 	}
 
-	strscpy(fw_info->fw_file_name, QLC_83XX_POST_FW_FILE_NAME,
-		sizeof(fw_info->fw_file_name));
+	strncpy(fw_info->fw_file_name, QLC_83XX_POST_FW_FILE_NAME,
+		QLC_FW_FILE_NAME_LEN);
 
 	ret = request_firmware(&fw_info->fw, fw_info->fw_file_name, dev);
 	if (ret) {
@@ -2396,12 +2396,12 @@ static int qlcnic_83xx_get_fw_info(struct qlcnic_adapter *adapter)
 		switch (pdev->device) {
 		case PCI_DEVICE_ID_QLOGIC_QLE834X:
 		case PCI_DEVICE_ID_QLOGIC_QLE8830:
-			strscpy(fw_info->fw_file_name, QLC_83XX_FW_FILE_NAME,
-				sizeof(fw_info->fw_file_name));
+			strncpy(fw_info->fw_file_name, QLC_83XX_FW_FILE_NAME,
+				QLC_FW_FILE_NAME_LEN);
 			break;
 		case PCI_DEVICE_ID_QLOGIC_QLE844X:
-			strscpy(fw_info->fw_file_name, QLC_84XX_FW_FILE_NAME,
-				sizeof(fw_info->fw_file_name));
+			strncpy(fw_info->fw_file_name, QLC_84XX_FW_FILE_NAME,
+				QLC_FW_FILE_NAME_LEN);
 			break;
 		default:
 			dev_err(&pdev->dev, "%s: Invalid device id\n",
@@ -2432,7 +2432,7 @@ static void qlcnic_83xx_init_rings(struct qlcnic_adapter *adapter)
 	qlcnic_set_sds_ring_count(adapter, rx_cnt);
 }
 
-int qlcnic_83xx_init(struct qlcnic_adapter *adapter)
+int qlcnic_83xx_init(struct qlcnic_adapter *adapter, int pci_using_dac)
 {
 	struct qlcnic_hardware_context *ahw = adapter->ahw;
 	int err = 0;
@@ -2466,7 +2466,7 @@ int qlcnic_83xx_init(struct qlcnic_adapter *adapter)
 		goto exit;
 
 	if (qlcnic_sriov_vf_check(adapter)) {
-		err = qlcnic_sriov_vf_init(adapter);
+		err = qlcnic_sriov_vf_init(adapter, pci_using_dac);
 		if (err)
 			goto detach_mbx;
 		else
@@ -2505,13 +2505,7 @@ int qlcnic_83xx_init(struct qlcnic_adapter *adapter)
 		goto disable_mbx_intr;
 
 	qlcnic_83xx_clear_function_resources(adapter);
-
-	err = qlcnic_dcb_enable(adapter->dcb);
-	if (err) {
-		qlcnic_dcb_free(adapter->dcb);
-		goto disable_mbx_intr;
-	}
-
+	qlcnic_dcb_enable(adapter->dcb);
 	qlcnic_83xx_initialize_nic(adapter, 1);
 	qlcnic_dcb_get_info(adapter->dcb);
 

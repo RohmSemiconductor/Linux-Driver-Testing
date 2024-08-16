@@ -305,7 +305,6 @@ static void dln2_irq_unmask(struct irq_data *irqd)
 	struct dln2_gpio *dln2 = gpiochip_get_data(gc);
 	int pin = irqd_to_hwirq(irqd);
 
-	gpiochip_enable_irq(gc, pin);
 	set_bit(pin, dln2->unmasked_irqs);
 }
 
@@ -316,7 +315,6 @@ static void dln2_irq_mask(struct irq_data *irqd)
 	int pin = irqd_to_hwirq(irqd);
 
 	clear_bit(pin, dln2->unmasked_irqs);
-	gpiochip_disable_irq(gc, pin);
 }
 
 static int dln2_irq_set_type(struct irq_data *irqd, unsigned type)
@@ -385,15 +383,13 @@ static void dln2_irq_bus_unlock(struct irq_data *irqd)
 	mutex_unlock(&dln2->irq_lock);
 }
 
-static const struct irq_chip dln2_irqchip = {
+static struct irq_chip dln2_gpio_irqchip = {
 	.name = "dln2-irq",
 	.irq_mask = dln2_irq_mask,
 	.irq_unmask = dln2_irq_unmask,
 	.irq_set_type = dln2_irq_set_type,
 	.irq_bus_lock = dln2_irq_bus_lock,
 	.irq_bus_sync_unlock = dln2_irq_bus_unlock,
-	.flags = IRQCHIP_IMMUTABLE,
-	GPIOCHIP_IRQ_RESOURCE_HELPERS,
 };
 
 static void dln2_gpio_event(struct platform_device *pdev, u16 echo,
@@ -478,7 +474,7 @@ static int dln2_gpio_probe(struct platform_device *pdev)
 	dln2->gpio.set_config = dln2_gpio_set_config;
 
 	girq = &dln2->gpio.irq;
-	gpio_irq_chip_set_chip(girq, &dln2_irqchip);
+	girq->chip = &dln2_gpio_irqchip;
 	/* The event comes from the outside so no parent handler */
 	girq->parent_handler = NULL;
 	girq->num_parents = 0;
@@ -504,15 +500,17 @@ static int dln2_gpio_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static void dln2_gpio_remove(struct platform_device *pdev)
+static int dln2_gpio_remove(struct platform_device *pdev)
 {
 	dln2_unregister_event_cb(pdev, DLN2_GPIO_CONDITION_MET_EV);
+
+	return 0;
 }
 
 static struct platform_driver dln2_gpio_driver = {
 	.driver.name	= "dln2-gpio",
 	.probe		= dln2_gpio_probe,
-	.remove_new	= dln2_gpio_remove,
+	.remove		= dln2_gpio_remove,
 };
 
 module_platform_driver(dln2_gpio_driver);

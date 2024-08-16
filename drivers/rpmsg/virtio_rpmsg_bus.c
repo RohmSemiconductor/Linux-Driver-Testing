@@ -17,6 +17,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
+#include <linux/of_device.h>
 #include <linux/rpmsg.h>
 #include <linux/rpmsg/byteorder.h>
 #include <linux/rpmsg/ns.h>
@@ -148,7 +149,6 @@ static int virtio_rpmsg_trysendto(struct rpmsg_endpoint *ept, void *data,
 				  int len, u32 dst);
 static int virtio_rpmsg_trysend_offchannel(struct rpmsg_endpoint *ept, u32 src,
 					   u32 dst, void *data, int len);
-static ssize_t virtio_rpmsg_get_mtu(struct rpmsg_endpoint *ept);
 static struct rpmsg_device *__rpmsg_create_channel(struct virtproc_info *vrp,
 						   struct rpmsg_channel_info *chinfo);
 
@@ -160,7 +160,6 @@ static const struct rpmsg_endpoint_ops virtio_endpoint_ops = {
 	.trysend = virtio_rpmsg_trysend,
 	.trysendto = virtio_rpmsg_trysendto,
 	.trysend_offchannel = virtio_rpmsg_trysend_offchannel,
-	.get_mtu = virtio_rpmsg_get_mtu,
 };
 
 /**
@@ -329,7 +328,7 @@ static int virtio_rpmsg_announce_create(struct rpmsg_device *rpdev)
 	    virtio_has_feature(vrp->vdev, VIRTIO_RPMSG_F_NS)) {
 		struct rpmsg_ns_msg nsm;
 
-		strscpy_pad(nsm.name, rpdev->id.name, sizeof(nsm.name));
+		strncpy(nsm.name, rpdev->id.name, RPMSG_NAME_SIZE);
 		nsm.addr = cpu_to_rpmsg32(rpdev, rpdev->ept->addr);
 		nsm.flags = cpu_to_rpmsg32(rpdev, RPMSG_NS_CREATE);
 
@@ -353,7 +352,7 @@ static int virtio_rpmsg_announce_destroy(struct rpmsg_device *rpdev)
 	    virtio_has_feature(vrp->vdev, VIRTIO_RPMSG_F_NS)) {
 		struct rpmsg_ns_msg nsm;
 
-		strscpy_pad(nsm.name, rpdev->id.name, sizeof(nsm.name));
+		strncpy(nsm.name, rpdev->id.name, RPMSG_NAME_SIZE);
 		nsm.addr = cpu_to_rpmsg32(rpdev, rpdev->ept->addr);
 		nsm.flags = cpu_to_rpmsg32(rpdev, RPMSG_NS_DESTROY);
 
@@ -378,7 +377,6 @@ static void virtio_rpmsg_release_device(struct device *dev)
 	struct rpmsg_device *rpdev = to_rpmsg_device(dev);
 	struct virtio_rpmsg_channel *vch = to_virtio_rpmsg_channel(rpdev);
 
-	kfree(rpdev->driver_override);
 	kfree(vch);
 }
 
@@ -425,7 +423,7 @@ static struct rpmsg_device *__rpmsg_create_channel(struct virtproc_info *vrp,
 	 */
 	rpdev->announce = rpdev->src != RPMSG_ADDR_ANY;
 
-	strscpy(rpdev->id.name, chinfo->name, sizeof(rpdev->id.name));
+	strncpy(rpdev->id.name, chinfo->name, RPMSG_NAME_SIZE);
 
 	rpdev->dev.parent = &vrp->vdev->dev;
 	rpdev->dev.release = virtio_rpmsg_release_device;
@@ -548,7 +546,7 @@ static void rpmsg_downref_sleepers(struct virtproc_info *vrp)
  * should use the appropriate rpmsg_{try}send{to, _offchannel} API
  * (see include/linux/rpmsg.h).
  *
- * Return: 0 on success and an appropriate error value on failure.
+ * Returns 0 on success and an appropriate error value on failure.
  */
 static int rpmsg_send_offchannel_raw(struct rpmsg_device *rpdev,
 				     u32 src, u32 dst,
@@ -698,14 +696,6 @@ static int virtio_rpmsg_trysend_offchannel(struct rpmsg_endpoint *ept, u32 src,
 	return rpmsg_send_offchannel_raw(rpdev, src, dst, data, len, false);
 }
 
-static ssize_t virtio_rpmsg_get_mtu(struct rpmsg_endpoint *ept)
-{
-	struct rpmsg_device *rpdev = ept->rpdev;
-	struct virtio_rpmsg_channel *vch = to_virtio_rpmsg_channel(rpdev);
-
-	return vch->vrp->buf_size - sizeof(struct rpmsg_hdr);
-}
-
 static int rpmsg_recv_single(struct virtproc_info *vrp, struct device *dev,
 			     struct rpmsg_hdr *msg, unsigned int len)
 {
@@ -759,7 +749,7 @@ static int rpmsg_recv_single(struct virtproc_info *vrp, struct device *dev,
 		/* farewell, ept, we don't need you anymore */
 		kref_put(&ept->refcount, __ept_release);
 	} else
-		dev_warn_ratelimited(dev, "msg received with no recipient\n");
+		dev_warn(dev, "msg received with no recipient\n");
 
 	/* publish the real size of the buffer */
 	rpmsg_sg_init(&sg, msg, vrp->buf_size);
@@ -850,9 +840,9 @@ static struct rpmsg_device *rpmsg_virtio_add_ctrl_dev(struct virtio_device *vdev
 	rpdev_ctrl->dev.release = virtio_rpmsg_release_device;
 	rpdev_ctrl->little_endian = virtio_is_little_endian(vrp->vdev);
 
-	err = rpmsg_ctrldev_register_device(rpdev_ctrl);
+	err = rpmsg_chrdev_register_device(rpdev_ctrl);
 	if (err) {
-		/* vch will be free in virtio_rpmsg_release_device() */
+		kfree(vch);
 		return ERR_PTR(err);
 	}
 
@@ -863,7 +853,7 @@ static void rpmsg_virtio_del_ctrl_dev(struct rpmsg_device *rpdev_ctrl)
 {
 	if (!rpdev_ctrl)
 		return;
-	device_unregister(&rpdev_ctrl->dev);
+	kfree(to_virtio_rpmsg_channel(rpdev_ctrl));
 }
 
 static int rpmsg_probe(struct virtio_device *vdev)
@@ -974,8 +964,7 @@ static int rpmsg_probe(struct virtio_device *vdev)
 
 		err = rpmsg_ns_register_device(rpdev_ns);
 		if (err)
-			/* vch will be free in virtio_rpmsg_release_device() */
-			goto free_ctrldev;
+			goto free_vch;
 	}
 
 	/*
@@ -999,6 +988,8 @@ static int rpmsg_probe(struct virtio_device *vdev)
 
 	return 0;
 
+free_vch:
+	kfree(vch);
 free_ctrldev:
 	rpmsg_virtio_del_ctrl_dev(rpdev_ctrl);
 free_coherent:
@@ -1024,7 +1015,7 @@ static void rpmsg_remove(struct virtio_device *vdev)
 	size_t total_buf_space = vrp->num_bufs * vrp->buf_size;
 	int ret;
 
-	virtio_reset_device(vdev);
+	vdev->config->reset(vdev);
 
 	ret = device_for_each_child(&vdev->dev, NULL, rpmsg_remove_device);
 	if (ret)

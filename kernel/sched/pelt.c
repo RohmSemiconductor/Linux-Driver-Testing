@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Per Entity Load Tracking (PELT)
+ * Per Entity Load Tracking
  *
  *  Copyright (C) 2007 Red Hat, Inc., Ingo Molnar <mingo@redhat.com>
  *
@@ -23,6 +23,10 @@
  *  Move PELT related code from fair.c into this pelt.c file
  *  Author: Vincent Guittot <vincent.guittot@linaro.org>
  */
+
+#include <linux/sched.h>
+#include "sched.h"
+#include "pelt.h"
 
 /*
  * Approximate:

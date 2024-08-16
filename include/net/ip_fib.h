@@ -17,7 +17,6 @@
 #include <linux/rcupdate.h>
 #include <net/fib_notifier.h>
 #include <net/fib_rules.h>
-#include <net/inet_dscp.h>
 #include <net/inetpeer.h>
 #include <linux/percpu.h>
 #include <linux/notifier.h>
@@ -25,7 +24,7 @@
 
 struct fib_config {
 	u8			fc_dst_len;
-	dscp_t			fc_dscp;
+	u8			fc_tos;
 	u8			fc_protocol;
 	u8			fc_scope;
 	u8			fc_type;
@@ -80,7 +79,6 @@ struct fnhe_hash_bucket {
 
 struct fib_nh_common {
 	struct net_device	*nhc_dev;
-	netdevice_tracker	nhc_dev_tracker;
 	int			nhc_oif;
 	unsigned char		nhc_scope;
 	u8			nhc_family;
@@ -113,7 +111,6 @@ struct fib_nh {
 	int			nh_saddr_genid;
 #define fib_nh_family		nh_common.nhc_family
 #define fib_nh_dev		nh_common.nhc_dev
-#define fib_nh_dev_tracker	nh_common.nhc_dev_tracker
 #define fib_nh_oif		nh_common.nhc_oif
 #define fib_nh_flags		nh_common.nhc_flags
 #define fib_nh_lws		nh_common.nhc_lwtstate
@@ -154,10 +151,9 @@ struct fib_info {
 	int			fib_nhs;
 	bool			fib_nh_is_v6;
 	bool			nh_updated;
-	bool			pfsrc_removed;
 	struct nexthop		*nh;
 	struct rcu_head		rcu;
-	struct fib_nh		fib_nh[] __counted_by(fib_nhs);
+	struct fib_nh		fib_nh[];
 };
 
 
@@ -213,7 +209,7 @@ struct fib_rt_info {
 	u32			tb_id;
 	__be32			dst;
 	int			dst_len;
-	dscp_t			dscp;
+	u8			tos;
 	u8			type;
 	u8			offload:1,
 				trap:1,
@@ -226,7 +222,7 @@ struct fib_entry_notifier_info {
 	u32 dst;
 	int dst_len;
 	struct fib_info *fi;
-	dscp_t dscp;
+	u8 tos;
 	u8 type;
 	u32 tb_id;
 };
@@ -419,10 +415,7 @@ static inline bool fib4_rules_early_flow_dissect(struct net *net,
 	if (!net->ipv4.fib_rules_require_fldissect)
 		return false;
 
-	memset(flkeys, 0, sizeof(*flkeys));
-	__skb_flow_dissect(net, skb, &flow_keys_dissector,
-			   flkeys, NULL, 0, 0, 0, flag);
-
+	skb_flow_dissect_flow_keys(skb, flkeys, flag);
 	fl4->fl4_sport = flkeys->ports.src;
 	fl4->fl4_dport = flkeys->ports.dst;
 	fl4->flowi4_proto = flkeys->basic.ip_proto;
@@ -445,7 +438,7 @@ int fib_validate_source(struct sk_buff *skb, __be32 src, __be32 dst,
 #ifdef CONFIG_IP_ROUTE_CLASSID
 static inline int fib_num_tclassid_users(struct net *net)
 {
-	return atomic_read(&net->ipv4.fib_num_tclassid_users);
+	return net->ipv4.fib_num_tclassid_users;
 }
 #else
 static inline int fib_num_tclassid_users(struct net *net)
@@ -604,5 +597,5 @@ int ip_valid_fib_dump_req(struct net *net, const struct nlmsghdr *nlh,
 int fib_nexthop_info(struct sk_buff *skb, const struct fib_nh_common *nh,
 		     u8 rt_family, unsigned char *flags, bool skip_oif);
 int fib_add_nexthop(struct sk_buff *skb, const struct fib_nh_common *nh,
-		    int nh_weight, u8 rt_family, u32 nh_tclassid);
+		    int nh_weight, u8 rt_family);
 #endif  /* _NET_FIB_H */

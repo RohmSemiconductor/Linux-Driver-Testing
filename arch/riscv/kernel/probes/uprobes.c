@@ -3,7 +3,6 @@
 #include <linux/highmem.h>
 #include <linux/ptrace.h>
 #include <linux/uprobes.h>
-#include <asm/insn.h>
 
 #include "decode-insn.h"
 
@@ -16,11 +15,6 @@ bool is_swbp_insn(uprobe_opcode_t *insn)
 #else
 	return *insn == UPROBE_SWBP_INSN;
 #endif
-}
-
-bool is_trap_insn(uprobe_opcode_t *insn)
-{
-	return riscv_insn_is_ebreak(*insn) || riscv_insn_is_c_ebreak(*insn);
 }
 
 unsigned long uprobe_get_swbp_addr(struct pt_regs *regs)
@@ -65,6 +59,8 @@ int arch_uprobe_pre_xol(struct arch_uprobe *auprobe, struct pt_regs *regs)
 
 	instruction_pointer_set(regs, utask->xol_vaddr);
 
+	regs->status &= ~SR_SPIE;
+
 	return 0;
 }
 
@@ -73,9 +69,10 @@ int arch_uprobe_post_xol(struct arch_uprobe *auprobe, struct pt_regs *regs)
 	struct uprobe_task *utask = current->utask;
 
 	WARN_ON_ONCE(current->thread.bad_cause != UPROBE_TRAP_NR);
-	current->thread.bad_cause = utask->autask.saved_cause;
 
 	instruction_pointer_set(regs, utask->vaddr + auprobe->insn_size);
+
+	regs->status |= SR_SPIE;
 
 	return 0;
 }
@@ -109,12 +106,13 @@ void arch_uprobe_abort_xol(struct arch_uprobe *auprobe, struct pt_regs *regs)
 {
 	struct uprobe_task *utask = current->utask;
 
-	current->thread.bad_cause = utask->autask.saved_cause;
 	/*
 	 * Task has received a fatal signal, so reset back to probbed
 	 * address.
 	 */
 	instruction_pointer_set(regs, utask->vaddr);
+
+	regs->status &= ~SR_SPIE;
 }
 
 bool arch_uretprobe_is_alive(struct return_instance *ret, enum rp_check ctx,

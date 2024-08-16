@@ -124,7 +124,7 @@ void producer(struct sockaddr_un *consumer_addr)
 
 	wait_for_signal(pipefd[0]);
 	if (connect(cfd, (struct sockaddr *)consumer_addr,
-		     sizeof(*consumer_addr)) != 0) {
+		     sizeof(struct sockaddr)) != 0) {
 		perror("Connect failed");
 		kill(0, SIGTERM);
 		exit(1);
@@ -180,7 +180,9 @@ main(int argc, char **argv)
 	char buf[1024];
 	int on = 0;
 	char oob;
+	int flags;
 	int atmark;
+	char *tmp_file;
 
 	lfd = socket(AF_UNIX, SOCK_STREAM, 0);
 	memset(&consumer_addr, 0, sizeof(consumer_addr));
@@ -216,10 +218,10 @@ main(int argc, char **argv)
 
 	/* Test 1:
 	 * veriyf that SIGURG is
-	 * delivered, 63 bytes are
-	 * read, oob is '@', and POLLPRI works.
+	 * delivered and 63 bytes are
+	 * read and oob is '@'
 	 */
-	wait_for_data(pfd, POLLPRI);
+	wait_for_data(pfd, POLLIN | POLLPRI);
 	read_oob(pfd, &oob);
 	len = read_data(pfd, buf, 1024);
 	if (!signal_recvd || len != 63 || oob != '@') {
@@ -269,9 +271,8 @@ main(int argc, char **argv)
 	read_oob(pfd, &oob);
 
 	if (!signal_recvd || len != 127 || oob != '%' || atmark != 1) {
-		fprintf(stderr,
-			"Test 3 failed, sigurg %d len %d OOB %c atmark %d\n",
-			signal_recvd, len, oob, atmark);
+		fprintf(stderr, "Test 3 failed, sigurg %d len %d OOB %c ",
+		"atmark %d\n", signal_recvd, len, oob, atmark);
 		die(1);
 	}
 

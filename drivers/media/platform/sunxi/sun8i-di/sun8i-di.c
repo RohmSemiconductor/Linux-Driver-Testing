@@ -11,9 +11,9 @@
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
-#include <linux/mod_devicetable.h>
 #include <linux/module.h>
-#include <linux/platform_device.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
 
@@ -673,7 +673,7 @@ static int deinterlace_queue_init(void *priv, struct vb2_queue *src_vq,
 	src_vq->io_modes = VB2_MMAP | VB2_DMABUF;
 	src_vq->drv_priv = ctx;
 	src_vq->buf_struct_size = sizeof(struct v4l2_m2m_buffer);
-	src_vq->min_queued_buffers = 1;
+	src_vq->min_buffers_needed = 1;
 	src_vq->ops = &deinterlace_qops;
 	src_vq->mem_ops = &vb2_dma_contig_memops;
 	src_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
@@ -688,7 +688,7 @@ static int deinterlace_queue_init(void *priv, struct vb2_queue *src_vq,
 	dst_vq->io_modes = VB2_MMAP | VB2_DMABUF;
 	dst_vq->drv_priv = ctx;
 	dst_vq->buf_struct_size = sizeof(struct v4l2_m2m_buffer);
-	dst_vq->min_queued_buffers = 2;
+	dst_vq->min_buffers_needed = 2;
 	dst_vq->ops = &deinterlace_qops;
 	dst_vq->mem_ops = &vb2_dma_contig_memops;
 	dst_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
@@ -803,6 +803,7 @@ static int deinterlace_probe(struct platform_device *pdev)
 {
 	struct deinterlace_dev *dev;
 	struct video_device *vfd;
+	struct resource *res;
 	int irq, ret;
 
 	dev = devm_kzalloc(&pdev->dev, sizeof(*dev), GFP_KERNEL);
@@ -824,7 +825,8 @@ static int deinterlace_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	dev->base = devm_platform_ioremap_resource(pdev, 0);
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	dev->base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(dev->base))
 		return PTR_ERR(dev->base);
 
@@ -906,7 +908,7 @@ err_v4l2:
 	return ret;
 }
 
-static void deinterlace_remove(struct platform_device *pdev)
+static int deinterlace_remove(struct platform_device *pdev)
 {
 	struct deinterlace_dev *dev = platform_get_drvdata(pdev);
 
@@ -915,6 +917,8 @@ static void deinterlace_remove(struct platform_device *pdev)
 	v4l2_device_unregister(&dev->v4l2_dev);
 
 	pm_runtime_force_suspend(&pdev->dev);
+
+	return 0;
 }
 
 static int deinterlace_runtime_resume(struct device *device)
@@ -1000,7 +1004,7 @@ static const struct dev_pm_ops deinterlace_pm_ops = {
 
 static struct platform_driver deinterlace_driver = {
 	.probe		= deinterlace_probe,
-	.remove_new	= deinterlace_remove,
+	.remove		= deinterlace_remove,
 	.driver		= {
 		.name		= DEINTERLACE_NAME,
 		.of_match_table	= deinterlace_dt_match,

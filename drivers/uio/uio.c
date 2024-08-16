@@ -83,14 +83,13 @@ static struct map_sysfs_entry size_attribute =
 static struct map_sysfs_entry offset_attribute =
 	__ATTR(offset, S_IRUGO, map_offset_show, NULL);
 
-static struct attribute *map_attrs[] = {
+static struct attribute *attrs[] = {
 	&name_attribute.attr,
 	&addr_attribute.attr,
 	&size_attribute.attr,
 	&offset_attribute.attr,
 	NULL,	/* need to NULL terminate the list of attributes */
 };
-ATTRIBUTE_GROUPS(map);
 
 static void map_release(struct kobject *kobj)
 {
@@ -120,7 +119,7 @@ static const struct sysfs_ops map_sysfs_ops = {
 static struct kobj_type map_attr_type = {
 	.release	= map_release,
 	.sysfs_ops	= &map_sysfs_ops,
-	.default_groups	= map_groups,
+	.default_attrs	= attrs,
 };
 
 struct uio_portio {
@@ -179,7 +178,6 @@ static struct attribute *portio_attrs[] = {
 	&portio_porttype_attribute.attr,
 	NULL,
 };
-ATTRIBUTE_GROUPS(portio);
 
 static void portio_release(struct kobject *kobj)
 {
@@ -209,7 +207,7 @@ static const struct sysfs_ops portio_sysfs_ops = {
 static struct kobj_type portio_attr_type = {
 	.release	= portio_release,
 	.sysfs_ops	= &portio_sysfs_ops,
-	.default_groups	= portio_groups,
+	.default_attrs	= portio_attrs,
 };
 
 static ssize_t name_show(struct device *dev,
@@ -466,13 +464,13 @@ static int uio_open(struct inode *inode, struct file *filep)
 
 	mutex_lock(&minor_lock);
 	idev = idr_find(&uio_idr, iminor(inode));
+	mutex_unlock(&minor_lock);
 	if (!idev) {
 		ret = -ENODEV;
-		mutex_unlock(&minor_lock);
 		goto out;
 	}
+
 	get_device(&idev->dev);
-	mutex_unlock(&minor_lock);
 
 	if (!try_module_get(idev->owner)) {
 		ret = -ENODEV;
@@ -713,7 +711,7 @@ static const struct vm_operations_struct uio_logical_vm_ops = {
 
 static int uio_mmap_logical(struct vm_area_struct *vma)
 {
-	vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP);
+	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
 	vma->vm_ops = &uio_logical_vm_ops;
 	return 0;
 }
@@ -1064,8 +1062,9 @@ void uio_unregister_device(struct uio_info *info)
 	wake_up_interruptible(&idev->wait);
 	kill_fasync(&idev->async_queue, SIGIO, POLL_HUP);
 
-	uio_free_minor(minor);
 	device_unregister(&idev->dev);
+
+	uio_free_minor(minor);
 
 	return;
 }

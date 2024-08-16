@@ -17,8 +17,6 @@
  */
 
 #include <sound/simple_card_utils.h>
-#include <linux/of.h>
-#include <linux/of_irq.h>
 #include <linux/delay.h>
 #include "rsnd.h"
 #define RSND_SSI_NAME_SIZE 16
@@ -305,14 +303,15 @@ static int rsnd_ssi_master_clk_start(struct rsnd_mod *mod,
 		return 0;
 	}
 
-	ret = -EIO;
 	main_rate = rsnd_ssi_clk_query(rdai, rate, chan, &idx);
-	if (!main_rate)
-		goto rate_err;
+	if (!main_rate) {
+		dev_err(dev, "unsupported clock rate\n");
+		return -EIO;
+	}
 
 	ret = rsnd_adg_ssi_clk_try_start(mod, main_rate);
 	if (ret < 0)
-		goto rate_err;
+		return ret;
 
 	/*
 	 * SSI clock will be output contiguously
@@ -334,10 +333,6 @@ static int rsnd_ssi_master_clk_start(struct rsnd_mod *mod,
 		rsnd_mod_name(mod), chan, rate);
 
 	return 0;
-
-rate_err:
-	dev_err(dev, "unsupported clock rate\n");
-	return ret;
 }
 
 static void rsnd_ssi_master_clk_stop(struct rsnd_mod *mod,
@@ -485,9 +480,7 @@ static int rsnd_ssi_init(struct rsnd_mod *mod,
 
 	ssi->usrcnt++;
 
-	ret = rsnd_mod_power_on(mod);
-	if (ret < 0)
-		return ret;
+	rsnd_mod_power_on(mod);
 
 	rsnd_ssi_config_init(mod, io);
 
@@ -1112,7 +1105,6 @@ void rsnd_parse_connect_ssi(struct rsnd_dai *rdai,
 			    struct device_node *capture)
 {
 	struct rsnd_priv *priv = rsnd_rdai_to_priv(rdai);
-	struct device *dev = rsnd_priv_to_dev(priv);
 	struct device_node *node;
 	struct device_node *np;
 	int i;
@@ -1125,11 +1117,7 @@ void rsnd_parse_connect_ssi(struct rsnd_dai *rdai,
 	for_each_child_of_node(node, np) {
 		struct rsnd_mod *mod;
 
-		i = rsnd_node_fixed_index(dev, np, SSI_NAME, i);
-		if (i < 0) {
-			of_node_put(np);
-			break;
-		}
+		i = rsnd_node_fixed_index(np, SSI_NAME, i);
 
 		mod = rsnd_ssi_mod_get(priv, i);
 
@@ -1194,12 +1182,7 @@ int rsnd_ssi_probe(struct rsnd_priv *priv)
 		if (!of_device_is_available(np))
 			goto skip;
 
-		i = rsnd_node_fixed_index(dev, np, SSI_NAME, i);
-		if (i < 0) {
-			ret = -EINVAL;
-			of_node_put(np);
-			goto rsnd_ssi_probe_done;
-		}
+		i = rsnd_node_fixed_index(np, SSI_NAME, i);
 
 		ssi = rsnd_ssi_get(priv, i);
 
@@ -1213,10 +1196,10 @@ int rsnd_ssi_probe(struct rsnd_priv *priv)
 			goto rsnd_ssi_probe_done;
 		}
 
-		if (of_property_read_bool(np, "shared-pin"))
+		if (of_get_property(np, "shared-pin", NULL))
 			rsnd_flags_set(ssi, RSND_SSI_CLK_PIN_SHARE);
 
-		if (of_property_read_bool(np, "no-busif"))
+		if (of_get_property(np, "no-busif", NULL))
 			rsnd_flags_set(ssi, RSND_SSI_NO_BUSIF);
 
 		ssi->irq = irq_of_parse_and_map(np, 0);

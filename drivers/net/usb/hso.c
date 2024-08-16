@@ -363,6 +363,7 @@ static int disable_net;
 /* driver info */
 static const char driver_name[] = "hso";
 static const char tty_filename[] = "ttyHS";
+static const char *version = __FILE__ ": " MOD_AUTHOR;
 /* the usb driver itself (registered in hso_init) */
 static struct usb_driver hso_driver;
 /* serial structures */
@@ -1321,10 +1322,11 @@ static void hso_serial_close(struct tty_struct *tty, struct file *filp)
 }
 
 /* close the requested serial port */
-static ssize_t hso_serial_write(struct tty_struct *tty, const u8 *buf,
-				size_t count)
+static int hso_serial_write(struct tty_struct *tty, const unsigned char *buf,
+			    int count)
 {
 	struct hso_serial *serial = tty->driver_data;
+	int space, tx_bytes;
 	unsigned long flags;
 
 	/* sanity check */
@@ -1335,16 +1337,21 @@ static ssize_t hso_serial_write(struct tty_struct *tty, const u8 *buf,
 
 	spin_lock_irqsave(&serial->serial_lock, flags);
 
-	count = min_t(size_t, serial->tx_data_length - serial->tx_buffer_count,
-		      count);
-	memcpy(serial->tx_buffer + serial->tx_buffer_count, buf, count);
-	serial->tx_buffer_count += count;
+	space = serial->tx_data_length - serial->tx_buffer_count;
+	tx_bytes = (count < space) ? count : space;
 
+	if (!tx_bytes)
+		goto out;
+
+	memcpy(serial->tx_buffer + serial->tx_buffer_count, buf, tx_bytes);
+	serial->tx_buffer_count += tx_bytes;
+
+out:
 	spin_unlock_irqrestore(&serial->serial_lock, flags);
 
 	hso_kick_transmit(serial);
 	/* done */
-	return count;
+	return tx_bytes;
 }
 
 /* how much room is there for writing */
@@ -1373,8 +1380,7 @@ static void hso_serial_cleanup(struct tty_struct *tty)
 }
 
 /* setup the term */
-static void hso_serial_set_termios(struct tty_struct *tty,
-				   const struct ktermios *old)
+static void hso_serial_set_termios(struct tty_struct *tty, struct ktermios *old)
 {
 	struct hso_serial *serial = tty->driver_data;
 	unsigned long flags;
@@ -2313,7 +2319,7 @@ static struct hso_device *hso_create_device(struct usb_interface *intf,
 {
 	struct hso_device *hso_dev;
 
-	hso_dev = kzalloc(sizeof(*hso_dev), GFP_KERNEL);
+	hso_dev = kzalloc(sizeof(*hso_dev), GFP_ATOMIC);
 	if (!hso_dev)
 		return NULL;
 
@@ -2713,14 +2719,14 @@ struct hso_device *hso_create_mux_serial_device(struct usb_interface *interface,
 
 	serial = kzalloc(sizeof(*serial), GFP_KERNEL);
 	if (!serial)
-		goto err_free_dev;
+		goto exit;
 
 	hso_dev->port_data.dev_serial = serial;
 	serial->parent = hso_dev;
 
 	if (hso_serial_common_create
 	    (serial, 1, CTRL_URB_RX_SIZE, CTRL_URB_TX_SIZE))
-		goto err_free_serial;
+		goto exit;
 
 	serial->tx_data_length--;
 	serial->write_data = hso_mux_serial_write_data;
@@ -2736,9 +2742,11 @@ struct hso_device *hso_create_mux_serial_device(struct usb_interface *interface,
 	/* done, return it */
 	return hso_dev;
 
-err_free_serial:
-	kfree(serial);
-err_free_dev:
+exit:
+	if (serial) {
+		tty_unregister_device(tty_drv, serial->minor);
+		kfree(serial);
+	}
 	kfree(hso_dev);
 	return NULL;
 
@@ -3227,7 +3235,15 @@ static struct usb_driver hso_driver = {
 
 static int __init hso_init(void)
 {
+	int i;
 	int result;
+
+	/* put it in the log */
+	pr_info("%s\n", version);
+
+	/* Initialise the serial table semaphore and table */
+	for (i = 0; i < HSO_SERIAL_TTY_MINORS; i++)
+		serial_table[i] = NULL;
 
 	/* allocate our driver using the proper amount of supported minors */
 	tty_drv = tty_alloc_driver(HSO_SERIAL_TTY_MINORS, TTY_DRIVER_REAL_RAW |
@@ -3276,6 +3292,8 @@ err_free_tty:
 
 static void __exit hso_exit(void)
 {
+	pr_info("unloaded\n");
+
 	tty_unregister_driver(tty_drv);
 	/* deregister the usb driver */
 	usb_deregister(&hso_driver);

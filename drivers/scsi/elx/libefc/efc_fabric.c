@@ -107,6 +107,7 @@ void
 efc_fabric_notify_topology(struct efc_node *node)
 {
 	struct efc_node *tmp_node;
+	enum efc_nport_topology topology = node->nport->topology;
 	unsigned long index;
 
 	/*
@@ -117,7 +118,7 @@ efc_fabric_notify_topology(struct efc_node *node)
 		if (tmp_node != node) {
 			efc_node_post_event(tmp_node,
 					    EFC_EVT_NPORT_TOPOLOGY_NOTIFY,
-					    &node->nport->topology);
+					    (void *)topology);
 		}
 	}
 }
@@ -685,7 +686,7 @@ efc_process_gidpt_payload(struct efc_node *node,
 	}
 
 	/* Allocate a buffer for all nodes */
-	active_nodes = kcalloc(port_count, sizeof(*active_nodes), GFP_ATOMIC);
+	active_nodes = kzalloc(port_count * sizeof(*active_nodes), GFP_ATOMIC);
 	if (!active_nodes) {
 		node_printf(node, "efc_malloc failed\n");
 		return -EIO;

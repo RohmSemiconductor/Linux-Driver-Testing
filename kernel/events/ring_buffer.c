@@ -22,7 +22,7 @@ static void perf_output_wakeup(struct perf_output_handle *handle)
 	atomic_set(&handle->rb->poll, EPOLLIN);
 
 	handle->event->pending_wakeup = 1;
-	irq_work_queue(&handle->event->pending_irq);
+	irq_work_queue(&handle->event->pending);
 }
 
 /*
@@ -172,10 +172,8 @@ __perf_output_begin(struct perf_output_handle *handle,
 		goto out;
 
 	if (unlikely(rb->paused)) {
-		if (rb->nr_pages) {
+		if (rb->nr_pages)
 			local_inc(&rb->lost);
-			atomic64_inc(&event->lost_samples);
-		}
 		goto out;
 	}
 
@@ -191,10 +189,9 @@ __perf_output_begin(struct perf_output_handle *handle,
 
 	perf_output_get_handle(handle);
 
-	offset = local_read(&rb->head);
 	do {
-		head = offset;
 		tail = READ_ONCE(rb->user_page->data_tail);
+		offset = head = local_read(&rb->head);
 		if (!rb->overwrite) {
 			if (unlikely(!ring_buffer_has_space(head, tail,
 							    perf_data_size(rb),
@@ -218,7 +215,7 @@ __perf_output_begin(struct perf_output_handle *handle,
 			head += size;
 		else
 			head -= size;
-	} while (!local_try_cmpxchg(&rb->head, &offset, head));
+	} while (local_cmpxchg(&rb->head, offset, head) != offset);
 
 	if (backward) {
 		offset = head;
@@ -257,7 +254,6 @@ __perf_output_begin(struct perf_output_handle *handle,
 
 fail:
 	local_inc(&rb->lost);
-	atomic64_inc(&event->lost_samples);
 	perf_output_put_handle(handle);
 out:
 	rcu_read_unlock();
@@ -610,8 +606,8 @@ static struct page *rb_alloc_aux_page(int node, int order)
 {
 	struct page *page;
 
-	if (order > MAX_PAGE_ORDER)
-		order = MAX_PAGE_ORDER;
+	if (order > MAX_ORDER)
+		order = MAX_ORDER;
 
 	do {
 		page = alloc_pages_node(node, PERF_AUX_GFP, order);
@@ -700,12 +696,6 @@ int rb_alloc_aux(struct perf_buffer *rb, struct perf_event *event,
 		watermark = 0;
 	}
 
-	/*
-	 * kcalloc_node() is unable to allocate buffer if the size is larger
-	 * than: PAGE_SIZE << MAX_PAGE_ORDER; directly bail out in this case.
-	 */
-	if (get_order((unsigned long)nr_pages * sizeof(void *)) > MAX_PAGE_ORDER)
-		return -ENOMEM;
 	rb->aux_pages = kcalloc_node(nr_pages, sizeof(void *), GFP_KERNEL,
 				     node);
 	if (!rb->aux_pages)
@@ -821,7 +811,7 @@ struct perf_buffer *rb_alloc(int nr_pages, long watermark, int cpu, int flags)
 	size = sizeof(struct perf_buffer);
 	size += nr_pages * sizeof(void *);
 
-	if (order_base_2(size) > PAGE_SHIFT+MAX_PAGE_ORDER)
+	if (order_base_2(size) >= PAGE_SHIFT+MAX_ORDER)
 		goto fail;
 
 	node = (cpu == -1) ? cpu : cpu_to_node(cpu);
@@ -869,6 +859,11 @@ void rb_free(struct perf_buffer *rb)
 }
 
 #else
+static int data_page_nr(struct perf_buffer *rb)
+{
+	return rb->nr_pages << page_order(rb);
+}
+
 static struct page *
 __perf_mmap_to_page(struct perf_buffer *rb, unsigned long pgoff)
 {

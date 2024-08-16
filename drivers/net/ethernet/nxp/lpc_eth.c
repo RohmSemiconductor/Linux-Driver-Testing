@@ -419,7 +419,7 @@ struct netdata_local {
 /*
  * MAC support functions
  */
-static void __lpc_set_mac(struct netdata_local *pldat, const u8 *mac)
+static void __lpc_set_mac(struct netdata_local *pldat, u8 *mac)
 {
 	u32 tmp;
 
@@ -1015,6 +1015,9 @@ static int lpc_eth_close(struct net_device *ndev)
 	napi_disable(&pldat->napi);
 	netif_stop_queue(ndev);
 
+	if (ndev->phydev)
+		phy_stop(ndev->phydev);
+
 	spin_lock_irqsave(&pldat->lock, flags);
 	__lpc_eth_reset(pldat);
 	netif_carrier_off(ndev);
@@ -1022,8 +1025,6 @@ static int lpc_eth_close(struct net_device *ndev)
 	writel(0, LPC_ENET_MAC2(pldat->net_base));
 	spin_unlock_irqrestore(&pldat->lock, flags);
 
-	if (ndev->phydev)
-		phy_stop(ndev->phydev);
 	clk_disable_unprepare(pldat->clk);
 
 	return 0;
@@ -1092,7 +1093,7 @@ static int lpc_set_mac_address(struct net_device *ndev, void *p)
 
 	if (!is_valid_ether_addr(addr->sa_data))
 		return -EADDRNOTAVAIL;
-	eth_hw_addr_set(ndev, addr->sa_data);
+	memcpy(ndev->dev_addr, addr->sa_data, ETH_ALEN);
 
 	spin_lock_irqsave(&pldat->lock, flags);
 
@@ -1184,9 +1185,9 @@ static int lpc_eth_open(struct net_device *ndev)
 static void lpc_eth_ethtool_getdrvinfo(struct net_device *ndev,
 	struct ethtool_drvinfo *info)
 {
-	strscpy(info->driver, MODNAME, sizeof(info->driver));
-	strscpy(info->version, DRV_VERSION, sizeof(info->version));
-	strscpy(info->bus_info, dev_name(ndev->dev.parent),
+	strlcpy(info->driver, MODNAME, sizeof(info->driver));
+	strlcpy(info->version, DRV_VERSION, sizeof(info->version));
+	strlcpy(info->bus_info, dev_name(ndev->dev.parent),
 		sizeof(info->bus_info));
 }
 
@@ -1231,7 +1232,6 @@ static int lpc_eth_drv_probe(struct platform_device *pdev)
 	struct net_device *ndev;
 	dma_addr_t dma_handle;
 	struct resource *res;
-	u8 addr[ETH_ALEN];
 	int irq, ret;
 
 	/* Setup network interface for RMII or MII mode */
@@ -1347,11 +1347,10 @@ static int lpc_eth_drv_probe(struct platform_device *pdev)
 	pldat->phy_node = of_parse_phandle(np, "phy-handle", 0);
 
 	/* Get MAC address from current HW setting (POR state is all zeros) */
-	__lpc_get_mac(pldat, addr);
-	eth_hw_addr_set(ndev, addr);
+	__lpc_get_mac(pldat, ndev->dev_addr);
 
 	if (!is_valid_ether_addr(ndev->dev_addr)) {
-		of_get_ethdev_address(np, ndev);
+		of_get_mac_address(np, ndev->dev_addr);
 	}
 	if (!is_valid_ether_addr(ndev->dev_addr))
 		eth_hw_addr_random(ndev);
@@ -1373,7 +1372,7 @@ static int lpc_eth_drv_probe(struct platform_device *pdev)
 	pldat->duplex = DUPLEX_FULL;
 	__lpc_params_setup(pldat);
 
-	netif_napi_add_weight(ndev, &pldat->napi, lpc_eth_poll, NAPI_WEIGHT);
+	netif_napi_add(ndev, &pldat->napi, lpc_eth_poll, NAPI_WEIGHT);
 
 	ret = register_netdev(ndev);
 	if (ret) {
@@ -1417,7 +1416,7 @@ err_exit:
 	return ret;
 }
 
-static void lpc_eth_drv_remove(struct platform_device *pdev)
+static int lpc_eth_drv_remove(struct platform_device *pdev)
 {
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct netdata_local *pldat = netdev_priv(ndev);
@@ -1436,6 +1435,8 @@ static void lpc_eth_drv_remove(struct platform_device *pdev)
 	clk_disable_unprepare(pldat->clk);
 	clk_put(pldat->clk);
 	free_netdev(ndev);
+
+	return 0;
 }
 
 #ifdef CONFIG_PM
@@ -1469,7 +1470,6 @@ static int lpc_eth_drv_resume(struct platform_device *pdev)
 {
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct netdata_local *pldat;
-	int ret;
 
 	if (device_may_wakeup(&pdev->dev))
 		disable_irq_wake(ndev->irq);
@@ -1479,9 +1479,7 @@ static int lpc_eth_drv_resume(struct platform_device *pdev)
 			pldat = netdev_priv(ndev);
 
 			/* Enable interface clock */
-			ret = clk_enable(pldat->clk);
-			if (ret)
-				return ret;
+			clk_enable(pldat->clk);
 
 			/* Reset and initialize */
 			__lpc_eth_reset(pldat);
@@ -1503,7 +1501,7 @@ MODULE_DEVICE_TABLE(of, lpc_eth_match);
 
 static struct platform_driver lpc_eth_driver = {
 	.probe		= lpc_eth_drv_probe,
-	.remove_new	= lpc_eth_drv_remove,
+	.remove		= lpc_eth_drv_remove,
 #ifdef CONFIG_PM
 	.suspend	= lpc_eth_drv_suspend,
 	.resume		= lpc_eth_drv_resume,

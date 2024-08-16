@@ -1151,15 +1151,14 @@ static int via_sd_probe(struct pci_dev *pcidev,
 	    pcidev->subsystem_device == 0x3891)
 		sdhost->quirks = VIA_CRDR_QUIRK_300MS_PWRDELAY;
 
-	ret = mmc_add_host(mmc);
-	if (ret)
-		goto unmap;
+	mmc_add_host(mmc);
 
 	return 0;
 
 unmap:
 	iounmap(sdhost->mmiobase);
 free_mmc_host:
+	dev_set_drvdata(&pcidev->dev, NULL);
 	mmc_free_host(mmc);
 release:
 	pci_release_regions(pcidev);
@@ -1211,6 +1210,7 @@ static void via_sd_remove(struct pci_dev *pcidev)
 	writeb(gatt, sdhost->pcictrl_mmiobase + VIA_CRDR_PCICLKGATT);
 
 	iounmap(sdhost->mmiobase);
+	dev_set_drvdata(&pcidev->dev, NULL);
 	mmc_free_host(sdhost->mmc);
 	pci_release_regions(pcidev);
 	pci_disable_device(pcidev);

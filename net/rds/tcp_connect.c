@@ -124,10 +124,7 @@ int rds_tcp_conn_path_connect(struct rds_conn_path *cp)
 	if (ret < 0)
 		goto out;
 
-	if (!rds_tcp_tune(sock)) {
-		ret = -EINVAL;
-		goto out;
-	}
+	rds_tcp_tune(sock);
 
 	if (isv6) {
 		sin6.sin6_family = AF_INET6;
@@ -145,7 +142,7 @@ int rds_tcp_conn_path_connect(struct rds_conn_path *cp)
 		addrlen = sizeof(sin);
 	}
 
-	ret = kernel_bind(sock, addr, addrlen);
+	ret = sock->ops->bind(sock, addr, addrlen);
 	if (ret) {
 		rdsdebug("bind failed with %d at address %pI6c\n",
 			 ret, &conn->c_laddr);
@@ -173,7 +170,7 @@ int rds_tcp_conn_path_connect(struct rds_conn_path *cp)
 	 * own the socket
 	 */
 	rds_tcp_set_callbacks(sock, cp);
-	ret = kernel_connect(sock, addr, addrlen, O_NONBLOCK);
+	ret = sock->ops->connect(sock, addr, addrlen, O_NONBLOCK);
 
 	rdsdebug("connect to address %pI6c returned %d\n", &conn->c_faddr, ret);
 	if (ret == -EINPROGRESS)

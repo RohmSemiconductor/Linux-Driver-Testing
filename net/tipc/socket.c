@@ -37,7 +37,6 @@
 
 #include <linux/rhashtable.h>
 #include <linux/sched/signal.h>
-#include <trace/events/sock.h>
 
 #include "core.h"
 #include "name_table.h"
@@ -314,9 +313,9 @@ static void tsk_rej_rx_queue(struct sock *sk, int error)
 		tipc_sk_respond(sk, skb, error);
 }
 
-static bool tipc_sk_connected(const struct sock *sk)
+static bool tipc_sk_connected(struct sock *sk)
 {
-	return READ_ONCE(sk->sk_state) == TIPC_ESTABLISHED;
+	return sk->sk_state == TIPC_ESTABLISHED;
 }
 
 /* tipc_sk_type_connectionless - check if the socket is datagram socket
@@ -503,7 +502,6 @@ static int tipc_sk_create(struct net *net, struct socket *sock,
 	sock_init_data(sock, sk);
 	tipc_set_sk_state(sk, TIPC_OPEN);
 	if (tipc_sk_insert(tsk)) {
-		sk_free(sk);
 		pr_warn("Socket create failed; port number exhausted\n");
 		return -EINVAL;
 	}
@@ -518,7 +516,7 @@ static int tipc_sk_create(struct net *net, struct socket *sock,
 	timer_setup(&sk->sk_timer, tipc_sk_timeout, 0);
 	sk->sk_shutdown = 0;
 	sk->sk_backlog_rcv = tipc_sk_backlog_rcv;
-	sk->sk_rcvbuf = READ_ONCE(sysctl_tipc_rmem[1]);
+	sk->sk_rcvbuf = sysctl_tipc_rmem[1];
 	sk->sk_data_ready = tipc_data_ready;
 	sk->sk_write_space = tipc_write_space;
 	sk->sk_destruct = tipc_sock_destruct;
@@ -1463,8 +1461,6 @@ static int __tipc_sendmsg(struct socket *sock, struct msghdr *m, size_t dlen)
 		msg_set_syn(hdr, 1);
 	}
 
-	memset(&skaddr, 0, sizeof(skaddr));
-
 	/* Determine destination */
 	if (atype == TIPC_SERVICE_RANGE) {
 		return tipc_sendmcast(sock, ua, m, dlen, timeout);
@@ -2131,8 +2127,6 @@ static void tipc_data_ready(struct sock *sk)
 {
 	struct socket_wq *wq;
 
-	trace_sk_data_ready(sk);
-
 	rcu_read_lock();
 	wq = rcu_dereference(sk->sk_wq);
 	if (skwq_has_sleeper(wq))
@@ -2429,7 +2423,7 @@ static int tipc_sk_backlog_rcv(struct sock *sk, struct sk_buff *skb)
 static void tipc_sk_enqueue(struct sk_buff_head *inputq, struct sock *sk,
 			    u32 dport, struct sk_buff_head *xmitq)
 {
-	unsigned long time_limit = jiffies + usecs_to_jiffies(20000);
+	unsigned long time_limit = jiffies + 2;
 	struct sk_buff *skb;
 	unsigned int lim;
 	atomic_t *dcnt;
@@ -2617,7 +2611,6 @@ static int tipc_connect(struct socket *sock, struct sockaddr *dest,
 		/* Send a 'SYN-' to destination */
 		m.msg_name = dest;
 		m.msg_namelen = destlen;
-		iov_iter_kvec(&m.msg_iter, ITER_SOURCE, NULL, 0, 0);
 
 		/* If connect is in non-blocking case, set MSG_DONTWAIT to
 		 * indicate send_msg() is never blocked.
@@ -2780,7 +2773,6 @@ static int tipc_accept(struct socket *sock, struct socket *new_sock, int flags,
 		__skb_queue_head(&new_sk->sk_receive_queue, buf);
 		skb_set_owner_r(buf, new_sk);
 	}
-	iov_iter_kvec(&m.msg_iter, ITER_SOURCE, NULL, 0, 0);
 	__tipc_sendstream(new_sock, &m, 0);
 	release_sock(new_sk);
 exit:
@@ -2858,8 +2850,7 @@ static void tipc_sk_retry_connect(struct sock *sk, struct sk_buff_head *list)
 
 	/* Try again later if dest link is congested */
 	if (tsk->cong_link_cnt) {
-		sk_reset_timer(sk, &sk->sk_timer,
-			       jiffies + msecs_to_jiffies(100));
+		sk_reset_timer(sk, &sk->sk_timer, msecs_to_jiffies(100));
 		return;
 	}
 	/* Prepare SYN for retransmit */
@@ -3015,7 +3006,7 @@ static int tipc_sk_insert(struct tipc_sock *tsk)
 	struct net *net = sock_net(sk);
 	struct tipc_net *tn = net_generic(net, tipc_net_id);
 	u32 remaining = (TIPC_MAX_PORT - TIPC_MIN_PORT) + 1;
-	u32 portid = get_random_u32_below(remaining) + TIPC_MIN_PORT;
+	u32 portid = prandom_u32() % remaining + TIPC_MIN_PORT;
 
 	while (remaining--) {
 		portid++;
@@ -3375,6 +3366,7 @@ static const struct proto_ops msg_ops = {
 	.sendmsg	= tipc_sendmsg,
 	.recvmsg	= tipc_recvmsg,
 	.mmap		= sock_no_mmap,
+	.sendpage	= sock_no_sendpage
 };
 
 static const struct proto_ops packet_ops = {
@@ -3395,6 +3387,7 @@ static const struct proto_ops packet_ops = {
 	.sendmsg	= tipc_send_packet,
 	.recvmsg	= tipc_recvmsg,
 	.mmap		= sock_no_mmap,
+	.sendpage	= sock_no_sendpage
 };
 
 static const struct proto_ops stream_ops = {
@@ -3415,6 +3408,7 @@ static const struct proto_ops stream_ops = {
 	.sendmsg	= tipc_sendstream,
 	.recvmsg	= tipc_recvstream,
 	.mmap		= sock_no_mmap,
+	.sendpage	= sock_no_sendpage
 };
 
 static const struct net_proto_family tipc_family_ops = {
@@ -3753,7 +3747,7 @@ static int __tipc_nl_list_sk_publ(struct sk_buff *skb,
 			if (p->key == *last_publ)
 				break;
 		}
-		if (list_entry_is_head(p, &tsk->publications, binding_sock)) {
+		if (p->key != *last_publ) {
 			/* We never set seq or call nl_dump_check_consistent()
 			 * this means that setting prev_seq here will cause the
 			 * consistence check to fail in the netlink callback
@@ -3791,7 +3785,7 @@ int tipc_nl_publ_dump(struct sk_buff *skb, struct netlink_callback *cb)
 	struct tipc_sock *tsk;
 
 	if (!tsk_portid) {
-		struct nlattr **attrs = genl_dumpit_info(cb)->info.attrs;
+		struct nlattr **attrs = genl_dumpit_info(cb)->attrs;
 		struct nlattr *sock[TIPC_NLA_SOCK_MAX + 1];
 
 		if (!attrs[TIPC_NLA_SOCK])

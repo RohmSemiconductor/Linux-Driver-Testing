@@ -40,8 +40,6 @@
 
 #include <linux/timex.h>
 
-int time_keeper_id __read_mostly;	/* CPU used for timekeeping. */
-
 static unsigned long clocktick __ro_after_init;	/* timer cycles per tick */
 
 /*
@@ -86,7 +84,7 @@ irqreturn_t __irq_entry timer_interrupt(int irq, void *dev_id)
 	cpuinfo->it_value = next_tick;
 
 	/* Go do system house keeping. */
-	if (IS_ENABLED(CONFIG_SMP) && (cpu != time_keeper_id))
+	if (cpu != 0)
 		ticks_elapsed = 0;
 	legacy_timer_tick(ticks_elapsed);
 
@@ -152,7 +150,7 @@ static struct clocksource clocksource_cr16 = {
 	.flags			= CLOCK_SOURCE_IS_CONTINUOUS,
 };
 
-void start_cpu_itimer(void)
+void __init start_cpu_itimer(void)
 {
 	unsigned int cpu = smp_processor_id();
 	unsigned long next_tick = mfctl(16) + clocktick;
@@ -251,12 +249,30 @@ void __init time_init(void)
 static int __init init_cr16_clocksource(void)
 {
 	/*
-	 * The cr16 interval timers are not synchronized across CPUs.
+	 * The cr16 interval timers are not syncronized across CPUs on
+	 * different sockets, so mark them unstable and lower rating on
+	 * multi-socket SMP systems.
 	 */
 	if (num_online_cpus() > 1 && !running_on_qemu) {
-		clocksource_cr16.name = "cr16_unstable";
-		clocksource_cr16.flags = CLOCK_SOURCE_UNSTABLE;
-		clocksource_cr16.rating = 0;
+		int cpu;
+		unsigned long cpu0_loc;
+		cpu0_loc = per_cpu(cpu_data, 0).cpu_loc;
+
+		for_each_online_cpu(cpu) {
+			if (cpu == 0)
+				continue;
+			if ((cpu0_loc != 0) &&
+			    (cpu0_loc == per_cpu(cpu_data, cpu).cpu_loc))
+				continue;
+
+			/* mark sched_clock unstable */
+			clear_sched_clock_stable();
+
+			clocksource_cr16.name = "cr16_unstable";
+			clocksource_cr16.flags = CLOCK_SOURCE_UNSTABLE;
+			clocksource_cr16.rating = 0;
+			break;
+		}
 	}
 
 	/* register at clocksource framework */

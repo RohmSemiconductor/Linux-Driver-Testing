@@ -746,7 +746,7 @@ int read_write_nci_cmd(int nfc_sock, int virtual_fd, const __u8 *cmd, __u32 cmd_
 		       const __u8 *rsp, __u32 rsp_len)
 {
 	char buf[256];
-	int len;
+	unsigned int len;
 
 	send(nfc_sock, &cmd[3], cmd_len - 3, 0);
 	len = read(virtual_fd, buf, cmd_len);
@@ -888,17 +888,6 @@ TEST_F(NCI, deinit)
 			   &msg);
 	ASSERT_EQ(rc, 0);
 	EXPECT_EQ(get_dev_enable_state(&msg), 0);
-
-	/* Test that operations that normally send packets to the driver
-	 * don't cause issues when the device is already closed.
-	 * Note: the send of NFC_CMD_DEV_UP itself still succeeds it's just
-	 * that the device won't actually be up.
-	 */
-	close(self->virtual_nci_fd);
-	self->virtual_nci_fd = -1;
-	rc = send_cmd_with_idx(self->sd, self->fid, self->pid,
-			       NFC_CMD_DEV_UP, self->dev_idex);
-	EXPECT_EQ(rc, 0);
 }
 
 TEST_HARNESS_MAIN

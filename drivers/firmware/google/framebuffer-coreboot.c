@@ -36,9 +36,6 @@ static int framebuffer_probe(struct coreboot_device *dev)
 		.format = NULL,
 	};
 
-	if (!fb->physical_address)
-		return -ENODEV;
-
 	for (i = 0; i < ARRAY_SIZE(formats); ++i) {
 		if (fb->bits_per_pixel     == formats[i].bits_per_pixel &&
 		    fb->red_mask_pos       == formats[i].red.offset &&
@@ -46,7 +43,9 @@ static int framebuffer_probe(struct coreboot_device *dev)
 		    fb->green_mask_pos     == formats[i].green.offset &&
 		    fb->green_mask_size    == formats[i].green.length &&
 		    fb->blue_mask_pos      == formats[i].blue.offset &&
-		    fb->blue_mask_size     == formats[i].blue.length)
+		    fb->blue_mask_size     == formats[i].blue.length &&
+		    fb->reserved_mask_pos  == formats[i].transp.offset &&
+		    fb->reserved_mask_size == formats[i].transp.length)
 			pdata.format = formats[i].name;
 	}
 	if (!pdata.format)

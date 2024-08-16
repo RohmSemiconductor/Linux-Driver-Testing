@@ -2,11 +2,9 @@
 // Copyright (c) 2011-2017, The Linux Foundation. All rights reserved.
 // Copyright (c) 2018, Linaro Limited
 
-#include <dt-bindings/sound/qcom,q6asm.h>
 #include <linux/init.h>
 #include <linux/err.h>
 #include <linux/module.h>
-#include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <sound/soc.h>
@@ -16,6 +14,7 @@
 #include <sound/compress_driver.h>
 #include <asm/dma.h>
 #include <linux/dma-mapping.h>
+#include <linux/of_device.h>
 #include <sound/pcm_params.h>
 #include "q6asm.h"
 #include "q6routing.h"
@@ -219,7 +218,7 @@ static int q6asm_dai_prepare(struct snd_soc_component *component,
 			     struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	struct snd_soc_pcm_runtime *soc_prtd = snd_soc_substream_to_rtd(substream);
+	struct snd_soc_pcm_runtime *soc_prtd = asoc_substream_to_rtd(substream);
 	struct q6asm_dai_rtd *prtd = runtime->private_data;
 	struct q6asm_dai_data *pdata;
 	struct device *dev = component->dev;
@@ -270,7 +269,9 @@ static int q6asm_dai_prepare(struct snd_soc_component *component,
 
 	if (ret < 0) {
 		dev_err(dev, "%s: q6asm_open_write failed\n", __func__);
-		goto open_err;
+		q6asm_audio_client_free(prtd->audio_client);
+		prtd->audio_client = NULL;
+		return -ENOMEM;
 	}
 
 	prtd->session_id = q6asm_get_session_id(prtd->audio_client);
@@ -278,7 +279,7 @@ static int q6asm_dai_prepare(struct snd_soc_component *component,
 			      prtd->session_id, substream->stream);
 	if (ret) {
 		dev_err(dev, "%s: stream reg failed ret:%d\n", __func__, ret);
-		goto routing_err;
+		return ret;
 	}
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
@@ -300,19 +301,10 @@ static int q6asm_dai_prepare(struct snd_soc_component *component,
 	}
 	if (ret < 0)
 		dev_info(dev, "%s: CMD Format block failed\n", __func__);
-	else
-		prtd->state = Q6ASM_STREAM_RUNNING;
 
-	return ret;
+	prtd->state = Q6ASM_STREAM_RUNNING;
 
-routing_err:
-	q6asm_cmd(prtd->audio_client, prtd->stream_id,  CMD_CLOSE);
-open_err:
-	q6asm_unmap_memory_regions(substream->stream, prtd->audio_client);
-	q6asm_audio_client_free(prtd->audio_client);
-	prtd->audio_client = NULL;
-
-	return ret;
+	return 0;
 }
 
 static int q6asm_dai_trigger(struct snd_soc_component *component,
@@ -351,8 +343,8 @@ static int q6asm_dai_open(struct snd_soc_component *component,
 			  struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	struct snd_soc_pcm_runtime *soc_prtd = snd_soc_substream_to_rtd(substream);
-	struct snd_soc_dai *cpu_dai = snd_soc_rtd_to_cpu(soc_prtd, 0);
+	struct snd_soc_pcm_runtime *soc_prtd = asoc_substream_to_rtd(substream);
+	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(soc_prtd, 0);
 	struct q6asm_dai_rtd *prtd;
 	struct q6asm_dai_data *pdata;
 	struct device *dev = component->dev;
@@ -444,7 +436,7 @@ static int q6asm_dai_close(struct snd_soc_component *component,
 			   struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	struct snd_soc_pcm_runtime *soc_prtd = snd_soc_substream_to_rtd(substream);
+	struct snd_soc_pcm_runtime *soc_prtd = asoc_substream_to_rtd(substream);
 	struct q6asm_dai_rtd *prtd = runtime->private_data;
 
 	if (prtd->audio_client) {
@@ -604,7 +596,7 @@ static int q6asm_dai_compr_open(struct snd_soc_component *component,
 {
 	struct snd_soc_pcm_runtime *rtd = stream->private_data;
 	struct snd_compr_runtime *runtime = stream->runtime;
-	struct snd_soc_dai *cpu_dai = snd_soc_rtd_to_cpu(rtd, 0);
+	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(rtd, 0);
 	struct q6asm_dai_data *pdata;
 	struct device *dev = component->dev;
 	struct q6asm_dai_rtd *prtd;
@@ -1206,18 +1198,17 @@ static const struct snd_soc_dapm_widget q6asm_dapm_widgets[] = {
 };
 
 static const struct snd_soc_component_driver q6asm_fe_dai_component = {
-	.name			= DRV_NAME,
-	.open			= q6asm_dai_open,
-	.hw_params		= q6asm_dai_hw_params,
-	.close			= q6asm_dai_close,
-	.prepare		= q6asm_dai_prepare,
-	.trigger		= q6asm_dai_trigger,
-	.pointer		= q6asm_dai_pointer,
-	.pcm_construct		= q6asm_dai_pcm_new,
-	.compress_ops		= &q6asm_dai_compress_ops,
-	.dapm_widgets		= q6asm_dapm_widgets,
-	.num_dapm_widgets	= ARRAY_SIZE(q6asm_dapm_widgets),
-	.legacy_dai_naming	= 1,
+	.name		= DRV_NAME,
+	.open		= q6asm_dai_open,
+	.hw_params	= q6asm_dai_hw_params,
+	.close		= q6asm_dai_close,
+	.prepare	= q6asm_dai_prepare,
+	.trigger	= q6asm_dai_trigger,
+	.pointer	= q6asm_dai_pointer,
+	.pcm_construct	= q6asm_dai_pcm_new,
+	.compress_ops	= &q6asm_dai_compress_ops,
+	.dapm_widgets	= q6asm_dapm_widgets,
+	.num_dapm_widgets = ARRAY_SIZE(q6asm_dapm_widgets),
 };
 
 static struct snd_soc_dai_driver q6asm_fe_dais_template[] = {
@@ -1229,10 +1220,6 @@ static struct snd_soc_dai_driver q6asm_fe_dais_template[] = {
 	Q6ASM_FEDAI_DRIVER(6),
 	Q6ASM_FEDAI_DRIVER(7),
 	Q6ASM_FEDAI_DRIVER(8),
-};
-
-static const struct snd_soc_dai_ops q6asm_dai_ops = {
-	.compress_new = snd_soc_new_compress,
 };
 
 static int of_q6asm_parse_dai_data(struct device *dev,
@@ -1277,7 +1264,7 @@ static int of_q6asm_parse_dai_data(struct device *dev,
 			dai_drv->playback = empty_stream;
 
 		if (of_property_read_bool(node, "is-compress-dai"))
-			dai_drv->ops = &q6asm_dai_ops;
+			dai_drv->compress_new = snd_soc_new_compress;
 	}
 
 	return 0;

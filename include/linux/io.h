@@ -59,6 +59,8 @@ void __iomem *devm_ioremap_uc(struct device *dev, resource_size_t offset,
 				   resource_size_t size);
 void __iomem *devm_ioremap_wc(struct device *dev, resource_size_t offset,
 				   resource_size_t size);
+void __iomem *devm_ioremap_np(struct device *dev, resource_size_t offset,
+				   resource_size_t size);
 void devm_iounmap(struct device *dev, void __iomem *addr);
 int check_signature(const volatile void __iomem *io_addr,
 			const unsigned char *signature, int length);
@@ -67,11 +69,6 @@ void devm_ioremap_release(struct device *dev, void *res);
 void *devm_memremap(struct device *dev, resource_size_t offset,
 		size_t size, unsigned long flags);
 void devm_memunmap(struct device *dev, void *addr);
-
-/* architectures can override this */
-pgprot_t __init early_memremap_pgprot_adjust(resource_size_t phys_addr,
-					unsigned long size, pgprot_t prot);
-
 
 #ifdef CONFIG_PCI
 /*
@@ -135,8 +132,6 @@ static inline int arch_phys_wc_index(int handle)
 #endif
 #endif
 
-int devm_arch_phys_wc_add(struct device *dev, unsigned long base, unsigned long size);
-
 enum {
 	/* See memremap() kernel-doc for usage description... */
 	MEMREMAP_WB = 1 << 0,
@@ -170,8 +165,5 @@ static inline void arch_io_free_memtype_wc(resource_size_t base,
 {
 }
 #endif
-
-int devm_arch_io_reserve_memtype_wc(struct device *dev, resource_size_t start,
-				    resource_size_t size);
 
 #endif /* _LINUX_IO_H */

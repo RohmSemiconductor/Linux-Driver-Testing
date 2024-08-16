@@ -5,8 +5,13 @@
  *
  */
 
-#include <linux/types.h>
+#include <linux/blkdev.h>
+#include <linux/buffer_head.h>
+#include <linux/fs.h>
+#include <linux/nls.h>
 
+#include "debug.h"
+#include "ntfs.h"
 #include "ntfs_fs.h"
 
 #define BITS_IN_SIZE_T (sizeof(size_t) * 8)
@@ -30,7 +35,7 @@ static const u8 zero_mask[] = { 0xFF, 0xFE, 0xFC, 0xF8, 0xF0,
  *
  * Return: True if all bits [bit, bit+nbits) are zeros "0".
  */
-bool are_bits_clear(const void *lmap, size_t bit, size_t nbits)
+bool are_bits_clear(const ulong *lmap, size_t bit, size_t nbits)
 {
 	size_t pos = bit & 7;
 	const u8 *map = (u8 *)lmap + (bit >> 3);
@@ -78,7 +83,7 @@ bool are_bits_clear(const void *lmap, size_t bit, size_t nbits)
  *
  * Return: True if all bits [bit, bit+nbits) are ones "1".
  */
-bool are_bits_set(const void *lmap, size_t bit, size_t nbits)
+bool are_bits_set(const ulong *lmap, size_t bit, size_t nbits)
 {
 	u8 mask;
 	size_t pos = bit & 7;
@@ -119,7 +124,8 @@ bool are_bits_set(const void *lmap, size_t bit, size_t nbits)
 
 	pos = nbits & 7;
 	if (pos) {
-		mask = fill_mask[pos];
+		u8 mask = fill_mask[pos];
+
 		if ((*map & mask) != mask)
 			return false;
 	}

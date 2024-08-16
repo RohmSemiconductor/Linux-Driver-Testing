@@ -241,7 +241,6 @@ MODULE_DEVICE_TABLE(platform, max14577_regulator_id);
 static struct platform_driver max14577_regulator_driver = {
 	.driver = {
 		   .name = "max14577-regulator",
-		   .probe_type = PROBE_PREFER_ASYNCHRONOUS,
 		   },
 	.probe		= max14577_regulator_probe,
 	.id_table	= max14577_regulator_id,
@@ -270,3 +269,5 @@ module_exit(max14577_regulator_exit);
 MODULE_AUTHOR("Krzysztof Kozlowski <krzk@kernel.org>");
 MODULE_DESCRIPTION("Maxim 14577/77836 regulator driver");
 MODULE_LICENSE("GPL");
+MODULE_ALIAS("platform:max14577-regulator");
+MODULE_ALIAS("platform:max77836-regulator");

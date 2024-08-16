@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <linux/const.h>
+#include <linux/if_ether.h>
 #include <linux/ioam6.h>
 #include <linux/ipv6.h>
 #include <stdlib.h>
@@ -93,6 +94,16 @@ enum {
 	TEST_OUT_BIT9,
 	TEST_OUT_BIT10,
 	TEST_OUT_BIT11,
+	TEST_OUT_BIT12,
+	TEST_OUT_BIT13,
+	TEST_OUT_BIT14,
+	TEST_OUT_BIT15,
+	TEST_OUT_BIT16,
+	TEST_OUT_BIT17,
+	TEST_OUT_BIT18,
+	TEST_OUT_BIT19,
+	TEST_OUT_BIT20,
+	TEST_OUT_BIT21,
 	TEST_OUT_BIT22,
 	TEST_OUT_FULL_SUPP_TRACE,
 
@@ -114,6 +125,16 @@ enum {
 	TEST_IN_BIT9,
 	TEST_IN_BIT10,
 	TEST_IN_BIT11,
+	TEST_IN_BIT12,
+	TEST_IN_BIT13,
+	TEST_IN_BIT14,
+	TEST_IN_BIT15,
+	TEST_IN_BIT16,
+	TEST_IN_BIT17,
+	TEST_IN_BIT18,
+	TEST_IN_BIT19,
+	TEST_IN_BIT20,
+	TEST_IN_BIT21,
 	TEST_IN_BIT22,
 	TEST_IN_FULL_SUPP_TRACE,
 
@@ -178,6 +199,30 @@ static int check_ioam_header(int tid, struct ioam6_trace_hdr *ioam6h,
 		       ioam6h->nodelen != 2 ||
 		       ioam6h->remlen;
 
+	case TEST_OUT_BIT12:
+	case TEST_IN_BIT12:
+	case TEST_OUT_BIT13:
+	case TEST_IN_BIT13:
+	case TEST_OUT_BIT14:
+	case TEST_IN_BIT14:
+	case TEST_OUT_BIT15:
+	case TEST_IN_BIT15:
+	case TEST_OUT_BIT16:
+	case TEST_IN_BIT16:
+	case TEST_OUT_BIT17:
+	case TEST_IN_BIT17:
+	case TEST_OUT_BIT18:
+	case TEST_IN_BIT18:
+	case TEST_OUT_BIT19:
+	case TEST_IN_BIT19:
+	case TEST_OUT_BIT20:
+	case TEST_IN_BIT20:
+	case TEST_OUT_BIT21:
+	case TEST_IN_BIT21:
+		return ioam6h->overflow ||
+		       ioam6h->nodelen ||
+		       ioam6h->remlen != 1;
+
 	case TEST_OUT_BIT22:
 	case TEST_IN_BIT22:
 		return ioam6h->overflow ||
@@ -239,8 +284,11 @@ static int check_ioam6_data(__u8 **p, struct ioam6_trace_hdr *ioam6h,
 		*p += sizeof(__u32);
 	}
 
-	if (ioam6h->type.bit6)
+	if (ioam6h->type.bit6) {
+		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
+			return 1;
 		*p += sizeof(__u32);
+	}
 
 	if (ioam6h->type.bit7) {
 		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
@@ -273,66 +321,6 @@ static int check_ioam6_data(__u8 **p, struct ioam6_trace_hdr *ioam6h,
 	}
 
 	if (ioam6h->type.bit11) {
-		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
-			return 1;
-		*p += sizeof(__u32);
-	}
-
-	if (ioam6h->type.bit12) {
-		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
-			return 1;
-		*p += sizeof(__u32);
-	}
-
-	if (ioam6h->type.bit13) {
-		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
-			return 1;
-		*p += sizeof(__u32);
-	}
-
-	if (ioam6h->type.bit14) {
-		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
-			return 1;
-		*p += sizeof(__u32);
-	}
-
-	if (ioam6h->type.bit15) {
-		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
-			return 1;
-		*p += sizeof(__u32);
-	}
-
-	if (ioam6h->type.bit16) {
-		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
-			return 1;
-		*p += sizeof(__u32);
-	}
-
-	if (ioam6h->type.bit17) {
-		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
-			return 1;
-		*p += sizeof(__u32);
-	}
-
-	if (ioam6h->type.bit18) {
-		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
-			return 1;
-		*p += sizeof(__u32);
-	}
-
-	if (ioam6h->type.bit19) {
-		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
-			return 1;
-		*p += sizeof(__u32);
-	}
-
-	if (ioam6h->type.bit20) {
-		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
-			return 1;
-		*p += sizeof(__u32);
-	}
-
-	if (ioam6h->type.bit21) {
 		if (__be32_to_cpu(*((__u32 *)*p)) != 0xffffffff)
 			return 1;
 		*p += sizeof(__u32);
@@ -467,6 +455,26 @@ static int str2id(const char *tname)
 		return TEST_OUT_BIT10;
 	if (!strcmp("out_bit11", tname))
 		return TEST_OUT_BIT11;
+	if (!strcmp("out_bit12", tname))
+		return TEST_OUT_BIT12;
+	if (!strcmp("out_bit13", tname))
+		return TEST_OUT_BIT13;
+	if (!strcmp("out_bit14", tname))
+		return TEST_OUT_BIT14;
+	if (!strcmp("out_bit15", tname))
+		return TEST_OUT_BIT15;
+	if (!strcmp("out_bit16", tname))
+		return TEST_OUT_BIT16;
+	if (!strcmp("out_bit17", tname))
+		return TEST_OUT_BIT17;
+	if (!strcmp("out_bit18", tname))
+		return TEST_OUT_BIT18;
+	if (!strcmp("out_bit19", tname))
+		return TEST_OUT_BIT19;
+	if (!strcmp("out_bit20", tname))
+		return TEST_OUT_BIT20;
+	if (!strcmp("out_bit21", tname))
+		return TEST_OUT_BIT21;
 	if (!strcmp("out_bit22", tname))
 		return TEST_OUT_BIT22;
 	if (!strcmp("out_full_supp_trace", tname))
@@ -501,6 +509,26 @@ static int str2id(const char *tname)
 		return TEST_IN_BIT10;
 	if (!strcmp("in_bit11", tname))
 		return TEST_IN_BIT11;
+	if (!strcmp("in_bit12", tname))
+		return TEST_IN_BIT12;
+	if (!strcmp("in_bit13", tname))
+		return TEST_IN_BIT13;
+	if (!strcmp("in_bit14", tname))
+		return TEST_IN_BIT14;
+	if (!strcmp("in_bit15", tname))
+		return TEST_IN_BIT15;
+	if (!strcmp("in_bit16", tname))
+		return TEST_IN_BIT16;
+	if (!strcmp("in_bit17", tname))
+		return TEST_IN_BIT17;
+	if (!strcmp("in_bit18", tname))
+		return TEST_IN_BIT18;
+	if (!strcmp("in_bit19", tname))
+		return TEST_IN_BIT19;
+	if (!strcmp("in_bit20", tname))
+		return TEST_IN_BIT20;
+	if (!strcmp("in_bit21", tname))
+		return TEST_IN_BIT21;
 	if (!strcmp("in_bit22", tname))
 		return TEST_IN_BIT22;
 	if (!strcmp("in_full_supp_trace", tname))
@@ -509,6 +537,14 @@ static int str2id(const char *tname)
 		return TEST_FWD_FULL_SUPP_TRACE;
 
 	return -1;
+}
+
+static int ipv6_addr_equal(const struct in6_addr *a1, const struct in6_addr *a2)
+{
+	return ((a1->s6_addr32[0] ^ a2->s6_addr32[0]) |
+		(a1->s6_addr32[1] ^ a2->s6_addr32[1]) |
+		(a1->s6_addr32[2] ^ a2->s6_addr32[2]) |
+		(a1->s6_addr32[3] ^ a2->s6_addr32[3])) == 0;
 }
 
 static int get_u32(__u32 *val, const char *arg, int base)
@@ -570,6 +606,16 @@ static int (*func[__TEST_MAX])(int, struct ioam6_trace_hdr *, __u32, __u16) = {
 	[TEST_OUT_BIT9]		= check_ioam_header_and_data,
 	[TEST_OUT_BIT10]		= check_ioam_header_and_data,
 	[TEST_OUT_BIT11]		= check_ioam_header_and_data,
+	[TEST_OUT_BIT12]		= check_ioam_header,
+	[TEST_OUT_BIT13]		= check_ioam_header,
+	[TEST_OUT_BIT14]		= check_ioam_header,
+	[TEST_OUT_BIT15]		= check_ioam_header,
+	[TEST_OUT_BIT16]		= check_ioam_header,
+	[TEST_OUT_BIT17]		= check_ioam_header,
+	[TEST_OUT_BIT18]		= check_ioam_header,
+	[TEST_OUT_BIT19]		= check_ioam_header,
+	[TEST_OUT_BIT20]		= check_ioam_header,
+	[TEST_OUT_BIT21]		= check_ioam_header,
 	[TEST_OUT_BIT22]		= check_ioam_header_and_data,
 	[TEST_OUT_FULL_SUPP_TRACE]	= check_ioam_header_and_data,
 	[TEST_IN_UNDEF_NS]		= check_ioam_header,
@@ -587,6 +633,16 @@ static int (*func[__TEST_MAX])(int, struct ioam6_trace_hdr *, __u32, __u16) = {
 	[TEST_IN_BIT9]			= check_ioam_header_and_data,
 	[TEST_IN_BIT10]		= check_ioam_header_and_data,
 	[TEST_IN_BIT11]		= check_ioam_header_and_data,
+	[TEST_IN_BIT12]		= check_ioam_header,
+	[TEST_IN_BIT13]		= check_ioam_header,
+	[TEST_IN_BIT14]		= check_ioam_header,
+	[TEST_IN_BIT15]		= check_ioam_header,
+	[TEST_IN_BIT16]		= check_ioam_header,
+	[TEST_IN_BIT17]		= check_ioam_header,
+	[TEST_IN_BIT18]		= check_ioam_header,
+	[TEST_IN_BIT19]		= check_ioam_header,
+	[TEST_IN_BIT20]		= check_ioam_header,
+	[TEST_IN_BIT21]		= check_ioam_header,
 	[TEST_IN_BIT22]		= check_ioam_header_and_data,
 	[TEST_IN_FULL_SUPP_TRACE]	= check_ioam_header_and_data,
 	[TEST_FWD_FULL_SUPP_TRACE]	= check_ioam_header_and_data,
@@ -594,80 +650,70 @@ static int (*func[__TEST_MAX])(int, struct ioam6_trace_hdr *, __u32, __u16) = {
 
 int main(int argc, char **argv)
 {
-	int fd, size, hoplen, tid, ret = 1, on = 1;
+	int fd, size, hoplen, tid, ret = 1;
+	struct in6_addr src, dst;
 	struct ioam6_hdr *opt;
-	struct cmsghdr *cmsg;
-	struct msghdr msg;
-	struct iovec iov;
-	__u8 buffer[512];
-	__u32 tr_type;
+	struct ipv6hdr *ip6h;
+	__u8 buffer[400], *p;
 	__u16 ioam_ns;
-	__u8 *ptr;
+	__u32 tr_type;
 
-	if (argc != 5)
+	if (argc != 7)
 		goto out;
 
-	tid = str2id(argv[1]);
+	tid = str2id(argv[2]);
 	if (tid < 0 || !func[tid])
 		goto out;
 
-	if (get_u32(&tr_type, argv[2], 16) ||
-	    get_u16(&ioam_ns, argv[3], 0))
+	if (inet_pton(AF_INET6, argv[3], &src) != 1 ||
+	    inet_pton(AF_INET6, argv[4], &dst) != 1)
 		goto out;
 
-	fd = socket(PF_INET6, SOCK_RAW,
-		    !strcmp(argv[4], "encap") ? IPPROTO_IPV6 : IPPROTO_ICMPV6);
-	if (fd < 0)
+	if (get_u32(&tr_type, argv[5], 16) ||
+	    get_u16(&ioam_ns, argv[6], 0))
 		goto out;
 
-	setsockopt(fd, IPPROTO_IPV6, IPV6_RECVHOPOPTS,  &on, sizeof(on));
+	fd = socket(AF_PACKET, SOCK_DGRAM, __cpu_to_be16(ETH_P_IPV6));
+	if (!fd)
+		goto out;
 
-	iov.iov_len = 1;
-	iov.iov_base = malloc(CMSG_SPACE(sizeof(buffer)));
-	if (!iov.iov_base)
+	if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE,
+		       argv[1], strlen(argv[1])))
 		goto close;
-recv:
-	memset(&msg, 0, sizeof(msg));
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
-	msg.msg_control = buffer;
-	msg.msg_controllen = CMSG_SPACE(sizeof(buffer));
 
-	size = recvmsg(fd, &msg, 0);
+recv:
+	size = recv(fd, buffer, sizeof(buffer), 0);
 	if (size <= 0)
 		goto close;
 
-	for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-		if (cmsg->cmsg_level != IPPROTO_IPV6 ||
-		    cmsg->cmsg_type != IPV6_HOPOPTS ||
-		    cmsg->cmsg_len < sizeof(struct ipv6_hopopt_hdr))
-			continue;
+	ip6h = (struct ipv6hdr *)buffer;
 
-		ptr = (__u8 *)CMSG_DATA(cmsg);
+	if (!ipv6_addr_equal(&ip6h->saddr, &src) ||
+	    !ipv6_addr_equal(&ip6h->daddr, &dst))
+		goto recv;
 
-		hoplen = (ptr[1] + 1) << 3;
-		ptr += sizeof(struct ipv6_hopopt_hdr);
+	if (ip6h->nexthdr != IPPROTO_HOPOPTS)
+		goto close;
 
-		while (hoplen > 0) {
-			opt = (struct ioam6_hdr *)ptr;
+	p = buffer + sizeof(*ip6h);
+	hoplen = (p[1] + 1) << 3;
+	p += sizeof(struct ipv6_hopopt_hdr);
 
-			if (opt->opt_type == IPV6_TLV_IOAM &&
-			    opt->type == IOAM6_TYPE_PREALLOC) {
-				ptr += sizeof(*opt);
-				ret = func[tid](tid,
-						(struct ioam6_trace_hdr *)ptr,
-						tr_type, ioam_ns);
-				goto close;
-			}
+	while (hoplen > 0) {
+		opt = (struct ioam6_hdr *)p;
 
-			ptr += opt->opt_len + 2;
-			hoplen -= opt->opt_len + 2;
+		if (opt->opt_type == IPV6_TLV_IOAM &&
+		    opt->type == IOAM6_TYPE_PREALLOC) {
+			p += sizeof(*opt);
+			ret = func[tid](tid, (struct ioam6_trace_hdr *)p,
+					   tr_type, ioam_ns);
+			break;
 		}
-	}
 
-	goto recv;
+		p += opt->opt_len + 2;
+		hoplen -= opt->opt_len + 2;
+	}
 close:
-	free(iov.iov_base);
 	close(fd);
 out:
 	return ret;

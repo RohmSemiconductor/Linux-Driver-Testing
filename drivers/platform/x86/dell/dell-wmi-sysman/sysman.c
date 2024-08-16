@@ -255,7 +255,7 @@ static void attr_name_release(struct kobject *kobj)
 	kfree(kobj);
 }
 
-static const struct kobj_type attr_name_ktype = {
+static struct kobj_type attr_name_ktype = {
 	.release	= attr_name_release,
 	.sysfs_ops	= &wmi_sysman_kobj_sysfs_ops,
 };
@@ -270,7 +270,7 @@ void strlcpy_attr(char *dest, char *src)
 	size_t len = strlen(src) + 1;
 
 	if (len > 1 && len <= MAX_BUFF)
-		strscpy(dest, src, len);
+		strlcpy(dest, src, len);
 
 	/*len can be zero because any property not-applicable to attribute can
 	 * be empty so check only for too long buffers and log error
@@ -303,13 +303,16 @@ union acpi_object *get_wmiobj_pointer(int instance_id, const char *guid_string)
  */
 int get_instance_count(const char *guid_string)
 {
-	int ret;
+	union acpi_object *wmi_obj = NULL;
+	int i = 0;
 
-	ret = wmi_instance_count(guid_string);
-	if (ret < 0)
-		return 0;
+	do {
+		kfree(wmi_obj);
+		wmi_obj = get_wmiobj_pointer(i, guid_string);
+		i++;
+	} while (wmi_obj);
 
-	return ret;
+	return (i-1);
 }
 
 /**
@@ -393,7 +396,6 @@ static int init_bios_attributes(int attr_type, const char *guid)
 	struct kobject *attr_name_kobj; //individual attribute names
 	union acpi_object *obj = NULL;
 	union acpi_object *elements;
-	struct kobject *duplicate;
 	struct kset *tmp_set;
 	int min_elements;
 
@@ -452,11 +454,9 @@ static int init_bios_attributes(int attr_type, const char *guid)
 		else
 			tmp_set = wmi_priv.main_dir_kset;
 
-		duplicate = kset_find_obj(tmp_set, elements[ATTR_NAME].string.pointer);
-		if (duplicate) {
-			pr_debug("Duplicate attribute name found - %s\n",
-				 elements[ATTR_NAME].string.pointer);
-			kobject_put(duplicate);
+		if (kset_find_obj(tmp_set, elements[ATTR_NAME].string.pointer)) {
+			pr_debug("duplicate attribute name found - %s\n",
+				elements[ATTR_NAME].string.pointer);
 			goto nextobj;
 		}
 

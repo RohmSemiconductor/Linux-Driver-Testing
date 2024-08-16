@@ -71,14 +71,15 @@ static void spk_ttyio_ldisc_close(struct tty_struct *tty)
 	kfree(tty->disc_data);
 }
 
-static size_t spk_ttyio_receive_buf2(struct tty_struct *tty, const u8 *cp,
-				     const u8 *fp, size_t count)
+static int spk_ttyio_receive_buf2(struct tty_struct *tty,
+				  const unsigned char *cp,
+				  const char *fp, int count)
 {
 	struct spk_ldisc_data *ldisc_data = tty->disc_data;
 	struct spk_synth *synth = ldisc_data->synth;
 
 	if (synth->read_buff_add) {
-		unsigned int i;
+		int i;
 
 		for (i = 0; i < count; i++)
 			synth->read_buff_add(cp[i]);
@@ -87,7 +88,7 @@ static size_t spk_ttyio_receive_buf2(struct tty_struct *tty, const u8 *cp,
 	}
 
 	if (!ldisc_data->buf_free)
-		/* ttyio_in will tty_flip_buffer_push */
+		/* ttyio_in will tty_schedule_flip */
 		return 0;
 
 	/* Make sure the consumer has read buf before we have seen
@@ -311,7 +312,7 @@ static unsigned char ttyio_in(struct spk_synth *in_synth, int timeout)
 	mb();
 	ldisc_data->buf_free = true;
 	/* Let TTY push more characters */
-	tty_flip_buffer_push(tty->port);
+	tty_schedule_flip(tty->port);
 
 	return rv;
 }
@@ -352,9 +353,6 @@ EXPORT_SYMBOL_GPL(spk_ttyio_synth_probe);
 void spk_ttyio_release(struct spk_synth *in_synth)
 {
 	struct tty_struct *tty = in_synth->dev;
-
-	if (tty == NULL)
-		return;
 
 	tty_lock(tty);
 

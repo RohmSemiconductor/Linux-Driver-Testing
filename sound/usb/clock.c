@@ -261,8 +261,6 @@ static int __uac_clock_find_source(struct snd_usb_audio *chip,
 	int ret, i, cur, err, pins, clock_id;
 	const u8 *sources;
 	int proto = fmt->protocol;
-	bool readable, writeable;
-	u32 bmControls;
 
 	entity_id &= 0xff;
 
@@ -273,7 +271,7 @@ static int __uac_clock_find_source(struct snd_usb_audio *chip,
 		return -EINVAL;
 	}
 
-	/* first, see if the ID we're looking at is a clock source already */
+	/* first, see if the ID we're looking for is a clock source already */
 	source = snd_usb_find_clock_source(chip, entity_id, proto);
 	if (source) {
 		entity_id = GET_VAL(source, proto, bClockID);
@@ -294,28 +292,12 @@ static int __uac_clock_find_source(struct snd_usb_audio *chip,
 		sources = GET_VAL(selector, proto, baCSourceID);
 		cur = 0;
 
-		if (proto == UAC_VERSION_3)
-			bmControls = le32_to_cpu(*(__le32 *)(&selector->v3.baCSourceID[0] + pins));
-		else
-			bmControls = *(__u8 *)(&selector->v2.baCSourceID[0] + pins);
-
-		readable = uac_v2v3_control_is_readable(bmControls,
-							UAC2_CX_CLOCK_SELECTOR);
-		writeable = uac_v2v3_control_is_writeable(bmControls,
-							  UAC2_CX_CLOCK_SELECTOR);
-
 		if (pins == 1) {
 			ret = 1;
 			goto find_source;
 		}
 
-		/* for now just warn about buggy device */
-		if (!readable)
-			usb_audio_warn(chip,
-				"%s(): clock selector control is not readable, id %d\n",
-				__func__, clock_id);
-
-		/* the entity ID we are looking at is a selector.
+		/* the entity ID we are looking for is a selector.
 		 * find out what it currently selects */
 		ret = uac_clock_selector_get_val(chip, clock_id);
 		if (ret < 0) {
@@ -343,29 +325,17 @@ static int __uac_clock_find_source(struct snd_usb_audio *chip,
 					      visited, validate);
 		if (ret > 0) {
 			/* Skip setting clock selector again for some devices */
-			if (chip->quirk_flags & QUIRK_FLAG_SKIP_CLOCK_SELECTOR ||
-			    !writeable)
+			if (chip->quirk_flags & QUIRK_FLAG_SKIP_CLOCK_SELECTOR)
 				return ret;
 			err = uac_clock_selector_set_val(chip, entity_id, cur);
-			if (err < 0) {
-				if (pins == 1) {
-					usb_audio_dbg(chip,
-						      "%s(): selector returned an error, "
-						      "assuming a firmware bug, id %d, ret %d\n",
-						      __func__, clock_id, err);
-					return ret;
-				}
+			if (err < 0)
 				return err;
-			}
 		}
 
 		if (!validate || ret > 0 || !chip->autoclock)
 			return ret;
 
 	find_others:
-		if (!writeable)
-			return -ENXIO;
-
 		/* The current clock source is invalid, try others. */
 		for (i = 1; i <= pins; i++) {
 			if (i == cur)
@@ -526,10 +496,6 @@ int snd_usb_set_sample_rate_v2v3(struct snd_usb_audio *chip,
 	union uac23_clock_source_desc *cs_desc;
 
 	cs_desc = snd_usb_find_clock_source(chip, clock, fmt->protocol);
-
-	if (!cs_desc)
-		return 0;
-
 	if (fmt->protocol == UAC_VERSION_3)
 		bmControls = le32_to_cpu(cs_desc->v3.bmControls);
 	else
@@ -600,17 +566,6 @@ static int set_sample_rate_v2v3(struct snd_usb_audio *chip,
 			      "%d:%d: freq mismatch: req %d, clock runs @%d\n",
 			      fmt->iface, fmt->altsetting, rate, cur_rate);
 		/* continue processing */
-	}
-
-	/* FIXME - TEAC devices require the immediate interface setup */
-	if (USB_ID_VENDOR(chip->usb_id) == 0x0644) {
-		bool cur_base_48k = (rate % 48000 == 0);
-		bool prev_base_48k = (prev_rate % 48000 == 0);
-		if (cur_base_48k != prev_base_48k) {
-			usb_set_interface(chip->dev, fmt->iface, fmt->altsetting);
-			if (chip->quirk_flags & QUIRK_FLAG_IFACE_DELAY)
-				msleep(50);
-		}
 	}
 
 validation:

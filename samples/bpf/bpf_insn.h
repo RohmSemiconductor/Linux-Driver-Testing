@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause) */
+/* SPDX-License-Identifier: GPL-2.0 */
 /* eBPF instruction mini library */
 #ifndef __BPF_INSN_H
 #define __BPF_INSN_H

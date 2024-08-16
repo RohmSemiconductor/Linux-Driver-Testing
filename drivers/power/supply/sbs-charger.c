@@ -18,13 +18,12 @@
 #include <linux/interrupt.h>
 #include <linux/regmap.h>
 #include <linux/bitops.h>
-#include <linux/devm-helpers.h>
 
 #define SBS_CHARGER_REG_SPEC_INFO		0x11
 #define SBS_CHARGER_REG_STATUS			0x13
 #define SBS_CHARGER_REG_ALARM_WARNING		0x16
 
-#define SBS_CHARGER_STATUS_CHARGE_INHIBITED	BIT(0)
+#define SBS_CHARGER_STATUS_CHARGE_INHIBITED	BIT(1)
 #define SBS_CHARGER_STATUS_RES_COLD		BIT(9)
 #define SBS_CHARGER_STATUS_RES_HOT		BIT(10)
 #define SBS_CHARGER_STATUS_BATTERY_PRESENT	BIT(14)
@@ -162,7 +161,8 @@ static const struct power_supply_desc sbs_desc = {
 	.get_property = sbs_get_property,
 };
 
-static int sbs_probe(struct i2c_client *client)
+static int sbs_probe(struct i2c_client *client,
+		     const struct i2c_device_id *id)
 {
 	struct power_supply_config psy_cfg = {};
 	struct sbs_info *chip;
@@ -209,18 +209,22 @@ static int sbs_probe(struct i2c_client *client)
 		if (ret)
 			return dev_err_probe(&client->dev, ret, "Failed to request irq\n");
 	} else {
-		ret = devm_delayed_work_autocancel(&client->dev, &chip->work,
-						   sbs_delayed_work);
-		if (ret)
-			return dev_err_probe(&client->dev, ret,
-					     "Failed to init work for polling\n");
-
+		INIT_DELAYED_WORK(&chip->work, sbs_delayed_work);
 		schedule_delayed_work(&chip->work,
 				      msecs_to_jiffies(SBS_CHARGER_POLL_TIME));
 	}
 
 	dev_info(&client->dev,
 		 "%s: smart charger device registered\n", client->name);
+
+	return 0;
+}
+
+static int sbs_remove(struct i2c_client *client)
+{
+	struct sbs_info *chip = i2c_get_clientdata(client);
+
+	cancel_delayed_work_sync(&chip->work);
 
 	return 0;
 }
@@ -241,6 +245,7 @@ MODULE_DEVICE_TABLE(i2c, sbs_id);
 
 static struct i2c_driver sbs_driver = {
 	.probe		= sbs_probe,
+	.remove		= sbs_remove,
 	.id_table	= sbs_id,
 	.driver = {
 		.name	= "sbs-charger",

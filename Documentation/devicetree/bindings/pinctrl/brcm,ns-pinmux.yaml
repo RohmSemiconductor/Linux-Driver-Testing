@@ -17,6 +17,9 @@ description:
 
   A list of pins varies across chipsets so few bindings are available.
 
+  Node of the pinmux must be nested in the CRU (Central Resource Unit) "syscon"
+  node.
+
 properties:
   compatible:
     enum:
@@ -24,11 +27,10 @@ properties:
       - brcm,bcm4709-pinmux
       - brcm,bcm53012-pinmux
 
-  reg:
+  offset:
+    description: offset of pin registers in the CRU block
     maxItems: 1
-
-  reg-names:
-    const: cru_gpio_control
+    $ref: /schemas/types.yaml#/definitions/uint32-array
 
 patternProperties:
   '-pins$':
@@ -53,7 +55,6 @@ patternProperties:
     additionalProperties: false
 
 allOf:
-  - $ref: pinctrl.yaml#
   - if:
       properties:
         compatible:
@@ -71,20 +72,23 @@ allOf:
                         uart1_grp ]
 
 required:
-  - reg
-  - reg-names
+  - offset
 
 additionalProperties: false
 
 examples:
   - |
-    pinctrl@1800c1c0 {
-        compatible = "brcm,bcm4708-pinmux";
-        reg = <0x1800c1c0 0x24>;
-        reg-names = "cru_gpio_control";
+    cru@1800c100 {
+        compatible = "syscon", "simple-mfd";
+        reg = <0x1800c100 0x1a4>;
 
-        spi-pins {
-            function = "spi";
-            groups = "spi_grp";
+        pinctrl {
+            compatible = "brcm,bcm4708-pinmux";
+            offset = <0xc0>;
+
+            spi-pins {
+                function = "spi";
+                groups = "spi_grp";
+            };
         };
     };

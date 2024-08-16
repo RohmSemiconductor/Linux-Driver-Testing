@@ -2,7 +2,7 @@
 /*
  * NVIDIA Tegra XUSB device mode controller
  *
- * Copyright (c) 2013-2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2013-2019, NVIDIA CORPORATION.  All rights reserved.
  * Copyright (c) 2015, Google Inc.
  */
 
@@ -16,6 +16,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/phy/phy.h>
 #include <linux/phy/tegra/xusb.h>
 #include <linux/pm_domain.h>
@@ -31,6 +32,9 @@
 #include <linux/workqueue.h>
 
 /* XUSB_DEV registers */
+#define SPARAM 0x000
+#define  SPARAM_ERSTMAX_MASK GENMASK(20, 16)
+#define  SPARAM_ERSTMAX(x) (((x) << 16) & SPARAM_ERSTMAX_MASK)
 #define DB 0x004
 #define  DB_TARGET_MASK GENMASK(15, 8)
 #define  DB_TARGET(x) (((x) << 8) & DB_TARGET_MASK)
@@ -271,10 +275,8 @@ BUILD_EP_CONTEXT_RW(deq_hi, deq_hi, 0, 0xffffffff)
 BUILD_EP_CONTEXT_RW(avg_trb_len, tx_info, 0, 0xffff)
 BUILD_EP_CONTEXT_RW(max_esit_payload, tx_info, 16, 0xffff)
 BUILD_EP_CONTEXT_RW(edtla, rsvd[0], 0, 0xffffff)
-BUILD_EP_CONTEXT_RW(rsvd, rsvd[0], 24, 0x1)
+BUILD_EP_CONTEXT_RW(seq_num, rsvd[0], 24, 0xff)
 BUILD_EP_CONTEXT_RW(partial_td, rsvd[0], 25, 0x1)
-BUILD_EP_CONTEXT_RW(splitxstate, rsvd[0], 26, 0x1)
-BUILD_EP_CONTEXT_RW(seq_num, rsvd[0], 27, 0x1f)
 BUILD_EP_CONTEXT_RW(cerrcnt, rsvd[1], 18, 0x3)
 BUILD_EP_CONTEXT_RW(data_offset, rsvd[2], 0, 0x1ffff)
 BUILD_EP_CONTEXT_RW(numtrbs, rsvd[2], 22, 0x1f)
@@ -701,8 +703,6 @@ static void tegra_xudc_device_mode_on(struct tegra_xudc *xudc)
 
 	pm_runtime_get_sync(xudc->dev);
 
-	tegra_phy_xusb_utmi_pad_power_on(xudc->curr_utmi_phy);
-
 	err = phy_power_on(xudc->curr_utmi_phy);
 	if (err < 0)
 		dev_err(xudc->dev, "UTMI power on failed: %d\n", err);
@@ -757,8 +757,6 @@ static void tegra_xudc_device_mode_off(struct tegra_xudc *xudc)
 	/* Make sure interrupt handler has completed before powergating. */
 	synchronize_irq(xudc->irq);
 
-	tegra_phy_xusb_utmi_pad_power_down(xudc->curr_utmi_phy);
-
 	err = phy_power_off(xudc->curr_utmi_phy);
 	if (err < 0)
 		dev_err(xudc->dev, "UTMI PHY power off failed: %d\n", err);
@@ -795,16 +793,21 @@ static int tegra_xudc_get_phy_index(struct tegra_xudc *xudc,
 	return -1;
 }
 
-static void tegra_xudc_update_data_role(struct tegra_xudc *xudc,
-					      struct usb_phy *usbphy)
+static int tegra_xudc_vbus_notify(struct notifier_block *nb,
+					 unsigned long action, void *data)
 {
+	struct tegra_xudc *xudc = container_of(nb, struct tegra_xudc,
+					       vbus_nb);
+	struct usb_phy *usbphy = (struct usb_phy *)data;
 	int phy_index;
+
+	dev_dbg(xudc->dev, "%s(): event is %d\n", __func__, usbphy->last_event);
 
 	if ((xudc->device_mode && usbphy->last_event == USB_EVENT_VBUS) ||
 	    (!xudc->device_mode && usbphy->last_event != USB_EVENT_VBUS)) {
 		dev_dbg(xudc->dev, "Same role(%d) received. Ignore",
 			xudc->device_mode);
-		return;
+		return NOTIFY_OK;
 	}
 
 	xudc->device_mode = (usbphy->last_event == USB_EVENT_VBUS) ? true :
@@ -820,18 +823,6 @@ static void tegra_xudc_update_data_role(struct tegra_xudc *xudc,
 		xudc->curr_usbphy = usbphy;
 		schedule_work(&xudc->usb_role_sw_work);
 	}
-}
-
-static int tegra_xudc_vbus_notify(struct notifier_block *nb,
-					 unsigned long action, void *data)
-{
-	struct tegra_xudc *xudc = container_of(nb, struct tegra_xudc,
-					       vbus_nb);
-	struct usb_phy *usbphy = (struct usb_phy *)data;
-
-	dev_dbg(xudc->dev, "%s(): event is %d\n", __func__, usbphy->last_event);
-
-	tegra_xudc_update_data_role(xudc, usbphy);
 
 	return NOTIFY_OK;
 }
@@ -1422,20 +1413,18 @@ __tegra_xudc_ep_dequeue(struct tegra_xudc_ep *ep,
 			struct tegra_xudc_request *req)
 {
 	struct tegra_xudc *xudc = ep->xudc;
-	struct tegra_xudc_request *r = NULL, *iter;
+	struct tegra_xudc_request *r;
 	struct tegra_xudc_trb *deq_trb;
 	bool busy, kick_queue = false;
 	int ret = 0;
 
 	/* Make sure the request is actually queued to this endpoint. */
-	list_for_each_entry(iter, &ep->queue, list) {
-		if (iter != req)
-			continue;
-		r = iter;
-		break;
+	list_for_each_entry(r, &ep->queue, list) {
+		if (r == req)
+			break;
 	}
 
-	if (!r)
+	if (r != req)
 		return -EINVAL;
 
 	/* Request hasn't been queued in the transfer ring yet. */
@@ -1444,7 +1433,7 @@ __tegra_xudc_ep_dequeue(struct tegra_xudc_ep *ep,
 		return 0;
 	}
 
-	/* Halt DMA for this endpoint. */
+	/* Halt DMA for this endpiont. */
 	if (ep_ctx_read_state(ep->context) == EP_STATE_RUNNING) {
 		ep_pause(xudc, ep->index);
 		ep_wait_for_inactive(xudc, ep->index);
@@ -1568,9 +1557,6 @@ static int __tegra_xudc_ep_set_halt(struct tegra_xudc_ep *ep, bool halt)
 		ep_reload(xudc, ep->index);
 
 		ep_ctx_write_state(ep->context, EP_STATE_RUNNING);
-		ep_ctx_write_rsvd(ep->context, 0);
-		ep_ctx_write_partial_td(ep->context, 0);
-		ep_ctx_write_splitxstate(ep->context, 0);
 		ep_ctx_write_seq_num(ep->context, 0);
 
 		ep_reload(xudc, ep->index);
@@ -2161,14 +2147,15 @@ static int tegra_xudc_gadget_stop(struct usb_gadget *gadget)
 static int tegra_xudc_gadget_vbus_draw(struct usb_gadget *gadget,
 						unsigned int m_a)
 {
+	int ret = 0;
 	struct tegra_xudc *xudc = to_xudc(gadget);
 
 	dev_dbg(xudc->dev, "%s: %u mA\n", __func__, m_a);
 
-	if (xudc->curr_usbphy && xudc->curr_usbphy->chg_type == SDP_TYPE)
-		return usb_phy_set_power(xudc->curr_usbphy, m_a);
+	if (xudc->curr_usbphy->chg_type == SDP_TYPE)
+		ret = usb_phy_set_power(xudc->curr_usbphy, m_a);
 
-	return 0;
+	return ret;
 }
 
 static int tegra_xudc_set_selfpowered(struct usb_gadget *gadget, int is_on)
@@ -2825,10 +2812,7 @@ static void tegra_xudc_reset(struct tegra_xudc *xudc)
 	xudc->setup_seq_num = 0;
 	xudc->queued_setup_packet = false;
 
-	ep_ctx_write_rsvd(ep0->context, 0);
-	ep_ctx_write_partial_td(ep0->context, 0);
-	ep_ctx_write_splitxstate(ep0->context, 0);
-	ep_ctx_write_seq_num(ep0->context, 0);
+	ep_ctx_write_seq_num(ep0->context, xudc->setup_seq_num);
 
 	deq_ptr = trb_virt_to_phys(ep0, &ep0->transfer_ring[ep0->deq_ptr]);
 
@@ -3311,6 +3295,11 @@ static void tegra_xudc_init_event_ring(struct tegra_xudc *xudc)
 	unsigned int i;
 	u32 val;
 
+	val = xudc_readl(xudc, SPARAM);
+	val &= ~(SPARAM_ERSTMAX_MASK);
+	val |= SPARAM_ERSTMAX(XUDC_NR_EVENT_RINGS);
+	xudc_writel(xudc, val, SPARAM);
+
 	for (i = 0; i < ARRAY_SIZE(xudc->event_ring); i++) {
 		memset(xudc->event_ring[i], 0, XUDC_EVENT_RING_SIZE *
 		       sizeof(*xudc->event_ring[i]));
@@ -3432,7 +3421,7 @@ static void tegra_xudc_device_params_init(struct tegra_xudc *xudc)
 	}
 
 	/*
-	 * Compliance suite appears to be violating polling LFPS tBurst max
+	 * Compliacne suite appears to be violating polling LFPS tBurst max
 	 * of 1.4us.  Send 1.45us instead.
 	 */
 	val = xudc_readl(xudc, SSPX_CORE_CNT32);
@@ -3526,7 +3515,7 @@ static int tegra_xudc_phy_get(struct tegra_xudc *xudc)
 			/* Get usb-phy, if utmi phy is available */
 			xudc->usbphy[i] = devm_usb_get_phy_by_node(xudc->dev,
 						xudc->utmi_phy[i]->dev.of_node,
-						NULL);
+						&xudc->vbus_nb);
 			if (IS_ERR(xudc->usbphy[i])) {
 				err = PTR_ERR(xudc->usbphy[i]);
 				dev_err_probe(xudc->dev, err,
@@ -3665,19 +3654,6 @@ static struct tegra_xudc_soc tegra194_xudc_soc_data = {
 	.has_ipfs = false,
 };
 
-static struct tegra_xudc_soc tegra234_xudc_soc_data = {
-	.clock_names = tegra186_xudc_clock_names,
-	.num_clks = ARRAY_SIZE(tegra186_xudc_clock_names),
-	.num_phys = 4,
-	.u1_enable = true,
-	.u2_enable = true,
-	.lpm_enable = true,
-	.invalid_seq_num = false,
-	.pls_quirk = false,
-	.port_reset_quirk = false,
-	.has_ipfs = false,
-};
-
 static const struct of_device_id tegra_xudc_of_match[] = {
 	{
 		.compatible = "nvidia,tegra210-xudc",
@@ -3690,10 +3666,6 @@ static const struct of_device_id tegra_xudc_of_match[] = {
 	{
 		.compatible = "nvidia,tegra194-xudc",
 		.data = &tegra194_xudc_soc_data
-	},
-	{
-		.compatible = "nvidia,tegra234-xudc",
-		.data = &tegra234_xudc_soc_data
 	},
 	{ }
 };
@@ -3878,14 +3850,6 @@ static int tegra_xudc_probe(struct platform_device *pdev)
 		goto free_eps;
 	}
 
-	for (i = 0; i < xudc->soc->num_phys; i++) {
-		if (!xudc->usbphy[i])
-			continue;
-
-		usb_register_notifier(xudc->usbphy[i], &xudc->vbus_nb);
-		tegra_xudc_update_data_role(xudc, xudc->usbphy[i]);
-	}
-
 	return 0;
 
 free_eps:
@@ -3905,7 +3869,7 @@ put_padctl:
 	return err;
 }
 
-static void tegra_xudc_remove(struct platform_device *pdev)
+static int tegra_xudc_remove(struct platform_device *pdev)
 {
 	struct tegra_xudc *xudc = platform_get_drvdata(pdev);
 	unsigned int i;
@@ -3935,6 +3899,8 @@ static void tegra_xudc_remove(struct platform_device *pdev)
 	pm_runtime_put(xudc->dev);
 
 	tegra_xusb_padctl_put(xudc->padctl);
+
+	return 0;
 }
 
 static int __maybe_unused tegra_xudc_powergate(struct tegra_xudc *xudc)
@@ -4060,7 +4026,7 @@ static const struct dev_pm_ops tegra_xudc_pm_ops = {
 
 static struct platform_driver tegra_xudc_driver = {
 	.probe = tegra_xudc_probe,
-	.remove_new = tegra_xudc_remove,
+	.remove = tegra_xudc_remove,
 	.driver = {
 		.name = "tegra-xudc",
 		.pm = &tegra_xudc_pm_ops,
