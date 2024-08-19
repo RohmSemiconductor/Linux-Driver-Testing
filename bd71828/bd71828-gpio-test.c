@@ -15,6 +15,7 @@
 #include <linux/gpio.h>
 #include <linux/gpio/consumer.h>
 #include <linux/mfd/rohm-bd71828.h>
+#include <linux/version.h>
 
 static struct kobject *g_k = NULL;
 static struct gpio_desc *g_r[4] = { NULL };
@@ -171,11 +172,16 @@ err_fail:
 	}
 	return rval;
 }
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
 static int bd71828_gpio_remove(struct platform_device *pdev)
+#else
+static void bd71828_gpio_remove(struct platform_device *pdev)
+#endif
 {
 	remove_sysfs_for_tests();
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
 	return 0;
+	#endif
 }
 /*
 static irqreturn_t hnd(int i, void *foo)
