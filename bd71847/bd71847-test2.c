@@ -11,7 +11,7 @@
 #include <linux/clk.h>
 #include <linux/regulator/consumer.h>
 #include <linux/platform_device.h>
-
+#include <linux/version.h>
 
 /*
 static struct miscdevice md =
@@ -150,15 +150,20 @@ static int mva_test_probe(struct platform_device *pdev)
 		pr_info("YAY clk_get(&pdev->dev, \"bd71847-32k-out\"); did work\n");
 	return rv;
 };
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
 static int mva_test_remove(struct platform_device *pdev)
+#else
+static void mva_test_remove(struct platform_device *pdev)
+#endif
 {
 	if(g_c && !IS_ERR(g_c))
 		clk_put(g_c);
 	g_c = NULL;
 	pr_info("%s: Bye Bye\n",__func__);
 	remove_sysfs_for_tests();
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
 	return 0;
+	#endif
 }
 
 static const struct of_device_id bd71847_test_of_match[] = {
