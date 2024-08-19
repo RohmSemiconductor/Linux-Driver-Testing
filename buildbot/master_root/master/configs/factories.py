@@ -125,9 +125,22 @@ def tagConvert(tagS):
 
 def extract_dts_error(rc, stdout, stderr, product, test_dts):
     if 'Error' in stderr:
-        return {product+'_'+test_dts+'_dts_error': stderr, product+'_'+test_dts+'_dts_make_passed': False , product+'_do_steps' : False, product+'_skip_dts_tests' : True }
+        return {
+                product+'_'+test_dts+'_dts_error': stderr,
+                product+'_'+test_dts+'_dts_make_passed': False,
+                product+'_do_steps' : False,
+                product+'_skip_dts_tests' : True,
+                'single_test_failed' : True,
+                product+'_dts_fail': True
+                }
     else:
-        return {product+'_'+test_dts+'_dts_error': stderr, product+'_'+test_dts+'_dts_make_passed': True , product+'_do_steps' : True, product+'_skip_dts_tests' : False }
+        return {
+                product+'_'+test_dts+'_dts_error': stderr,
+                product+'_'+test_dts+'_dts_make_passed': True,
+                product+'_do_steps' : True,
+                product+'_skip_dts_tests' : False,
+                product+'_dts_fail':False
+                }
 
 def doStepIf_copy_overlay_merger_to_nfs(step):
     if step.getProperty('preparation_step_failed') == True:
@@ -305,11 +318,11 @@ def extract_init_driver_test(rc, stdout, stderr, product):
 
 def extract_init_driver_test_login(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
-        return {product+'_init_driver_tests_passed': False,product+'_login_failed': True,  product+'_do_steps' : False }
+        return {product+'_init_driver_tests_passed': False,product+'_login_failed': True,  product+'_do_steps' : False, 'single_login_failed' : True }
     elif rc != 0:
-        return {product+'_init_driver_tests_passed': False, product+'_login_failed': True, product+'_do_steps' : False }
+        return {product+'_init_driver_tests_passed': False, product+'_login_failed': True, product+'_do_steps' : False, 'single_login_failed' : True }
     else:
-        return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True }
+        return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True, 'single_login_passed' : True }
 
 def doStepIf_login(step, product):
     if step.getProperty(product+'_init_driver_test_passed') == False:
@@ -386,7 +399,10 @@ def doStepIf_generate_driver_tests(step, product, dts):
         return False
 def doStepIf_powerdown_beagle(step, product):
     if check_tag(step, product) == True:
-        return True
+        if step.getProperty(product+'_dts_fail') == True:
+            return False
+        else:
+            return True
     else:
         return False
 
@@ -553,6 +569,8 @@ def doStepIf_collect_dmesg(step, product):
             return False
         elif step.getProperty(product+'_login_failed') == True:
             return False
+        elif step.getProperty(product+'_dts_fail') == True:
+            return False
         elif step.getProperty(product+'_do_steps') == False:
             if not step.getProperty(product+'_dmesg_collected'):
                 return True
@@ -570,6 +588,8 @@ def doStepIf_collect_dts(step,  product):
         elif step.getProperty('git_bisecting'):
             return False
         elif step.getProperty(product+'_login_failed') == True:
+            return False
+        elif step.getProperty(product+'_dts_fail') == True:
             return False
         elif step.getProperty(product+'_do_steps') == False:
             if not step.getProperty(product+'_dts_collected'):
@@ -717,6 +737,11 @@ def doStepIf_git_bisect_start(step):
             return True
         elif step.getProperty('single_test_failed') == True:
             return True
+        elif step.getProperty('single_login_failed') == True:
+            if step.getProperty('single_login_passed') == True:
+                return False
+            else:
+                return True
         else:
             return False
     else:
@@ -727,7 +752,10 @@ def doStepIf_git_bisect_good(step):
         if step.getProperty('preparation_step_failed') == True:
             return False
         elif (not step.getProperty('single_test_failed') and step.getProperty('single_test_passed')):
-            return True
+            if step.getProperty('single_login_failed') == True:
+                return False
+            else:
+                return True
         else:
             return False
     else:
@@ -738,8 +766,14 @@ def doStepIf_git_bisect_bad(step):
         return True
     elif step.getProperty('single_test_failed') == True:
         return True
+    elif step.getProperty('single_login_failed') == True:
+        if step.getProperty('single_login_passed') == True:
+            return False
+        else:
+            return True
     else:
         return False
+
 def doStepIf_git_bisect_trigger(step):
     if step.getProperty('git_bisect_state') == 'failed':
         return False
@@ -753,6 +787,11 @@ def doStepIf_git_bisect_trigger(step):
         return True
     elif step.getProperty('single_test_failed') == True:
         return True
+    elif step.getProperty('single_login_failed') == True:
+        if step.getProperty('single_login_passed') == True:
+            return False
+        else:
+            return True
     else:
         return False
 
@@ -782,6 +821,8 @@ def extract_git_bisect_output(rc, stdout, stderr):
             return {'git_bisecting': False, 'git_bisect_output':stdout, 'git_bisect_state': 'cannot_start'}
         # '...revisions left to test aftert this....' is a printed when bisect is running and 'git bisect good/bad' is given
         elif 'revisions left to test after this' in stdout:
+            return {'git_bisecting': True , 'git_bisect_output':stdout, 'git_bisect_state': 'running'}
+        elif 'revision left to test after this' in stdout:
             return {'git_bisecting': True , 'git_bisect_output':stdout, 'git_bisect_state': 'running'}
         # '...is the first bad commit' is printed after final 'git bisect good/bad'
         elif 'is the first bad commit' in stdout:
