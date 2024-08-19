@@ -11,6 +11,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
+#include <linux/version.h>
 
 #include <linux/gpio.h>
 #include <linux/gpio/consumer.h>
@@ -162,11 +163,16 @@ err_fail:
 	}
 	return rval;
 }
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
 static int bd71815_gpio_remove(struct platform_device *pdev)
+#else
+static void bd71815_gpio_remove(struct platform_device *pdev)
+#endif
 {
 	remove_sysfs_for_tests();
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
 	return 0;
+	#endif
 }
 
 static int bd71815_gpio_probe(struct platform_device *pdev)
