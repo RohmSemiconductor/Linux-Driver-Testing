@@ -59,7 +59,8 @@ elif sys.argv[1] == 'bisect_result':
     timestamped_dir = sys.argv[2]
     bb_project = sys.argv[3]
     final_output = sys.argv[4]
-    bisect_result(timestamped_dir, bb_project, final_output)
+    bisect_state = sys.argv[5]
+    bisect_result(timestamped_dir, bb_project, final_output, bisect_state)
 
 elif sys.argv[1] == 'get_timestamp':
     date = datetime.now()

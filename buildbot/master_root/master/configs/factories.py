@@ -886,7 +886,7 @@ def git_bisect(project_name):
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["python3", "report_janitor.py", "bisect_result", util.Property('timestamped_dir'), projects[project_name]['builderNames'][0], util.Property("git_bisect_output")],
+        command=["python3", "report_janitor.py", "bisect_result", util.Property('timestamped_dir'), projects[project_name]['builderNames'][0], util.Property("git_bisect_output"), util.Property("git_bisect_state")],
         name="Report git bisect results",
         workdir="../tests",
         doStepIf=doStepIf_git_bisect_report
