@@ -55,7 +55,7 @@ data={
             },
         },
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -77,7 +77,7 @@ data={
                 'dts_error_comments':{
                     'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 2.5 mV/us'
                 },
-            },             
+            },
         },
 
     }, #buck1 END
@@ -131,7 +131,7 @@ data={
             },
         },
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -465,5 +465,5 @@ data={
         'dts_only': True,
     }, #ldolpsr END
 
-} #regulators END    
+} #regulators END
 } #bd##### END
