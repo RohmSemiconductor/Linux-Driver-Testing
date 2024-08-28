@@ -31,13 +31,6 @@ data={
                         'start_reg':    0x0,
                         'stop_reg':     0x30,
                     },
-                    # 'flat':{
-                    #     'is_linear':True,
-                    #     'start_mV':1300,
-                    #     'step_mV':0,
-                    #     'start_reg':0x3D,
-                    #     'stop_reg':0x7F,
-                    # }
                 },
             },
             'ramprate':{
@@ -107,13 +100,6 @@ data={
                         'start_reg':    0x0,
                         'stop_reg':     0x30,
                     },
-                    # 'flat':{
-                    #     'is_linear':True,
-                    #     'start_mV':1300,
-                    #     'step_mV':0,
-                    #     'start_reg':0x3D,
-                    #     'stop_reg':0x7F,
-                    # }
                 },
             },
             'ramprate':{
@@ -263,13 +249,6 @@ data={
                         'start_reg':0x0,
                         'stop_reg':0x32,
                     },
-                        #     'flat':{
-                        #     'is_linear':True,
-                        #     'start_mV':1600,
-                        #     'step_mV':100,
-                        #     'start_reg':0x00,
-                        #     'stop_reg':0x03,
-                        # }
                 }
             },
 	    },
@@ -297,13 +276,6 @@ data={
                         'start_reg':0x0,
                         'stop_reg':0x32,
                     },
-                         #     'flat':{
-                         #     'is_linear':True,
-                         #     'start_mV':1600,
-                         #     'step_mV':100,
-                         #     'start_reg':0x00,
-                         #     'stop_reg':0x03,
-                         # }
                 }
             },
 	    },
@@ -331,13 +303,6 @@ data={
                         'start_reg':0x0,
                         'stop_reg':0x32,
                     },
-                         #     'flat':{
-                         #     'is_linear':True,
-                         #     'start_mV':1600,
-                         #     'step_mV':100,
-                         #     'start_reg':0x00,
-                         #     'stop_reg':0x03,
-                         # }
                 }
             },
 	    },
@@ -365,13 +330,6 @@ data={
                         'start_reg':0x0,
                         'stop_reg':0x32,
                     },
-                         #     'flat':{
-                         #     'is_linear':True,
-                         #     'start_mV':1600,
-                         #     'step_mV':100,
-                         #     'start_reg':0x00,
-                         #     'stop_reg':0x03,
-                         # }
                 }
             },
 	    },
@@ -399,13 +357,6 @@ data={
                         'start_reg':0x0,
                         'stop_reg':0x32,
                     },
-                         #     'flat':{
-                         #     'is_linear':True,
-                         #     'start_mV':1600,
-                         #     'step_mV':100,
-                         #     'start_reg':0x00,
-                         #     'stop_reg':0x03,
-                         # }
                 }
             },
 	    },
@@ -441,13 +392,6 @@ data={
                         'start_reg':0x0A,
                         'stop_reg':0x22,
                     },
-                         #     'flat':{
-                         #     'is_linear':True,
-                         #     'start_mV':1600,
-                         #     'step_mV':100,
-                         #     'start_reg':0x00,
-                         #     'stop_reg':0x03,
-                         # }
                 }
             },
 	    },
@@ -466,4 +410,4 @@ data={
     }, #ldolpsr END
 
 } #regulators END
-} #bd##### END
+} #bd71815 END
