@@ -40,7 +40,7 @@ data={
 
         'regulator_sel_bitmask':        0b00000010,
         'regulator_pwm_fix_bitmask':    0b00001000,
- 
+
         'settings':{
             'voltage':{
                 'volt_reg_address':          0x0D,
@@ -75,11 +75,11 @@ data={
                         'start_reg':            0b00000000,
                         'stop_reg':             0b11000000,
                     },
-                },    
+                },
             },
-        }, 
+        },
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -148,11 +148,11 @@ data={
                         'start_reg':            0b00000000,
                         'stop_reg':             0b11000000,
                     },
-                },    
+                },
             },
         },
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -237,7 +237,7 @@ data={
             'voltage':{
                 'volt_reg_address':             0x15,
                 'volt_reg_bitmask':             0b00000011,
-                
+
                 'volt_sel':True,
                 'volt_sel_address':             0x15,
                 'volt_sel_bitmask':             0b01000000,
@@ -275,7 +275,7 @@ data={
         'regulator_pwm_fix_bitmask':    0b00001000,
 
         'settings':{
-            'voltage':{	
+            'voltage':{
                 'volt_reg_address':             0x16,
                 'volt_reg_bitmask':             0b00000111,
 
@@ -303,7 +303,7 @@ data={
         'regulator_pwm_fix_bitmask':        0b00001000,
 
         'settings':{
-            'voltage':{	
+            'voltage':{
                 'volt_reg_address':         0x17,
                 'volt_reg_bitmask':         0b01111111,
 
@@ -337,7 +337,7 @@ data={
         'regulator_en_bitmask':     0b01000000,
 
         'settings':{
-            'voltage':{	
+            'voltage':{
                 'volt_reg_address':         0x18,
                 'volt_reg_bitmask':         0b00000011,
 
@@ -374,7 +374,7 @@ data={
         'volt_change_not_allowed_while_on': True,
 
         'settings':{
-            'voltage':{	
+            'voltage':{
                 'volt_reg_address':         0x19,
                 'volt_reg_bitmask':         0b00000000,
 
@@ -409,7 +409,7 @@ data={
         'regulator_en_bitmask':     0b01000000,
 
         'settings':{
-            'voltage':{	
+            'voltage':{
                 'volt_reg_address':         0x1A,
                 'volt_reg_bitmask':         0b00001111,
 
@@ -443,7 +443,7 @@ data={
         'regulator_en_bitmask':     0b01000000,
 
         'settings':{
-            'voltage':{	
+            'voltage':{
                 'volt_reg_address':         0x1B,
                 'volt_reg_bitmask':         0b00001111,
 
@@ -477,7 +477,7 @@ data={
         'regulator_en_bitmask':     0b01000000,
 
         'settings':{
-            'voltage':{	
+            'voltage':{
                 'volt_reg_address':         0x1C,
                 'volt_reg_bitmask':         0b00001111,
 
@@ -512,7 +512,7 @@ data={
         'regulator_en_bitmask':     0b01000000,
 
         'settings':{
-            'voltage':{	
+            'voltage':{
                 'volt_reg_address':         0x1D,
                 'volt_reg_bitmask':         0b00001111,
 
@@ -531,5 +531,5 @@ data={
 	    },
     } #ldo6 END
 
-} #regulators END    
+} #regulators END
 } #bd71847 END
