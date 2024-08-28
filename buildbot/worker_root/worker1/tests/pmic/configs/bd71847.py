@@ -54,13 +54,13 @@ data={
                         'start_reg':    0x00,
                         'stop_reg':     0x3C,
                     },
-                    # 'flat':{
-                    #     'is_linear':True,
-                    #     'start_mV':1300,
-                    #     'step_mV':0,
-                    #     'start_reg':0x3D,
-                    #     'stop_reg':0x7F,
-                    # }
+                    'flat':{
+                        'is_linear':True,
+                        'start_mV':1300,
+                        'step_mV':0,
+                        'start_reg':0x3D,
+                        'stop_reg':0x7F,
+                    }
                 },
 
             },
@@ -128,13 +128,13 @@ data={
                         'start_reg':    0x00,
                         'stop_reg':     0x3C,
                     },
-                    # 'flat':{
-                    #     'is_linear':True,
-                    #     'start_mV':1300,
-                    #     'step_mV':0,
-                    #     'start_reg':0x3D,
-                    #     'stop_reg':0x7F,
-                    # }
+                    'flat':{
+                        'is_linear':True,
+                        'start_mV':1300,
+                        'step_mV':0,
+                        'start_reg':0x3D,
+                        'stop_reg':0x7F,
+                    }
                 },
             },
             'ramprate':{
@@ -317,13 +317,13 @@ data={
                         'start_reg':0x00,
                         'stop_reg':0x3C,
                     },
-                    # 'flat':{
-                    #     'is_linear':True,
-                    #     'start_mV':1400,
-                    #     'step_mV':0,
-                    #     'start_reg':0x3D,
-                    #     'stop_reg':0x7F,
-                    # }
+                    'flat':{
+                        'is_linear':True,
+                        'start_mV':1400,
+                        'step_mV':0,
+                        'start_reg':0x3D,
+                        'stop_reg':0x7F,
+                    }
                 }
             },
 	    },
