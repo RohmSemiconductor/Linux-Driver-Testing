@@ -70,9 +70,12 @@ def overlay_merger_error_report(stderr):
 
 def dts_error_report(product, dts, stdout):
     report_file = open('./temp_results/temp_results.txt', 'a', encoding='utf-8')
+    summary = open('./temp_results/summary.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
+    summary.seek(0,2)
     print(product+": dts build failed: dts: "+dts+"\n", end='', file=report_file)
     print(stdout+'\n', end='', file=report_file)
+    print(product+": dts build failed: dts: "+dts+"\n", end='', file=summary)
     report_file.close()
 
 def report_dmesg(product, stdout):
