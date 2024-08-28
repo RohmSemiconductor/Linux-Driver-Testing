@@ -107,7 +107,7 @@ data={
             }
         },
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -240,7 +240,7 @@ data={
             }
         },
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -372,7 +372,7 @@ data={
             }
         },
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -500,7 +500,7 @@ data={
             }
         },
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -629,7 +629,7 @@ data={
             }
         },
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -758,7 +758,7 @@ data={
             }
         },
 
-        #### DEVICE TREE TEST SECTION 
+        #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
         #   'dts_error_comments' is error message if setting failed
 
@@ -788,5 +788,5 @@ data={
         },
     }, #VOUTS1 END
 
-} #regulators END    
+} #regulators END
 } #bd9576 END
