@@ -57,13 +57,13 @@ data={
                         'start_reg':    0x00,
                         'stop_reg':     0x3C,
                     },
-                    # 'flat':{
-                    #     'is_linear':True,
-                    #     'start_mV':1300,
-                    #     'step_mV':0,
-                    #     'start_reg':0x3D,
-                    #     'stop_reg':0x7F,
-                    # }
+                    'flat':{
+                        'is_linear':True,
+                        'start_mV':1300,
+                        'step_mV':0,
+                        'start_reg':0x3D,
+                        'stop_reg':0x3F,
+                    }
                 },
             },
             'ramprate':{
@@ -123,13 +123,13 @@ data={
                         'start_reg':    0x00,
                         'stop_reg':     0x3C,
                     },
-                    # 'flat':{
-                    #     'is_linear':True,
-                    #     'start_mV':1300,
-                    #     'step_mV':0,
-                    #     'start_reg':0x3D,
-                    #     'stop_reg':0x7F,
-                    # }
+                    'flat':{
+                        'is_linear':True,
+                        'start_mV':1300,
+                        'step_mV':0,
+                        'start_reg':0x3D,
+                        'stop_reg':0x3F,
+                    }
                 },
             },
             'ramprate':{
@@ -188,13 +188,13 @@ data={
                         'start_reg':    0x00,
                         'stop_reg':     0x3C,
                     },
-                    # 'flat':{
-                    #     'is_linear':True,
-                    #     'start_mV':1300,
-                    #     'step_mV':0,
-                    #     'start_reg':0x3D,
-                    #     'stop_reg':0x7F,
-                    # }
+                    'flat':{
+                        'is_linear':True,
+                        'start_mV':1300,
+                        'step_mV':0,
+                        'start_reg':0x3D,
+                        'stop_reg':0x3F,
+                    }
                 },
             },
             'ramprate':{
@@ -253,13 +253,13 @@ data={
                         'start_reg':    0x00,
                         'stop_reg':     0x3C,
                     },
-                    # 'flat':{
-                    #     'is_linear':True,
-                    #     'start_mV':1300,
-                    #     'step_mV':0,
-                    #     'start_reg':0x3D,
-                    #     'stop_reg':0x7F,
-                    # }
+                    'flat':{
+                        'is_linear':True,
+                        'start_mV':1300,
+                        'step_mV':0,
+                        'start_reg':0x3D,
+                        'stop_reg':0x3F,
+                    }
                 },
             },
             'ramprate':{
@@ -403,13 +403,20 @@ data={
                 'volt_sel':False,
                 'volt_sel_bitmask':         0b00100000,
                 'range':{
-                        'values':{
+                    'values':{
                         'is_linear':    True,
                         'start_mV':     800,
                         'step_mV':      10,
                         'start_reg':    0x00,
                         'stop_reg':     0x3C,
                     },
+                    'flat':{
+                        'is_linear':True,
+                        'start_mV':1400,
+                        'step_mV':0,
+                        'start_reg':0x3D,
+                        'stop_reg':0x3F,
+                    }
                 }
             },
 	    },
@@ -443,13 +450,6 @@ data={
                         'start_reg':0x00,
                         'stop_reg':0x3,
                     },
-                        #     'flat':{
-                        #     'is_linear':True,
-                        #     'start_mV':1600,
-                        #     'step_mV':100,
-                        #     'start_reg':0x00,
-                        #     'stop_reg':0x03,
-                        # }
                 }
             },
 	    },
@@ -483,13 +483,6 @@ data={
                         'start_reg':0x00,
                         'stop_reg':0x00,
                     },
-                        #     'flat':{
-                        #     'is_linear':True,
-                        #     'start_mV':1600,
-                        #     'step_mV':100,
-                        #     'start_reg':0x00,
-                        #     'stop_reg':0x03,
-                        # }
                 }
             },
 	    },
@@ -515,13 +508,6 @@ data={
                         'start_reg':0x00,
                         'stop_reg':0x0F,
                     },
-                         #     'flat':{
-                         #     'is_linear':True,
-                         #     'start_mV':1600,
-                         #     'step_mV':100,
-                         #     'start_reg':0x00,
-                         #     'stop_reg':0x03,
-                         # }
                 }
             },
 	    },
@@ -540,20 +526,20 @@ data={
                 'volt_reg_bitmask':         0b00001111,
                 'volt_sel':False,
                 'range':{
-                        'values':{
+                    'values':{
                         'is_linear':True,
                         'start_mV':900,
                         'step_mV':100,
                         'start_reg':0x00,
                         'stop_reg':0x09,
                     },
-                         #     'flat':{
-                         #     'is_linear':True,
-                         #     'start_mV':1600,
-                         #     'step_mV':100,
-                         #     'start_reg':0x00,
-                         #     'stop_reg':0x03,
-                         # }
+                    'flat':{
+                        'is_linear':True,
+                        'start_mV':1800,
+                        'step_mV':0,
+                        'start_reg':0x0A,
+                        'stop_reg':0x0F,
+                    }
                 }
             },
 	    },
@@ -579,13 +565,6 @@ data={
                         'start_reg':0x00,
                         'stop_reg':0x0F,
                     },
-                         #     'flat':{
-                         #     'is_linear':True,
-                         #     'start_mV':1600,
-                         #     'step_mV':100,
-                         #     'start_reg':0x00,
-                         #     'stop_reg':0x03,
-                         # }
                 }
             },
 	    },
@@ -607,20 +586,20 @@ data={
                 'volt_sel':False,
 
                 'range':{
-                        'values':{
+                    'values':{
                         'is_linear':True,
                         'start_mV':900,
                         'step_mV':100,
                         'start_reg':0x00,
                         'stop_reg':0x09,
                     },
-                         #     'flat':{
-                         #     'is_linear':True,
-                         #     'start_mV':1600,
-                         #     'step_mV':100,
-                         #     'start_reg':0x00,
-                         #     'stop_reg':0x03,
-                         # }
+                    'flat':{
+                        'is_linear':True,
+                        'start_mV':1800,
+                        'step_mV':0,
+                        'start_reg':0x0A,
+                        'stop_reg':0x0F,
+                    }
                 }
             },
 	    },
@@ -649,13 +628,6 @@ data={
                         'start_reg':0x00,
                         'stop_reg':0x0F,
                     },
-                         #     'flat':{
-                         #     'is_linear':True,
-                         #     'start_mV':1600,
-                         #     'step_mV':100,
-                         #     'start_reg':0x00,
-                         #     'stop_reg':0x03,
-                         # }
                 }
             },
 	    },
