@@ -30,7 +30,7 @@ data={
         },
 },
 
-### 
+###
 'regulators':{
     'buck1':{
         'name': 'buck1',
@@ -78,9 +78,9 @@ data={
                         'start_reg':            0b00000000,
                         'stop_reg':             0b00000110,
                     },
-                },    
+                },
             },
-        }, 
+        },
 
         #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
@@ -147,7 +147,7 @@ data={
                     },
                 },
             },
-        }, 
+        },
 
         #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
@@ -200,7 +200,7 @@ data={
                 'reg_address':          0x1C,
                 'reg_bitmask':          0b00000010,
             },
-        }, 
+        },
 
         #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
@@ -243,7 +243,7 @@ data={
                 'reg_address':          0x1F,
                 'reg_bitmask':          0b00000010,
             },
-        }, 
+        },
 
         #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
@@ -364,7 +364,7 @@ data={
                 'volt_reg_bitmask':         0b11111111,
 
                 'volt_sel':False,
-                
+
                 'range':{
                         'values':{
                         'is_linear':True,
@@ -420,12 +420,12 @@ data={
 
         'volt_change_not_allowed_while_on': True,
         'settings':{
-            'voltage':{	
+            'voltage':{
                 'volt_reg_address':         0x3A,
                 'volt_reg_bitmask':         0b00111111,
 
                 'volt_sel': False,
-                
+
                 'range':{
                     'values':{
                         'is_linear':True,
@@ -462,7 +462,7 @@ data={
                 'volt_reg_bitmask':         0b00111111,
 
                 'volt_sel': False,
-                
+
                 'range':{
                     'values':{
                         'is_linear':    True,
@@ -499,7 +499,7 @@ data={
                 'volt_reg_bitmask':         0b00111111,
 
                 'volt_sel': False,
-                
+
                 'range':{
                     'values':{
                         'is_linear':    True,
@@ -536,7 +536,7 @@ data={
                 'volt_reg_bitmask':         0b00111111,
 
                 'volt_sel': False,
-                
+
                 'range':{
                     'values':{
                         'is_linear':    True,
@@ -573,7 +573,7 @@ data={
                 'volt_reg_bitmask':         0b00111111,
 
                 'volt_sel': False,
-                
+
                 'range':{
                     'values':{
                         'is_linear':    True,
@@ -626,7 +626,7 @@ data={
                 'volt_reg_bitmask':         0b00111111,
 
                 'volt_sel': False,
-                
+
                 'range':{
                     'values':{
                         'is_linear':    True,
@@ -651,5 +651,5 @@ data={
             },
     } #ldo7 END
 
-} #regulators END    
+} #regulators END
 } #bd71828 END
