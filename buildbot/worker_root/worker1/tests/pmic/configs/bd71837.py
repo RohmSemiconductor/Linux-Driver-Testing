@@ -30,7 +30,7 @@ data={
         },
 },
 
-### 
+###
 'regulators':{
     'buck1':{
         'name': 'buck1',
@@ -77,9 +77,9 @@ data={
                         'start_reg':            0b00000000,
                         'stop_reg':             0b11000000,
                     },
-                },    
+                },
             },
-        }, 
+        },
 
         #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
@@ -145,7 +145,7 @@ data={
                     },
                 },
             },
-        }, 
+        },
 
         #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
@@ -210,7 +210,7 @@ data={
                     },
                 },
             },
-        }, 
+        },
 
         #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
@@ -275,7 +275,7 @@ data={
                     },
                 },
             },
-        }, 
+        },
 
         #### DEVICE TREE TEST SECTION
         #   'dts' is used to generate device tree source files
@@ -423,7 +423,7 @@ data={
 
         'volt_change_not_allowed_while_on': True,
         'settings':{
-            'voltage':{	
+            'voltage':{
                 'volt_reg_address':         0x18,
                 'volt_reg_bitmask':         0b00000011,
                 'volt_sel':True,
@@ -661,5 +661,5 @@ data={
 	    },
     } #ldo7 END
 
-} #regulators END    
+} #regulators END
 } #bd71837 END
