@@ -824,6 +824,8 @@ def extract_git_bisect_output(rc, stdout, stderr):
             return {'git_bisecting': True , 'git_bisect_output':stdout, 'git_bisect_state': 'running'}
         elif 'revision left to test after this' in stdout:
             return {'git_bisecting': True , 'git_bisect_output':stdout, 'git_bisect_state': 'running'}
+        elif 'a merge base must be tested' in stdout:
+            return {'git_bisecting': True , 'git_bisect_output':stdout, 'git_bisect_state': 'running'}
         # '...is the first bad commit' is printed after final 'git bisect good/bad'
         elif 'is the first bad commit' in stdout:
             return {'git_bisecting': False, 'git_bisect_output':stdout, 'git_bisect_state': 'success'}
@@ -832,72 +834,73 @@ def extract_git_bisect_output(rc, stdout, stderr):
 #### /Git bisect helpers
 
 def git_bisect(project_name):
-    projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=['git','bisect','start'],
-        workdir="build",
-        name="Git bisect: start",
-        doStepIf=doStepIf_git_bisect_start
-        ))
+    if project_name != 'linux-next':
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=['git','bisect','start'],
+            workdir="build",
+            name="Git bisect: start",
+            doStepIf=doStepIf_git_bisect_start
+            ))
 
-    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
-        command=["python3", "bisect_good_commit.py", "read", projects[project_name]['name'], util.Property('branch')],
-        name="Get good commit hash from file",
-        workdir="../tests",
-        doStepIf=doStepIf_git_bisect_start,
-        extract_fn=extract_fn_read_good_commit
-        ))
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=["python3", "bisect_good_commit.py", "read", projects[project_name]['name'], util.Property('branch')],
+            name="Get good commit hash from file",
+            workdir="../tests",
+            doStepIf=doStepIf_git_bisect_start,
+            extract_fn=extract_fn_read_good_commit
+            ))
 
-    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
-        command=['git','bisect','good', util.Property('good_commit')],
-        workdir="build",
-        name="Git bisect: start good",
-        extract_fn=extract_git_bisect_output,
-        doStepIf=doStepIf_git_bisect_start
-        ))
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=['git','bisect','good', util.Property('good_commit')],
+            workdir="build",
+            name="Git bisect: start good",
+            extract_fn=extract_git_bisect_output,
+            doStepIf=doStepIf_git_bisect_start
+            ))
 
-    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
-        command=['git','bisect','good'],
-        workdir="build",
-        name="Git bisect: good",
-        extract_fn=extract_git_bisect_output,
-        doStepIf=doStepIf_git_bisect_good
-        ))
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=['git','bisect','good'],
+            workdir="build",
+            name="Git bisect: good",
+            extract_fn=extract_git_bisect_output,
+            doStepIf=doStepIf_git_bisect_good
+            ))
 
-    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
-        command=['git','bisect','bad'],
-        workdir="build",
-        name="Git bisect: bad",
-        extract_fn=extract_git_bisect_output,
-        doStepIf=doStepIf_git_bisect_bad
-        ))
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=['git','bisect','bad'],
+            workdir="build",
+            name="Git bisect: bad",
+            extract_fn=extract_git_bisect_output,
+            doStepIf=doStepIf_git_bisect_bad
+            ))
 
-    projects[project_name]['factory'].addStep(steps.Trigger(
-        schedulerNames=['git_bisect_'+projects[project_name]['scheduler_name']],
-        updateSourceStamp=True,
-        name="Trigger git bisect",
-        set_properties= {
-            'git_bisecting':True,
-            'git_bisect_state':'running',
-            'commit-description':util.Property('commit-description'),
-            'timestamped_dir':util.Property('timestamped_dir'),
-            'timestamp':util.Property('timestamp')
-            },
-        doStepIf=doStepIf_git_bisect_trigger
-        ))
+        projects[project_name]['factory'].addStep(steps.Trigger(
+            schedulerNames=['git_bisect_'+projects[project_name]['scheduler_name']],
+            updateSourceStamp=True,
+            name="Trigger git bisect",
+            set_properties= {
+                'git_bisecting':True,
+                'git_bisect_state':'running',
+                'commit-description':util.Property('commit-description'),
+                'timestamped_dir':util.Property('timestamped_dir'),
+                'timestamp':util.Property('timestamp')
+                },
+            doStepIf=doStepIf_git_bisect_trigger
+            ))
 
-    projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["python3", "report_janitor.py", "bisect_result", util.Property('timestamped_dir'), projects[project_name]['builderNames'][0], util.Property("git_bisect_output"), util.Property("git_bisect_state")],
-        name="Report git bisect results",
-        workdir="../tests",
-        doStepIf=doStepIf_git_bisect_report
-        ))
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["python3", "report_janitor.py", "bisect_result", util.Property('timestamped_dir'), projects[project_name]['builderNames'][0], util.Property("git_bisect_output"), util.Property("git_bisect_state")],
+            name="Report git bisect results",
+            workdir="../tests",
+            doStepIf=doStepIf_git_bisect_report
+            ))
 
-    projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["git", "bisect", "reset"],
-        name="Git bisect reset",
-        workdir="build",
-        doStepIf=doStepIf_git_bisect_report
-        ))
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["git", "bisect", "reset"],
+            name="Git bisect reset",
+            workdir="build",
+            doStepIf=doStepIf_git_bisect_report
+            ))
 
 def linux_driver_test(project_name):
     build_kernel_arm32(project_name)
