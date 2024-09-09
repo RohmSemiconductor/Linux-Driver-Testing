@@ -275,6 +275,14 @@ class pmic:
                 else:
                     self.result['return'] = 0
 
+            elif (self.board.data['name'] == 'bd96801'):
+                stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
+                i2creturn = int(stdout[0],0)
+                if (i2creturn & self.board.data['regulators'][regulator]['regulator_en_bitmask']) == self.board.data['regulators'][regulator]['regulator_en_bitmask']:
+                    self.result['return'] = 0
+                else:
+                    self.result['return'] = 1
+
             else:
                 stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['regulator_en_address'])))
                 i2creturn = int(stdout[0],0)
@@ -570,6 +578,7 @@ class pmic:
                 'start_mV':     None,
                 'step_mV':      None,
                 'list_mV':      None,
+                'offset_mV':    None,
                 }
         #   Get unmasked voltage register value
         if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]['settings']['voltage']:
@@ -607,6 +616,7 @@ class pmic:
         elif self.board.data['regulators'][regulator]['settings']['voltage'][setting][r]['is_linear'] == False:
             volt_config['list_mV'] = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV']
 
+        # Gather info of voltage offset here from the VOLT_TUNE REGISTER !! to offset_mV !!!!!!!!
         return volt_config
 
     def _calculate_linear_mv(self, volt_config):
