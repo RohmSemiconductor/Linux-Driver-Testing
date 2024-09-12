@@ -1,7 +1,7 @@
 data={
 'name':'bd71837',
 'i2c':{
-    'bus':      1,
+    'bus':      2,
     'address':  0x4b,
     },
 
