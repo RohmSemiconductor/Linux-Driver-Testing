@@ -416,8 +416,8 @@ class pmic:
             if (last_max == 'default' or max > last_max):
                 last_max = copy.copy(max)
 
-        last_min = self.mv_to_uv(min)
-        last_max = self.mv_to_uv(max)
+        last_min = self.mv_to_uv(last_min)
+        last_max = self.mv_to_uv(last_max)
 
         return self.result, last_min, last_max
 
