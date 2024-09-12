@@ -215,7 +215,7 @@ def build_kernel_arm32(project_name):
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", dir_worker_root+projects[project_name]['workerNames'][0]+"/"+projects[project_name]['builderNames'][0]+"/build/arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", dir_worker_root+projects[project_name]['workerNames'][0]+"/"+projects[project_name]['builderNames'][0]+"/build/arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"],
+        command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", "arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"],
         name="Build Beagle device tree source binaries",
         hideStepIf=skipped,
         doStepIf=util.Property('kernel_build_failed') != True
