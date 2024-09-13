@@ -67,7 +67,8 @@ kernel_modules['merged_dt_overlay']={
 'bd71828':['rohm_bd71828','gpio_bd71828','clk_bd718x7','bd71828_regulator','rtc_bd70528'],
 'bd71837':['bd718x7_regulator','rohm_regulator','clk_bd718x7','rohm_bd718x7'],
 'bd71847':['bd718x7_regulator','rohm_regulator','clk_bd718x7','rohm_bd718x7'],
-'bd9576':['bd9576_wdt','bd9576_regulator','rohm_bd9576']
+'bd9576':['bd9576_wdt','bd9576_regulator','rohm_bd9576'],
+'bd96801':['bd96801_wdt','bd96801_regulator','rohm_bd96801']
 }
 
 #Used for assert: test_insmod_tests.py, output of lsmod
@@ -77,6 +78,7 @@ kernel_modules['insmod_tests']={
 'bd71837':['bd71837_test'],
 'bd71847':['bd71847_test','bd71847_test2'],
 'bd9576':['bd9576_test'],
+'bd96801':['bd96801_test'],
 }
 
 #useless
