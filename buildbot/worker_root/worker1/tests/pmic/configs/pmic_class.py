@@ -76,13 +76,14 @@ class pmic:
                                 prop_found=True
                                 properties_found.append(property)
                             # if property was not found, copy line from template
-                            if x == len(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties']) and prop_found==False:
-                                print(line, end ='', file = out_dts)
                             if '};' in line and len(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties'])-len(properties_found) != 0:
                                 for property in self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties']:
                                     if property not in properties_found:
                                         properties_found.append(property)
                                         self._print_property_to_dts(regulator, test_dts, property, out_dts)
+
+                            if x == len(self.board.data['regulators'][regulator]['dts'][test_dts]['dts_properties']) and prop_found==False:
+                                print(line, end ='', file = out_dts)
                     else:
                         print(line, end ='', file = out_dts)
                 else:
