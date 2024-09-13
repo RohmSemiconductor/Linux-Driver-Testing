@@ -8,6 +8,7 @@ kernel_modules['linux_ver']={
 'bd71837':['4.20'],
 'bd71847':['4.20'],
 'bd9576':['5.13'],
+'bd96801':['6.11']
 #'bd99954':['5.'],
 }
 
@@ -18,6 +19,7 @@ kernel_modules['build']={
 'bd71837':['bd71837_test.dtbo','bd71837-test.ko','bbb_only_I2C_1.dtbo'],
 'bd71847':['bd71847_test.dtbo','bd71847-test.ko','bd71847-test2.ko'],
 'bd9576':['bd9576_test.dtbo','bd9576-test.ko'],
+'bd96801':['bd96801_test.dtbo','bd96801-test.ko'],
 'bd99954':['bd99954_test.dtbo'],
 }
 kernel_modules['dts_tests']={
@@ -50,7 +52,8 @@ kernel_modules['dt_overlays']={
 'bd71828':['bd71828_test.dtbo'],#not yet installed
 'bd71837':['bd71837_test.dtbo','bbb_only_I2C_1.dtbo'],
 'bd71847':['bd71847_test.dtbo'],
-'bd9576':['bd9576_test.dtbo']
+'bd9576':['bd9576_test.dtbo'],
+'bd96801':['bd96801_test.dtbo'],
 }
 
 kernel_modules['test']={
@@ -58,7 +61,8 @@ kernel_modules['test']={
 'bd71828':['bd71828-test.ko','bd71828-gpio-test.ko','bd71828-clktest.ko'],
 'bd71837':['bd71837-test.ko'],
 'bd71847':['bd71847-test.ko','bd71847-test2.ko'],
-'bd9576':['bd9576-test.ko']
+'bd9576':['bd9576-test.ko'],
+'bd96801':['bd96801-test.ko'],
 }
 
 #Used for assert: test_merge_dt_overlay.py, output of lsmod
