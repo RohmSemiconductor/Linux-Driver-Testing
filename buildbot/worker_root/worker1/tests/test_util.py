@@ -218,10 +218,10 @@ def _assert_pmic_out_of_range_voltages(result, report_file, summary):
     _assert_test(result, report_file, summary)
 
 def _assert_pmic_voltage_run(result, report_file, summary):
-    if result['product'] == 'bd9576':
+    if result['product'] == 'bd9576' or result['product'] == 'bd96801':
         if result['expect'] != result['return']:
-            print( "Voltage run failed (voltage check, bd9576 only): Regulator "+result['regulator']+": Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
-            print( "Voltage run failed (voltage check, bd9576 only): Regulator "+result['regulator']+": Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=summary)
+            print( "Voltage run failed (voltage check): Regulator "+result['regulator']+": Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
+            print( "Voltage run failed (voltage check): Regulator "+result['regulator']+": Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=summary)
 
     else:
         x = 0
