@@ -9,7 +9,7 @@ data={
     'buck1':{
         #### 'name' = sysfs file name
         'name': 'buck1',
-        'of_match': 'BUCK1',
+        'of_match': 'buck1',
         #### bd96801 has disable register, so reading ((0x0B return value) AND regulator_en_bitmask) == 0 means regulator is enabled
         'regulator_en_address':         0x0B,
         'regulator_en_bitmask':         0b00000001,
@@ -20,6 +20,7 @@ data={
                 'locked': True,
                 'volt_reg_address': 0x21,
                 'volt_reg_bitmask': 0b11111111,
+                'volt_sel':     False,
                 'range':{
                     'r1':{
                         'is_linear':    True,
@@ -103,7 +104,7 @@ data={
 
     'buck2':{
         'name': 'buck2',
-        'of_match':'BUCK2',
+        'of_match':'buck2',
 
         'regulator_en_address':         0x0B,
         'regulator_en_bitmask':         0b00000010,
@@ -113,6 +114,7 @@ data={
                 'locked': True,
                 'volt_reg_address': 0x22,
                 'volt_reg_bitmask': 0b11111111,
+                'volt_sel':     False,
                 'range':{
                     'r1':{
                         'is_linear':    True,
@@ -197,7 +199,7 @@ data={
 
     'buck3':{
         'name': 'buck3',
-        'of_match':'BUCK3',
+        'of_match':'buck3',
 
         'regulator_en_address':         0x0B,
         'regulator_en_bitmask':         0b00000100,
@@ -207,6 +209,7 @@ data={
                 'locked': True,
                 'volt_reg_address': 0x23,
                 'volt_reg_bitmask': 0b11111111,
+                'volt_sel':     False,
                 'range':{
                     'r1':{
                         'is_linear':    True,
@@ -291,7 +294,7 @@ data={
 
     'buck4':{
         'name': 'buck4',
-        'of_match':'BUCK4',
+        'of_match':'buck4',
 
         'regulator_en_address':         0x0B,
         'regulator_en_bitmask':         0b00001000,
@@ -301,6 +304,7 @@ data={
                 'locked': True,
                 'volt_reg_address': 0x24,
                 'volt_reg_bitmask': 0b11111111,
+                'volt_sel':     False,
                 'range':{
                     'r1':{
                         'is_linear':    True,
@@ -385,7 +389,7 @@ data={
 
     'ldo5':{
         'name': 'buck5',
-        'of_match':'LDO5',
+        'of_match':'ldo5',
 
         'regulator_en_address':         0x0B,
         'regulator_en_bitmask':         0b00010000,
@@ -395,6 +399,7 @@ data={
                 'locked': True,
                 'volt_reg_address': 0x25,
                 'volt_reg_bitmask': 0b11111111,
+                'volt_sel':     False,
                 'range':{
                     'values':{
                         'is_linear':    True,
@@ -415,9 +420,9 @@ data={
         },
     }, #ldo5 END
 
-    'ldo6':{       #datasheet: LDO6
+    'ldo6':{       #datasheet: ldo6
         'name': 'buck6',
-        'of_match':'LDO6',
+        'of_match':'ldo6',
 
         'regulator_en_address':         0x0B,
         'regulator_en_bitmask':         0b00100000,
@@ -449,9 +454,9 @@ data={
         },
     }, #ldo6 END
 
-    'ldo7':{       #datasheet: LDO7
+    'ldo7':{       #datasheet: ldo7
         'name': 'buck7',
-        'of_match':'LDO7',
+        'of_match':'ldo7',
 
         'regulator_en_address':         0x0B,
         'regulator_en_bitmask':         0b01000000,
