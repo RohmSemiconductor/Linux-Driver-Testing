@@ -195,7 +195,7 @@ def build_kernel_arm32(project_name):
         ))
 
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
-        command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000"],
+        command=["ccache", "make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000"],
         name="Build kernel binaries",
         extract_fn=extract_make_kernel
         ))
