@@ -72,7 +72,7 @@ static struct kobj_attribute vdd_set = __ATTR_RW(vdd_set);
 static struct attribute *kalle_pd_reguattrs[] = {
 	&vdd_en.attr,
 	&vdd_set.attr,
-	NULL		
+	NULL
 };
 
 static const struct attribute_group kalle_pd_attrs[] = {
