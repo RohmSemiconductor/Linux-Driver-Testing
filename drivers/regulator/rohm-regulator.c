@@ -18,12 +18,9 @@ static int set_dvs_level(const struct regulator_desc *desc,
 
 	ret = of_property_read_u32(np, prop, &uv);
 	if (ret) {
-		if (ret != -EINVAL){
-			pr_err("set_dvs_level_ERROR0, %d\n", ret);
+		if (ret != -EINVAL)
 			return ret;
-			}
 		return 0;
-		
 	}
 	/* If voltage is set to 0 => disable */
 	if (uv == 0) {
@@ -34,16 +31,13 @@ static int set_dvs_level(const struct regulator_desc *desc,
 	if (!mask) {
 		if (omask)
 			return regmap_update_bits(regmap, oreg, omask, omask);
-		
-		pr_err("set_dvs_level_ERROR1\n");
+
 		return -EINVAL;
 	}
 	for (i = 0; i < desc->n_voltages; i++) {
 		/* NOTE to next hacker - Does not support pickable ranges */
-		if (desc->linear_range_selectors_bitfield) {
-			pr_err("set_dvs_level_ERROR2\n");
+		if (desc->linear_range_selectors_bitfield)
 			return -EINVAL;
-		}
 		if (desc->n_linear_ranges)
 			ret = regulator_desc_list_voltage_linear_range(desc, i);
 		else
@@ -52,6 +46,7 @@ static int set_dvs_level(const struct regulator_desc *desc,
 			continue;
 		if (ret == uv) {
 			i <<= ffs(desc->vsel_mask) - 1;
+
 			ret = regmap_update_bits(regmap, reg, mask, i);
 			if (omask && !ret)
 				ret = regmap_update_bits(regmap, oreg, omask,
@@ -59,6 +54,9 @@ static int set_dvs_level(const struct regulator_desc *desc,
 			break;
 		}
 	}
+	if (i == desc->n_voltages)
+		pr_warn("Unsupported %s voltage %u\n", prop, uv);
+
 	return ret;
 }
 
@@ -108,7 +106,6 @@ int rohm_regulator_set_dvs_levels(const struct rohm_dvs_config *dvs,
 				omask = dvs->snvs_on_mask;
 				break;
 			default:
-				pr_err("joku_error\n");
 				return -EINVAL;
 			}
 			ret = set_dvs_level(desc, np, regmap, prop, reg, mask,
@@ -129,7 +126,6 @@ int rohm_regulator_set_voltage_sel_restricted(struct regulator_dev *rdev,
 					      unsigned int sel)
 {
 	if (rdev->desc->ops->is_enabled(rdev))
-		pr_err("set_voltage_sel_restricted_(ops->is_enabled)\n");
 		return -EBUSY;
 
 	return regulator_set_voltage_sel_regmap(rdev, sel);
