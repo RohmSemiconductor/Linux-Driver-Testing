@@ -20,6 +20,12 @@
 static struct kobject *g_k = NULL;
 static struct gpio_desc *g_r[4] = { NULL };
 
+/* GPIOF_DIR_OUT and GPIOF_DIR_IN are removed from linux-next starting
+ * from around 6.9.2024, use these flags for now */
+
+#define GPIOF_DIRECTION_OUT	(0 << 0)
+#define GPIOF_DIRECTION_IN	(1 << 0)
+
 #define GPIO_ATTR(_buckno) \
 static ssize_t	buck##_buckno##value_show (struct kobject *ko, struct kobj_attribute *a, char *b)				\
 {														\
@@ -45,7 +51,7 @@ static ssize_t	buck##_buckno##value_store (struct kobject *ko, struct kobj_attri
 		r =  g_r[_buckno-1];							\
 		if(!IS_ERR(r))											\
 		{												\
-			if (GPIOF_DIR_OUT != gpiod_get_direction(r)) {						\
+			if (GPIOF_DIRECTION_OUT != gpiod_get_direction(r)) {						\
 				pr_err("Can't set value for input GPIO\n");					\
 				return -EINVAL;									\
 			}											\
@@ -71,8 +77,8 @@ static ssize_t	buck##_buckno##_direction_show (struct kobject *ko, struct kobj_a
 	if(!IS_ERR(r))												\
 	{													\
 		int v = gpiod_get_direction(r);								\
-		if (v == GPIOF_DIR_IN || v == GPIOF_DIR_OUT) \
-			rval = sprintf(b,"direction %s (%d)\n",(v == GPIOF_DIR_IN) ? "input" : "output", v);	\
+		if (v == GPIOF_DIRECTION_IN || v == GPIOF_DIRECTION_OUT) \
+			rval = sprintf(b,"direction %s (%d)\n",(v == GPIOF_DIRECTION_IN) ? "input" : "output", v);	\
 		else {												\
 			rval = v;										\
 			pr_err("Failed to get GPIO dir (err %d)\n", rval);					\
