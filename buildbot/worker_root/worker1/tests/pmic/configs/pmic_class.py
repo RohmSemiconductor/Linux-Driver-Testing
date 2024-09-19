@@ -457,6 +457,43 @@ class pmic:
 
         return self.result
 
+    def regulator_tune_set(self, regulator, r, tune_index, command):
+        initial_voltage = self.i2c_to_uv(regulator, command)
+        if self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['is_linear'] == True:
+            tune_mv = self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['start_mV'] + (self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['step_mV'] * tune_index)
+        elif self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['is_linear'] == False:
+            tune_mv = self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['list_mV'][volt_index]
+
+        tune_uv=self.mv_to_uv(tune_mv)
+        uv = initial_voltage + tune_uv
+
+        command.run("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_set")
+        print("echo "+str(uv)+" "+str(uv)+" > /sys/kernel/mva_test/regulators/"+self.board.data['regulators'][regulator]['name']+"_set")
+
+        return uv
+
+    def regulator_tune_register_run(self, regulator, command):
+        self.result['stage'] = 'tune_register_run'
+        self.result['regulator'] = regulator
+        self.result['return'] = []
+        self.result['expect'] = []
+
+        for r in self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'].keys():
+            if r != 'flat':
+                for x in range(self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['start_reg'], self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['stop_reg']+1):
+                    tune_index = x - self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['start_reg']
+
+                    uv = self.regulator_tune_set(regulator, r, tune_index, command)
+
+                    tune_uv = self.i2c_to_tune_uv(regulator, command)
+                    regulator_uv = self.i2c_to_uv(regulator, command)
+                    calculated_return_value = regulator_uv + tune_uv
+
+                    self.result['return'].append([r, x, calculated_return_value])
+                    self.result['expect'].append([r, x, uv])
+
+        return self.result
+
     def i2c_to_uv(self, regulator, command):
         try:
             volt_config = self._i2c_to_volt_config(regulator,command)
@@ -466,6 +503,16 @@ class pmic:
             else:
                 mv = self._calculate_nonlinear_mv(volt_config)
             uv = self.mv_to_uv(mv)
+        except Exception:
+            uv = 'Cannot get uv!! Most likely i2c read failed'
+        finally:
+            return uv
+
+    def i2c_to_tune_uv(self, regulator, command):
+        try:
+            tune_config = self._i2c_to_tune_config(regulator, command)
+            mv = self._calculate_linear_mv(tune_config)
+            uv= self.mv_to_uv(mv)
         except Exception:
             uv = 'Cannot get uv!! Most likely i2c read failed'
         finally:
@@ -579,8 +626,8 @@ class pmic:
                 'start_mV':     None,
                 'step_mV':      None,
                 'list_mV':      None,
-                'offset_mV':    None,
                 }
+
         #   Get unmasked voltage register value
         if 'volt_reg_bitmask' in self.board.data['regulators'][regulator]['settings']['voltage']:
             stdout, stderr, returncode = command.run("i2cget -y -f "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['settings']['voltage']['volt_reg_address'])))
@@ -617,7 +664,39 @@ class pmic:
         elif self.board.data['regulators'][regulator]['settings']['voltage'][setting][r]['is_linear'] == False:
             volt_config['list_mV'] = self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['list_mV']
 
-        # Gather info of voltage offset here from the VOLT_TUNE REGISTER !! to offset_mV !!!!!!!!
+        return volt_config
+
+    def _i2c_to_tune_config(self, regulator, command):
+        volt_config={
+                'volt_index':   None,
+                'is_linear':    None,
+                'operation':    'add',
+                'start_mV':     None,
+                'step_mV':      None,
+                'list_mV':      None,
+                'tune_index':   None,
+                }
+        # Gather info of regulators voltage tune setting
+        if 'voltage_tune' in self.board.data['regulators'][regulator]['settings'].keys():
+            stdout, stderr, returncode = command.run("i2cget -f -y "+str(self.board.data['i2c']['bus'])+" "+str(hex(self.board.data['i2c']['address']))+" "+str(hex(self.board.data['regulators'][regulator]['settings']['voltage_tune']['reg_address'])))
+            i2creturn = int(stdout[0],0)
+            volt_config['volt_index'] = i2creturn & self.board.data['regulators'][regulator]['settings']['voltage_tune']['reg_bitmask']
+            # Get the range where the returned i2c value is
+            if self.board.data['regulators'][regulator]['settings']['voltage_tune']['volt_sel'] == False:
+                for key in self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'].keys():
+                    if volt_config['volt_index'] in range(self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][key]['start_reg'], self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][key]['stop_reg']+1):
+                        r=key
+
+                # This is the actual index of the found range
+                volt_config['volt_index'] = (i2creturn & self.board.data['regulators'][regulator]['settings']['voltage_tune']['reg_bitmask']) - self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['start_reg']
+                #   Gather linear / non-linear info of current range
+                volt_config['is_linear'] = self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['is_linear']
+                if self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['is_linear'] == True:
+                    volt_config['start_mV'] = self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['start_mV']
+                    volt_config['step_mV'] = self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['step_mV']
+                elif self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['is_linear'] == False:
+                    volt_config['list_mV'] = self.board.data['regulators'][regulator]['settings']['voltage_tune']['range'][r]['list_mV']
+
         return volt_config
 
     def _calculate_linear_mv(self, volt_config):
