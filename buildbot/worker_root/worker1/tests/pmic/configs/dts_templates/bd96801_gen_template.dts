@@ -59,6 +59,8 @@
 					buck2 {
 						regulator-name = "buck2";
 						rohm,initial-voltage-microvolt = <3000000>;
+						regulator-min-microvolt = <400000>;
+						regulator-max-microvolt = <1500000>;
 /*						regulator-ov-protection-microvolt = <1>; */
 						regulator-ov-error-microvolt = <18000>;
 						regulator-uv-error-microvolt = <18000>;
@@ -77,6 +79,8 @@
 					};
 					buck4 {
 						regulator-name = "buck4";
+						regulator-min-microvolt = <1000000>;
+						regulator-max-microvolt = <1500000>;
 						rohm,initial-voltage-microvolt = <600000>;
 						regulator-ov-warn-microvolt = <18000>;
 						regulator-uv-warn-microvolt = <18000>;
