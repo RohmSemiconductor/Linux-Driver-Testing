@@ -217,6 +217,21 @@ def _assert_pmic_out_of_range_voltages(result, report_file, summary):
 
     _assert_test(result, report_file, summary)
 
+def _assert_pmic_tune_register_run(result, report_file, summary):
+    x = 0
+    for i in result['expect']:
+        if result['expect'][x][2] != result['return'][x][2]:
+            if type(result['expect'][x][0]) == int:
+                range = str(result['expect'][x][0])
+            else:
+                range = result['expect'][x][0]
+
+                print( "Tune range run failed: Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=report_file)
+                print( "Tune range run failed: Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=summary)
+        x = x+1
+
+    _assert_test(result, report_file, summary)
+
 def _assert_pmic_voltage_run(result, report_file, summary):
     if result['product'] == 'bd9576' or result['product'] == 'bd96801':
         if result['expect'] != result['return']:
@@ -393,6 +408,8 @@ def check_result(result):
         #Regulator voltages:
         elif result['stage'] == 'voltage_run' or result['stage'] == 'regulator_voltage_driver_get':
             _assert_pmic_voltage_run(result, report_file, summary)
+        elif result['stage'] == 'tune_register_run':
+            _assert_pmic_tune_register_run(result, report_file, summary)
         elif result['stage'] == 'out_of_range_voltages':
             _assert_pmic_out_of_range_voltages(result, report_file, summary)
         elif result['stage'] == 'read_dt_setting':
