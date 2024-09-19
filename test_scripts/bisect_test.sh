@@ -1,4 +1,5 @@
 #!/bin/bash
+cd ..
 echo 'Push 1'
 echo '-------'
 git checkout test_linux
