@@ -30,9 +30,8 @@ elif sys.argv[1] == 'finalize_product':
     do_steps = sys.argv[6]
     finalize_product(product, do_steps)
 
-    #stdout = subprocess.run('cp ./temp_results/temp_results.txt ./temp_results/'+product, shell=True)
-    #stdout = subprocess.run('mv ./temp_results/'+product+'/temp_results.txt ./temp_results/'+product+'/'+date+'_'+bb_project+'_'+product+'.txt', shell=True)
     stdout = subprocess.run('mv ./temp_results/temp_results.txt ./temp_results/'+product+'/'+product+'_results.txt', shell=True)
+    stdout = subprocess.run('mv ./temp_results/console_main ./temp_results/'+product+'/'+product+'_UART_LOG', shell=True)
 
 elif sys.argv[1] == 'kernel_error':
     stderr = sys.argv[2]
