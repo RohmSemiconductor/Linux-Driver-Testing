@@ -187,10 +187,7 @@ data={
         'dts':{
             'default':{
                 'dts_properties':{
-                    'regulator-ramp-delay': 1000,
-                },
-                'dts_error_comments':{
-                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 2.5 mV/us'
+                    'regulator-ramp-delay': 5000,
                 },
             },
         },
@@ -282,10 +279,7 @@ data={
         'dts':{
             'default':{
                 'dts_properties':{
-                    'regulator-ramp-delay': 1000,
-                },
-                'dts_error_comments':{
-                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 2.5 mV/us'
+                    'regulator-ramp-delay': 10000,
                 },
             },
         },
@@ -377,10 +371,7 @@ data={
         'dts':{
             'default':{
                 'dts_properties':{
-                    'regulator-ramp-delay': 1000,
-                },
-                'dts_error_comments':{
-                    'regulator-ramp-delay': ' FAILURE: ramp rate failed to set to 2.5 mV/us'
+                    'regulator-ramp-delay': 20000,
                 },
             },
         },
