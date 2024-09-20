@@ -110,6 +110,21 @@ def check_tag(step,product):
                 else:
                     return False
 
+def check_boneblack_old_dir(step):
+    if re.search('^next.*', step.getProperty('commit-description')):    #check for linux next
+        return False
+    else:
+        git_ver = tagConvert(step.getProperty('commit-description'))
+        if git_ver[0] > 6:
+            return False
+        elif git_ver[0] == 6:
+            if math.floor(git_ver[1]) <= 1:
+                return True
+            else:
+                return False
+        else:
+            return True
+
 def tagConvert(tagS):
     tagL = tagS.replace("v","")
     tagL = tagL.split("-",1)
@@ -171,6 +186,12 @@ def extract_make_kernel(rc, stdout, stderr):
     if rc == 0:
         return {'preparation_step_failed':False}
 
+def extract_boneblack_dts(rc, stdout, stderr):
+    if rc != 0:
+        return {'boneblack_dts_failed': True, 'preparation_step_failed':True }
+    if rc == 0:
+        return {'preparation_step_failed':False}
+
 ### Executed steps start here
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(
@@ -214,12 +235,40 @@ def build_kernel_arm32(project_name):
         doStepIf=util.Property('kernel_build_failed') != True
         ))
 
-    projects[project_name]['factory'].addStep(steps.ShellCommand(
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
         command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", "arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"],
         name="Build Beagle device tree source binaries",
+        extract_fn=extract_boneblack_dts,
         hideStepIf=skipped,
-        doStepIf=util.Property('kernel_build_failed') != True
+        doStepIf=doStepIf_dtc_boneblack,
         ))
+
+    ### For Linux version <= 6.1
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+        command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "arch/arm/boot/dts/am335x-boneblack.dtb", "arch/arm/boot/dts/.am335x-boneblack.dtb.dts.tmp"],
+        name="Build Beagle device tree source binaries(old dir)",
+        extract_fn=extract_boneblack_dts,
+        hideStepIf=skipped,
+        doStepIf=doStepIf_dtc_boneblack_old_dir
+        ))
+
+def doStepIf_dtc_boneblack(step):
+    if step.getProperty('kernel_build_failed') != True:
+        if check_boneblack_old_dir(step) != True:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+def doStepIf_dtc_boneblack_old_dir(step):
+    if step.getProperty('kernel_build_failed') != True:
+        if check_boneblack_old_dir(step) == True:
+            return True
+        else:
+            return False
+    else:
+        return False
 
 def update_test_kernel_modules(project_name):
     projects[project_name]['factory'].addStep(steps.Git(
@@ -273,11 +322,25 @@ def copy_kernel_binaries_to_tftpboot(project_name):
         util.ShellArg(command=['cp',"arch/arm/boot/zImage", dir_tftpboot], logname='Copy zImage to tftpboot')
         ],
         name="Copy kernel binaries to tftpboot",
-        doStepIf=util.Property('preparation_step_failed') != True
+        doStepIf=doStepIf_dtc_boneblack,
+        hideStepIf=skipped
+        ))
+
+     ### For Linux version <= 6.1
+     projects[project_name]['factory'].addStep(steps.ShellSequence(
+        commands=[
+        util.ShellArg(command=['cp',"arch/arm/boot/dts/am335x-boneblack.dtb", dir_tftpboot], logname='Copy BeagleBone .dtb to tftpboot'),
+        util.ShellArg(command=['cp',"arch/arm/boot/zImage", dir_tftpboot], logname='Copy zImage to tftpboot')
+        ],
+        name="Copy kernel binaries to tftpboot(old dir)",
+        doStepIf=doStepIf_dtc_boneblack_old_dir,
+        hideStepIf=skipped
         ))
 
 def doStepIf_copy_test_kernel_modules_to_nfs(step, product, test_dts):
     if step.getProperty('kernel_build_failed') == True:
+        return False
+    elif step.getProperty('preparation_step_failed') == True:
         return False
     elif step.getProperty('overlay_merger_build_failed') == True:
         return False
@@ -401,6 +464,8 @@ def doStepIf_powerdown_beagle(step, product):
     if check_tag(step, product) == True:
         if step.getProperty(product+'_dts_fail') == True:
             return False
+        elif step.getProperty('preparation_step_failed') == True:
+            return False
         else:
             return True
     else:
@@ -460,6 +525,8 @@ def check_dts_tests(product):
 
 def doStepIf_dts_test_preparation(step, product):
     if step.getProperty('kernel_build_failed') == True:
+        return False
+    elif step.getProperty('preparation_step_failed') == True:
         return False
     elif step.getProperty('overlay_merger_build_failed') == True:
         return False
