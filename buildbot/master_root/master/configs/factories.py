@@ -675,7 +675,7 @@ def run_driver_tests(project_name):
 
 def extract_get_timestamp(rc, stdout, stderr):
     stdout = stdout.split('\n')
-    return {'timestamp':stdout[0], 'timestamped_dir':'results/'+stdout[0]}
+    return {'timestamp':stdout[0], 'timestamped_dir':'test-results/'+stdout[0]}
 
 
 def get_timestamp(project_name):
@@ -902,6 +902,20 @@ def git_bisect(project_name):
             doStepIf=doStepIf_git_bisect_report
             ))
 
+def doStepIf_git_push(step):
+    if not step.getProperty('git_bisecting'):
+        return True
+    else:
+        return False
+
+def publish_results_git(project_name):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["python3", "../report_janitor.py", "publish_results_git", util.Property('timestamp'), projects[project_name]['builderNames'][0], "test_push"],
+        name="Publish results to github.com",
+        workdir="../tests/test-results",
+        doStepIf=doStepIf_git_push,
+        ))
+
 def linux_driver_test(project_name):
     build_kernel_arm32(project_name)
     copy_kernel_binaries_to_tftpboot(project_name)
@@ -915,6 +929,7 @@ def linux_driver_test(project_name):
     copy_temp_results(project_name)
     save_good_commit(project_name)
     git_bisect(project_name)
+    publish_results_git(project_name)
 
 ####### FACTORIES #######
 linux_driver_test('test_linux')

@@ -51,8 +51,8 @@ elif sys.argv[1] == 'copy_results':
     timestamped_dir = sys.argv[2]
     bb_project = sys.argv[3]
 
-    stdout = subprocess.run('cp -r temp_results/ results/', shell=True)
-    stdout = subprocess.run('mv results/temp_results '+timestamped_dir+'_'+bb_project, shell=True)
+    stdout = subprocess.run('cp -r temp_results/ test-results/', shell=True)
+    stdout = subprocess.run('mv test-results/temp_results '+timestamped_dir+'_'+bb_project, shell=True)
 
 elif sys.argv[1] == 'bisect_result':
     timestamped_dir = sys.argv[2]
@@ -60,6 +60,16 @@ elif sys.argv[1] == 'bisect_result':
     final_output = sys.argv[4]
     bisect_state = sys.argv[5]
     bisect_result(timestamped_dir, bb_project, final_output, bisect_state)
+
+elif sys.argv[1] == 'publish_results_git':
+    timestamp_git_dir = sys.argv[2]
+    bb_project = sys.argv[3]
+    branch = sys.argv[4]
+    stdout = subprocess.run('git checkout '+branch, shell=True)
+    stdout = subprocess.run('git add '+timestamp_git_dir+'_'+bb_project+'/', shell=True)
+    stdout = subprocess.run('git commit -m "Test results for: '+timestamp_git_dir+'_'+bb_project+'"', shell=True)
+    stdout = subprocess.run('git push origin '+branch, shell=True)
+
 
 elif sys.argv[1] == 'get_timestamp':
     date = datetime.now()
