@@ -192,6 +192,12 @@ def extract_boneblack_dts(rc, stdout, stderr):
     if rc == 0:
         return {'preparation_step_failed':False}
 
+def doStepIf_linux_stable_copy_config(step, project_name, branch):
+    if step.getProperty('branch') == branch:
+        return True
+    else:
+        return False
+
 ### Executed steps start here
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(
@@ -204,11 +210,23 @@ def build_kernel_arm32(project_name):
 
     initialize_test_report(project_name)
 
-    projects[project_name]['factory'].addStep(steps.FileDownload(
-        mastersrc="../../../compilers/kernel_configs/arm32.config",
-        workerdest=".config",
-        name="Copy kernel config to build directory"
-        ))
+    if project_name == 'linux_stable':
+        for branch in projects[project_name]['branches']:
+            doStepIf_linux_stable_copy_config_partial = functools.partial(doStepIf_linux_stable_copy_config, project_name=project_name, branch=branch)
+            projects[project_name]['factory'].addStep(steps.FileDownload(
+                mastersrc="../../../compilers/kernel_configs/arm32_bbb_"+branch+".config",
+                workerdest=".config",
+                name="Copy "+branch+" config to build directory",
+                doStepIf=doStepIf_linux_stable_copy_config_partial,
+                hideStepIf=skipped
+                ))
+
+    else:
+        projects[project_name]['factory'].addStep(steps.FileDownload(
+            mastersrc="../../../compilers/kernel_configs/arm32_bbb_linux_mainline.config",
+            workerdest=".config",
+            name="Copy mainline kernel config to build directory"
+            ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "olddefconfig"],
