@@ -57,7 +57,7 @@ projects['linux_stable']={
 #    'branches': tag_change,
     'branches': [
     'linux-5.15.y', 'linux-6.1.y', 'linux-6.6.y',    #LTS kernels
-    'linux-6.10.y', 'linux-6.11.y],                #short time stable
+    'linux-6.10.y', 'linux-6.11.y'],                #short time stable
     'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git',
     'polling': 480,
     'treeStableTimer': 1100,
