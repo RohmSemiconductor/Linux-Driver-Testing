@@ -107,6 +107,12 @@ def _assert_test(result, report_file, summary):
     assert result['expect'] == result['return']
 
 #### Generic steps
+def _assert_generic_get_kunit(result, report_file, summary):
+    if result['expect'] != result['return']:
+        print( "Kunit failed! Returncode: Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
+        print( "Kunit failed! Returncode: Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=summary)
+    _assert_test(result, report_file, summary)
+
 def _assert_generic_get_dmesg(result, report_file, summary):
     if result['expect'] != result['return']:
         print( "Getting dmesg failed! Returncode: Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
@@ -383,6 +389,8 @@ def check_result(result):
             _assert_generic_merge_dt_overlay_insmod_tests(result, report_file, summary)
         elif result['stage'] == 'get_dmesg':
             _assert_generic_get_dmesg(result, report_file, summary)
+        elif result['stage'] == 'get_kunit':
+            _assert_generic_get_kunit(result, report_file, summary)
 
     elif result['type'] == 'PMIC':
         #Sanity check:

@@ -12,6 +12,7 @@ def pytest_addoption(parser):
     parser.addoption("--type", action="store", default="type1", help="my option: type1 or type2")
     parser.addoption("--beagle", action="store", default="type1", help="my option: type1 or type2")
     parser.addoption("--dts", action="store", default="default", help="my option: type1 or type2")
+    parser.addoption("--kunit_test", action="store", default="linear_ranges", help="my option: linear_ranges or iio_gts_test")
 
 @pytest.fixture
 def type(request):
@@ -28,3 +29,6 @@ def beagle(request):
 @pytest.fixture
 def dts(request):
     return request.config.getoption("--dts")
+@pytest.fixture
+def kunit_test(request):
+    return request.config.getoption("--kunit_test")
