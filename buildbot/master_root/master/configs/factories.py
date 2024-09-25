@@ -88,9 +88,10 @@ def check_tag(step,product):
     if re.search('^next.*', step.getProperty('commit-description')):    #check for linux next
         print(step.getProperty('commit-description'))
         return True
-    elif re.search('^'+product, step.getProperty('commit-description')): #check for driver fix
+    elif re.search('^'+product+'.*', step.getProperty('commit-description')): #check for driver fix
         return True
-
+    elif step.getProperty('repository') == 'https://github.com/RohmSemiconductor/Linux-Kernel-PMIC-Drivers.git':
+        return True
     else:
         product_ver = tagConvert(kernel_modules['linux_ver'][product][0])
         git_ver = tagConvert(step.getProperty('commit-description'))
@@ -124,6 +125,23 @@ def check_boneblack_old_dir(step):
                 return False
         else:
             return True
+
+def check_kunit_iio_gts_test(step):
+    if re.search('^next.*', step.getProperty('commit-description')):    #check for linux next
+        return True
+    elif step.getProperty('repository') == 'https://github.com/RohmSemiconductor/Linux-Kernel-PMIC-Drivers.git':
+        return True
+    else:
+        git_ver = tagConvert(step.getProperty('commit-description'))
+        if git_ver[0] > 7:
+            return True
+        elif git_ver[0] == 6:
+            if math.floor(git_ver[1]) >= 10:
+                return True
+            else:
+                return False
+        else:
+            return False
 
 def tagConvert(tagS):
     tagL = tagS.replace("v","")
@@ -163,6 +181,11 @@ def doStepIf_copy_overlay_merger_to_nfs(step):
     else:
         return True
 
+def extract_kunit_test_error(rc, stdout, stderr, product):
+    if rc != 0:
+        return { product+'_kunit_test_passed': False, product+'_do_steps': False }
+    else:
+        return { product+'_kunit_test_passed': True, product+'_do_steps': True }
 
 def extract_sanitycheck_error(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
@@ -253,22 +276,29 @@ def build_kernel_arm32(project_name):
         doStepIf=util.Property('kernel_build_failed') != True
         ))
 
-    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
-        command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", "arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"],
-        name="Build Beagle device tree source binaries",
-        extract_fn=extract_boneblack_dts,
-        hideStepIf=skipped,
-        doStepIf=doStepIf_dtc_boneblack,
-        ))
+    if project_name == 'linux_rohm_devel':
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", "arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"],
+            name="Build Beagle device tree source binaries",
+            extract_fn=extract_boneblack_dts,
+            ))
+    else:
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", "arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"],
+            name="Build Beagle device tree source binaries",
+            extract_fn=extract_boneblack_dts,
+            hideStepIf=skipped,
+            doStepIf=doStepIf_dtc_boneblack,
+            ))
 
-    ### For Linux version <= 6.1
-    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
-        command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "arch/arm/boot/dts/am335x-boneblack.dtb", "arch/arm/boot/dts/.am335x-boneblack.dtb.dts.tmp"],
-        name="Build Beagle device tree source binaries(old dir)",
-        extract_fn=extract_boneblack_dts,
-        hideStepIf=skipped,
-        doStepIf=doStepIf_dtc_boneblack_old_dir
-        ))
+        ### For Linux version <= 6.1
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "arch/arm/boot/dts/am335x-boneblack.dtb", "arch/arm/boot/dts/.am335x-boneblack.dtb.dts.tmp"],
+            name="Build Beagle device tree source binaries(old dir)",
+            extract_fn=extract_boneblack_dts,
+            hideStepIf=skipped,
+            doStepIf=doStepIf_dtc_boneblack_old_dir
+            ))
 
 def doStepIf_dtc_boneblack(step):
     if step.getProperty('kernel_build_failed') != True:
@@ -334,26 +364,37 @@ def copy_overlay_merger_to_nfs(project_name):
         ))
 
 def copy_kernel_binaries_to_tftpboot(project_name):
-     projects[project_name]['factory'].addStep(steps.ShellSequence(
-        commands=[
-        util.ShellArg(command=['cp',"arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", dir_tftpboot], logname='Copy BeagleBone .dtb to tftpboot'),
-        util.ShellArg(command=['cp',"arch/arm/boot/zImage", dir_tftpboot], logname='Copy zImage to tftpboot')
-        ],
-        name="Copy kernel binaries to tftpboot",
-        doStepIf=doStepIf_dtc_boneblack,
-        hideStepIf=skipped
-        ))
+    if project_name == 'linux_rohm_devel':
+        projects[project_name]['factory'].addStep(steps.ShellSequence(
+            commands=[
+            util.ShellArg(command=['cp',"arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", dir_tftpboot], logname='Copy BeagleBone .dtb to tftpboot'),
+            util.ShellArg(command=['cp',"arch/arm/boot/zImage", dir_tftpboot], logname='Copy zImage to tftpboot')
+            ],
+            name="Copy kernel binaries to tftpboot",
+            doStepIf=util.Property('kernel_build_failed') != True ,
+            hideStepIf=skipped
+            ))
+    else:
+        projects[project_name]['factory'].addStep(steps.ShellSequence(
+            commands=[
+            util.ShellArg(command=['cp',"arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", dir_tftpboot], logname='Copy BeagleBone .dtb to tftpboot'),
+            util.ShellArg(command=['cp',"arch/arm/boot/zImage", dir_tftpboot], logname='Copy zImage to tftpboot')
+            ],
+            name="Copy kernel binaries to tftpboot",
+            doStepIf=doStepIf_dtc_boneblack,
+            hideStepIf=skipped
+            ))
 
-     ### For Linux version <= 6.1
-     projects[project_name]['factory'].addStep(steps.ShellSequence(
-        commands=[
-        util.ShellArg(command=['cp',"arch/arm/boot/dts/am335x-boneblack.dtb", dir_tftpboot], logname='Copy BeagleBone .dtb to tftpboot'),
-        util.ShellArg(command=['cp',"arch/arm/boot/zImage", dir_tftpboot], logname='Copy zImage to tftpboot')
-        ],
-        name="Copy kernel binaries to tftpboot(old dir)",
-        doStepIf=doStepIf_dtc_boneblack_old_dir,
-        hideStepIf=skipped
-        ))
+             ### For Linux version <= 6.1
+        projects[project_name]['factory'].addStep(steps.ShellSequence(
+            commands=[
+            util.ShellArg(command=['cp',"arch/arm/boot/dts/am335x-boneblack.dtb", dir_tftpboot], logname='Copy BeagleBone .dtb to tftpboot'),
+            util.ShellArg(command=['cp',"arch/arm/boot/zImage", dir_tftpboot], logname='Copy zImage to tftpboot')
+            ],
+            name="Copy kernel binaries to tftpboot(old dir)",
+            doStepIf=doStepIf_dtc_boneblack_old_dir,
+            hideStepIf=skipped
+            ))
 
 def doStepIf_copy_test_kernel_modules_to_nfs(step, product, test_dts):
     if step.getProperty('kernel_build_failed') == True:
@@ -468,7 +509,7 @@ def extract_driver_tests(rc, stdout, stderr, product):
         return {product+'_skip_dts_tests': False, product+'_do_steps' : True, 'single_test_passed': True}
 
 def doStepIf_generate_driver_tests(step, product, dts):
-    if check_tag(step, product) == True:
+    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
         if step.getProperty(product+'_'+dts+'_dts_make_passed') == True:
             if step.getProperty(product+'_do_steps') == True:
                 return True
@@ -479,7 +520,7 @@ def doStepIf_generate_driver_tests(step, product, dts):
     else:
         return False
 def doStepIf_powerdown_beagle(step, product):
-    if check_tag(step, product) == True:
+    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
         if step.getProperty(product+'_dts_fail') == True:
             return False
         elif step.getProperty('preparation_step_failed') == True:
@@ -489,12 +530,48 @@ def doStepIf_powerdown_beagle(step, product):
     else:
         return False
 
+def doStepIf_kunit_iio_gts_test(step, product, dts):
+    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+        if step.getProperty(product+'_'+dts+'_dts_make_passed') == True:
+            if step.getProperty(product+'_do_steps') == True:
+                if check_kunit_iio_gts_test(step) == True:
+                    return True
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False
+    else:
+        return False
+
 def generate_driver_tests(project_name,test_board,product, test_type, dts=None):
     extract_driver_tests_partial = functools.partial(extract_driver_tests, product=product)
+    doStepIf_kunit_iio_gts_test_partial = functools.partial(doStepIf_kunit_iio_gts_test, product=product, dts=dts)
     doStepIf_generate_driver_tests_partial = functools.partial(doStepIf_generate_driver_tests, product=product, dts=dts)
     doStepIf_powerdown_beagle_partial = functools.partial(doStepIf_powerdown_beagle, product=product)
 
     if test_type == "regulator":
+
+        extract_kunit_test_error_partial = functools.partial(extract_kunit_test_error, product=product)
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=[
+            'pytest','--lg-log', "../temp_results/", '--lg-env='+test_board+".yaml", 'test_get_kunit.py','--kunit_test=test_linear_ranges', '--product='+product],
+            workdir="../tests/pmic/",
+            extract_fn=extract_kunit_test_error_partial,
+            doStepIf=doStepIf_generate_driver_tests_partial,
+            hideStepIf=skipped,
+            name=product+": Kunit linear ranges test"
+            ))
+
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=[
+            'pytest','--lg-log', "../temp_results/", '--lg-env='+test_board+".yaml", 'test_get_kunit.py','--kunit_test=iio_test_gts', '--product='+product],
+            workdir="../tests/pmic/",
+            extract_fn=extract_kunit_test_error_partial,
+            doStepIf=doStepIf_kunit_iio_gts_test_partial,
+            hideStepIf=skipped,
+            name=product+": Kunit IIO GTS test"
+            ))
+
         extract_sanitycheck_error_partial = functools.partial(extract_sanitycheck_error, product=product)
         projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=[
             'pytest','--lg-log', "../temp_results/", '--lg-env='+test_board+".yaml", product+'/test_000_sanitycheck.py'],
@@ -550,7 +627,7 @@ def doStepIf_dts_test_preparation(step, product):
         return False
     elif step.getProperty(product+'_do_steps') == False:
         return False
-    elif check_tag(step, product) == True:
+    elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
         if step.getProperty(product+'_skip_dts_tests') != True:
             return True
         else:
@@ -596,7 +673,7 @@ def build_dts(project_name, product, test_dts):
 def doStepIf_dts_report(step, product, test_dts):
     if step.getProperty('preparation_step_failed') == True:
         return False
-    elif check_tag(step, product) == True:
+    elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
         if step.getProperty(product+'_'+test_dts+'_dts_make_passed') == False:
             return True
     else:
@@ -623,7 +700,7 @@ def dts_report(project_name, product, test_dts):
             ))
 
 def doStepIf_initialize_product(step, product):
-    if check_tag(step, product) == True:
+    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
         if step.getProperty('preparation_step_failed') != True:
             return True
         else:
@@ -647,7 +724,7 @@ def extract_dts_collected(rc, stdout, stderr, product):
     return {product+'_dts_collected' : True}
 
 def doStepIf_collect_dmesg(step, product):
-    if check_tag(step, product) == True:
+    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
         if step.getProperty('preparation_step_failed') == True:
             return False
         elif step.getProperty('git_bisecting'):
@@ -667,7 +744,7 @@ def doStepIf_collect_dmesg(step, product):
         return False
 
 def doStepIf_collect_dts(step,  product):
-    if check_tag(step, product) == True:
+    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
         if step.getProperty('preparation_step_failed') == True:
             return False
         elif step.getProperty('git_bisecting'):
@@ -716,7 +793,7 @@ def doStepIf_finalize_product(step, product):
         return False
     elif step.getProperty('git_bisecting') == True:
         return False
-    elif check_tag(step, product) == True:
+    elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
         return True
     else:
         return False
