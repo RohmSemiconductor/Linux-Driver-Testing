@@ -119,13 +119,13 @@ static void range_test_get_value(struct kunit *test)
 	for (i = 0; i < RANGE1_NUM_VALS; i++) {
 		sel = range1_sels[i];
 		ret = linear_range_get_value_array(&testr[0], 2, sel, &val);
-		KUNIT_EXPECT_EQ(test, 0, ret);
+		KUNIT_EXPECT_EQ(test, -EINVAL, ret);
 		KUNIT_EXPECT_EQ(test, val, range1_vals[i]);
 	}
 	for (i = 0; i < RANGE2_NUM_VALS; i++) {
 		sel = range2_sels[i];
 		ret = linear_range_get_value_array(&testr[0], 2, sel, &val);
-		KUNIT_EXPECT_EQ(test, 0, ret);
+		KUNIT_EXPECT_EQ(test, -EINVAL, ret);
 		KUNIT_EXPECT_EQ(test, val, range2_vals[i]);
 	}
 	ret = linear_range_get_value_array(&testr[0], 2, sel + 1, &val);
