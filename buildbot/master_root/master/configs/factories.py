@@ -181,11 +181,11 @@ def doStepIf_copy_overlay_merger_to_nfs(step):
     else:
         return True
 
-def extract_kunit_test_error(rc, stdout, stderr, product):
+def extract_kunit_test_error(rc, stdout, stderr):
     if rc != 0:
-        return { product+'_kunit_test_passed': False, product+'_do_steps': False }
+        return { 'preparation_step_failed': True }
     else:
-        return { product+'_kunit_test_passed': True, product+'_do_steps': True }
+        return { 'kunit_test_passed': True }
 
 def extract_sanitycheck_error(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
@@ -530,20 +530,6 @@ def doStepIf_powerdown_beagle(step, product):
     else:
         return False
 
-def doStepIf_kunit_iio_gts_test(step, product, dts):
-    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
-        if step.getProperty(product+'_'+dts+'_dts_make_passed') == True:
-            if step.getProperty(product+'_do_steps') == True:
-                if check_kunit_iio_gts_test(step) == True:
-                    return True
-                else:
-                    return False
-            else:
-                return False
-        else:
-            return False
-    else:
-        return False
 
 def generate_driver_tests(project_name,test_board,product, test_type, dts=None):
     extract_driver_tests_partial = functools.partial(extract_driver_tests, product=product)
@@ -552,25 +538,6 @@ def generate_driver_tests(project_name,test_board,product, test_type, dts=None):
     doStepIf_powerdown_beagle_partial = functools.partial(doStepIf_powerdown_beagle, product=product)
 
     if test_type == "regulator":
-
-        extract_kunit_test_error_partial = functools.partial(extract_kunit_test_error, product=product)
-        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=[
-            'pytest','--lg-log', "../temp_results/", '--lg-env='+test_board+".yaml", 'test_get_kunit.py','--kunit_test=test_linear_ranges', '--product='+product],
-            workdir="../tests/pmic/",
-            extract_fn=extract_kunit_test_error_partial,
-            doStepIf=doStepIf_generate_driver_tests_partial,
-            hideStepIf=skipped,
-            name=product+": Kunit linear ranges test"
-            ))
-
-        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=[
-            'pytest','--lg-log', "../temp_results/", '--lg-env='+test_board+".yaml", 'test_get_kunit.py','--kunit_test=iio_test_gts', '--product='+product],
-            workdir="../tests/pmic/",
-            extract_fn=extract_kunit_test_error_partial,
-            doStepIf=doStepIf_kunit_iio_gts_test_partial,
-            hideStepIf=skipped,
-            name=product+": Kunit IIO GTS test"
-            ))
 
         extract_sanitycheck_error_partial = functools.partial(extract_sanitycheck_error, product=product)
         projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=[
@@ -807,6 +774,76 @@ def finalize_product(project_name, product):
         doStepIf=doStepIf_finalize_product_partial,
         hideStepIf=skipped
         ))
+
+def extract_kunit_login(rc, stdout, stderr):
+    if 'FAILURES' in stdout:
+        return { 'kunit_login_failed' : True, 'kunit_login_tried': True }
+    else:
+        return { 'kunit_login_failed' : False, 'kunit_login_tried': True }
+
+def doStepIf_kunit_tests(step):
+    if step.getProperty('kunit_login_failed') == False:
+        if step.getProperty('preparation_step_failed') != True:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+def doStepIf_kunit_iio_gts_test(step):
+    if step.getProperty('kunit_login_failed') == False:
+        if step.getProperty('preparation_step_failed') == False:
+            if check_kunit_iio_gts_test(step) == True:
+                return True
+            else:
+                return False
+        else:
+            return False
+    else:
+        return False
+
+def run_kunit_tests(project_name):
+    test_board = list(test_boards)[0]
+#    extract_kunit_test_error_partial = functools.partial(extract_kunit_test_error)
+
+    ### Login to first beagle
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+        command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_000_login.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],
+        workdir="../tests/pmic",
+        name="Login to "+test_boards[test_board]['name'],
+        doStepIf=util.Property('preparation_step_failed') != False,
+        hideStepIf=skipped,
+        extract_fn=extract_kunit_login
+        ))
+
+    ### Kunit test_linear_ranges test
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=[
+        'pytest','--lg-log', "../temp_results/", '--lg-env='+test_board+".yaml", 'test_get_kunit.py','--kunit_test=test_linear_ranges'],
+        workdir="../tests/pmic/",
+        extract_fn=extract_kunit_test_error,
+        doStepIf=doStepIf_kunit_tests,
+        hideStepIf=skipped,
+        name="Kunit linear ranges test"
+        ))
+
+    ### Kunit iio_test_gets
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=[
+        'pytest','--lg-log', "../temp_results/", '--lg-env='+test_board+".yaml", 'test_get_kunit.py','--kunit_test=iio_test_gts'],
+        workdir="../tests/pmic/",
+        extract_fn=extract_kunit_test_error,
+        doStepIf=doStepIf_kunit_iio_gts_test,
+        hideStepIf=skipped,
+        name="Kunit IIO GTS test"
+        ))
+
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_005_powerdown_beagle.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],
+        workdir="../tests/pmic/",
+        doStepIf=util.Property('kunit_login_tried') == True,
+        hideStepIf=skipped,
+        name="Power down beagle"
+        ))
+    pass
 
 def run_driver_tests(project_name):
     for test_board in test_boards:
@@ -1086,6 +1123,7 @@ def linux_driver_test(project_name):
     copy_overlay_merger_to_nfs(project_name)
 
     download_test_boards(project_name)
+    run_kunit_tests(project_name)
     run_driver_tests(project_name)
     get_timestamp(project_name)
     copy_temp_results(project_name)
