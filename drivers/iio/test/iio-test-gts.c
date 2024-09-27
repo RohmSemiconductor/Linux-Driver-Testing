@@ -400,7 +400,7 @@ static void test_iio_gts_chk_scales_all(struct kunit *test, struct iio_gts *gts,
 		ret = iio_gts_total_gain_to_scale(gts, gains[i],
 						  &expected[2 * i],
 						  &expected[2 * i + 1]);
-		KUNIT_EXPECT_EQ(test, -EINVAL, ret);
+		KUNIT_EXPECT_EQ(test, 0, ret);
 		if (ret)
 			return;
 	}
