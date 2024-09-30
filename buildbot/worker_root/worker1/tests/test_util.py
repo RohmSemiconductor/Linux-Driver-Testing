@@ -107,10 +107,31 @@ def _assert_test(result, report_file, summary):
     assert result['expect'] == result['return']
 
 #### Generic steps
-def _assert_generic_get_kunit(result, report_file, summary):
-    if result['expect'] != result['return']:
-        print( "Kunit failed! Returncode: Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
-        print( "Kunit failed! Returncode: Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=summary)
+def _assert_generic_kunit_test(result, report_file, summary):
+    if result['expect'] == result['return']:
+        print( "Kunit test result: "+result['substage']+": PASSED\n\n", end='', file=summary)
+
+    else:
+        kunit_file = open('../temp_results/kunit_'+result['substage']+'_result.txt', 'w+', encoding='utf-8')
+        kunit_full_dmesg = open('../temp_results/full_kunit_dmesg.txt', 'w+', encoding='utf-8')
+
+        print( "Kunit test result: "+result['substage']+" FAILED: Found 'not ok' in the Kunit dmesg prints.\n\n", end='', file=summary)
+        print( "Kunit test result: "+result['substage']+" FAILED: Found 'not ok' in the Kunit dmesg prints.\n\n", end='', file=kunit_file)
+
+        x = 0
+        for line in result['kunit_dmesg']:
+            print(result['kunit_dmesg'][x]+'\n', end='', file=kunit_file)
+            x = x+1
+
+        kunit_file.close()
+
+        x = 0
+        for line in result['kunit_dmesg']:
+            print(result['kunit_dmesg'][x]+'\n', end='', file=kunit_full_dmesg)
+            x = x+1
+
+        kunit_full_dmesg.close()
+
     _assert_test(result, report_file, summary)
 
 def _assert_generic_get_dmesg(result, report_file, summary):
@@ -389,8 +410,8 @@ def check_result(result):
             _assert_generic_merge_dt_overlay_insmod_tests(result, report_file, summary)
         elif result['stage'] == 'get_dmesg':
             _assert_generic_get_dmesg(result, report_file, summary)
-        elif result['stage'] == 'get_kunit':
-            _assert_generic_get_kunit(result, report_file, summary)
+        elif result['stage'] == 'kunit_test':
+            _assert_generic_kunit_test(result, report_file, summary)
 
     elif result['type'] == 'PMIC':
         #Sanity check:
