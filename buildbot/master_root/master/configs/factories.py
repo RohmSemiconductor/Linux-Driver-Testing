@@ -1122,6 +1122,12 @@ def publish_results_git(project_name):
         doStepIf=doStepIf_git_push,
         ))
 
+def cleanup_db(project_name):
+    projects[project_name]['factory'].addStep(steps.MasterShellCommand(
+        command="sqlite3 state.sqlite < cleanupdb.sql",
+        name="Clean up database."
+        ))
+
 def linux_driver_test(project_name):
     build_kernel_arm32(project_name)
     copy_kernel_binaries_to_tftpboot(project_name)
@@ -1135,8 +1141,9 @@ def linux_driver_test(project_name):
     get_timestamp(project_name)
     copy_temp_results(project_name)
     save_good_commit(project_name)
-#    git_bisect(project_name)
+    git_bisect(project_name)
     publish_results_git(project_name)
+    cleanup_db(project_name)
 
 ####### FACTORIES #######
 linux_driver_test('test_linux')
