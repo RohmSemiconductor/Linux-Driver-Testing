@@ -837,13 +837,20 @@ def run_kunit_tests(project_name):
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["python3", "report_janitor.py", "finalize_kunit"],
+        workdir="../tests",
+        name="Rename kunit UART log",
+        doStepIf=util.Property('kunit_login_tried') == True,
+        hideStepIf=skipped
+        ))
+
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_005_powerdown_beagle.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],
         workdir="../tests/pmic/",
         doStepIf=util.Property('kunit_login_tried') == True,
         hideStepIf=skipped,
         name="Power down beagle"
         ))
-    pass
 
 def run_driver_tests(project_name):
     for test_board in test_boards:
@@ -1128,7 +1135,7 @@ def linux_driver_test(project_name):
     get_timestamp(project_name)
     copy_temp_results(project_name)
     save_good_commit(project_name)
-    git_bisect(project_name)
+#    git_bisect(project_name)
     publish_results_git(project_name)
 
 ####### FACTORIES #######
