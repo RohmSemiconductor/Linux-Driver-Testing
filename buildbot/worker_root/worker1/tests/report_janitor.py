@@ -33,6 +33,9 @@ elif sys.argv[1] == 'finalize_product':
     stdout = subprocess.run('mv ./temp_results/temp_results.txt ./temp_results/'+product+'/'+product+'_results.txt', shell=True)
     stdout = subprocess.run('mv ./temp_results/console_main ./temp_results/'+product+'/'+product+'_UART_LOG', shell=True)
 
+elif sys.argv[1] == 'finalize_kunit':
+    stdout = subprocess.run('mv ./temp_results/console_main ./temp_results/Kunit_UART_LOG', shell=True)
+
 elif sys.argv[1] == 'kernel_error':
     stderr = sys.argv[2]
     kernel_error_report(stderr)
