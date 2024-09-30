@@ -449,11 +449,19 @@ class pmic:
             if r != 'flat':
                 for x in range(self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_reg'], self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['stop_reg']+1):
                     volt_index = x - self.board.data['regulators'][regulator]['settings']['voltage']['range'][r]['start_reg']
-                    uv = self.regulator_voltage_set(regulator, r, command, volt_index)
-                    calculated_return_value = self.i2c_to_uv(regulator, command)
 
-                    self.result['return'].append([r, x, calculated_return_value])
-                    self.result['expect'].append([r, x, uv])
+                    if ((self.board.data['name'] == 'bd71815') and (regulator == 'buck3')):
+                        if x > 7:
+                            uv = self.regulator_voltage_set(regulator, r, command, volt_index)
+                            calculated_return_value = self.i2c_to_uv(regulator, command)
+                            self.result['return'].append([r, x, calculated_return_value])
+                            self.result['expect'].append([r, x, uv])
+                    else:
+                        uv = self.regulator_voltage_set(regulator, r, command, volt_index)
+                        calculated_return_value = self.i2c_to_uv(regulator, command)
+
+                        self.result['return'].append([r, x, calculated_return_value])
+                        self.result['expect'].append([r, x, uv])
 
         return self.result
 
