@@ -1114,9 +1114,9 @@ def doStepIf_git_push(step):
     else:
         return False
 
-def publish_results_git(project_name):
+def publish_results_git_PMIC(project_name):
     projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["python3", "../report_janitor.py", "publish_results_git", util.Property('timestamp'), projects[project_name]['builderNames'][0], "test_push"],
+        command=["python3", "../report_janitor.py", "publish_results_git", util.Property('timestamp'), projects[project_name]['builderNames'][0], "PMIC"],
         name="Publish results to github.com",
         workdir="../tests/test-results",
         doStepIf=doStepIf_git_push,
@@ -1142,7 +1142,7 @@ def linux_driver_test(project_name):
     copy_temp_results(project_name)
     save_good_commit(project_name)
     git_bisect(project_name)
-    publish_results_git(project_name)
+    publish_results_git_PMIC(project_name)
     cleanup_db(project_name)
 
 ####### FACTORIES #######
