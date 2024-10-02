@@ -1124,8 +1124,8 @@ def publish_results_git(project_name):
 
 def cleanup_db(project_name):
     projects[project_name]['factory'].addStep(steps.MasterShellCommand(
-        command="sqlite3 state.sqlite < cleanupdb.sql",
-        name="Clean up database."
+        command='sqlite3 state.sqlite < cleanupdb.sql && sqlite3 state.sqlite "VACUUM;"',
+        name="Clean up database"
         ))
 
 def linux_driver_test(project_name):
