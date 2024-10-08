@@ -104,7 +104,10 @@ def _print_lsmod(result, report_file):
 def _assert_test(result, report_file, summary):
     report_file.close()
     summary.close()
-    assert result['expect'] == result['return']
+    if result['expect'] == 'range':
+        assert result['return'] <= result['expect_high'] and result['return'] >= result['expect_low']
+    else:
+        assert result['expect'] == result['return']
 
 #### Generic steps
 def _assert_generic_kunit_test(result, report_file, summary):
@@ -218,6 +221,23 @@ def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=
         print(product, ": Merge device tree overlay failed: "+dt_overlay+" module missing (lsmod) \n\n", end='', file=report_file)
 
     report_file.close()
+
+### _assert functions for Sensors
+
+def _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, summary):
+    if ((result['return'] > result['expect_low']) and (result['return'] < result['expect_high'])):
+        print( "Sampling rate "+str(result['sampling_rate'])+" Hz behaved unexpectedly: Time between timestamps:  Received: "+str(result['return'])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed range: "+str(result['expect_low'])+"ns - "+str(result['expect_high'])+"ns ("+str(result['tolerance'])+"% tolerance)\nDifference between received and expected: "+str(result['return_diff'])+"ns\n", end='', file=report_file)
+
+        print( "Sampling rate "+str(result['sampling_rate'])+" Hz behaved unexpectedly: Time between timestamps:  Received: "+str(result['return'])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed range: "+str(result['expect_low'])+"ns - "+str(result['expect_high'])+"ns ("+str(result['tolerance'])+"% tolerance) , Difference between received and expected: "+str(result['return_diff'])+"ns\n", end='', file=summary)
+
+    _assert_test(result, report_file, summary)
+
+def _assert_sensor_test_gsel(result, report_file, summary):
+    if result['expect'] != result['return']:
+        print( "Setting GSEL failed:  Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
+        print( "Setting GSEL failed:  Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=summary)
+
+    _assert_test(result, report_file, summary)
 
 ### Assert functions for PMICs
 
@@ -443,3 +463,9 @@ def check_result(result):
             _assert_pmic_out_of_range_voltages(result, report_file, summary)
         elif result['stage'] == 'read_dt_setting':
             _assert_pmic_read_dt_setting(result, report_file, summary)
+
+    elif result['type'] == 'Sensor':
+        if result['stage'] == 'test_gsel':
+            _assert_sensor_test_gsel(result, report_file, summary)
+        elif result['stage'] == 'test_sampling_frequency_match_timestamp':
+            _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, summary)
