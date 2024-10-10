@@ -7,7 +7,7 @@ import copy
 import math
 import numbers
 
-from test_class_helpers import bitshift_index_by_bitmask, escape_path
+from test_class_helpers import bitshift_index_by_bitmask, escape_path, pc_to_int
 sys.path.append(os.path.abspath("."))
 
 @dataclass
@@ -38,28 +38,42 @@ class sensor:
 
         return path
 
-                                                            ### tolerance 0.015 = +/- 1,5%
-    def test_sampling_frequency_match_timestamp(self, frequency, command, tolerance=0.015):
+                                                            ### tolerance  = +/- #%
+    def test_sampling_frequency_match_timestamp(self, command, frequency, count=2, tolerance=2):
+        self.result['return'] =[]
+        self.result['return_diff'] = []
         self.result['stage'] = 'test_sampling_frequency_match_timestamp'
+        self.result['sampling_frequency'] = frequency
         self.result['expect'] = 'range'
-        self.result['tolerance'] = tolerance*100
-
-        self.set_sampling_frequency_driver(frequency, command)
-        timestamps = self.read_timestamps(command, count = 2)
+        self.result['tolerance'] = tolerance
 
         frequency_ns = self.frequency_to_ns(frequency)
         self.result['expect_perfect'] = frequency_ns
-        timestamp_interval = (int(timestamps[1]) - int(timestamps[0]))
-        high_limit =(frequency_ns * tolerance) + frequency_ns
+
+        high_limit =(frequency_ns * pc_to_int(tolerance)) + frequency_ns
         self.result['expect_high']= high_limit
 
-        low_limit = ((frequency_ns * tolerance) * -1) + frequency_ns
+        low_limit = ((frequency_ns * pc_to_int(tolerance)) * -1) + frequency_ns
         self.result['expect_low'] = low_limit
-        self.result['return'] = timestamp_interval
 
-        self.result['return_diff'] = timestamp_interval - frequency_ns
+        self.set_sampling_frequency_driver(frequency, command)
+
+        timestamps = self.read_timestamps(command, count = count)
+
+        self.result['return']
+        timestamp_intervals = []
+
+        for x in range(1,(len(timestamps))):
+            ts_interval = (int(timestamps[x]) - int(timestamps[x-1]))
+            self.result['return'].append(ts_interval)
+            self.result['return_diff'].append(ts_interval - frequency_ns)
+            interval_count = x
 
         return self.result
+
+    def set_watermark(self, command, watermark):
+        path = self.find_iio_device_files(command)
+        stoud, stderr, returncode = command.run("echo "+str(watermark)+" > "+path+"/buffer0/watermark")
 
     def set_sampling_frequency_driver(self, frequency, command):
         frequency = str(frequency)
@@ -95,6 +109,7 @@ class sensor:
         count = str(count)
         stdout, stderr, returncode = command.run("/./iio_generic_buffer -c "+count+" -g -n "+self.board.data['iio_device']['name'])
         return stdout
+
     def test_gsel(self, scale, command):
         self.result['stage'] = 'test_gsel'
         self.result['expect'] = scale
