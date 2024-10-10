@@ -105,7 +105,11 @@ def _assert_test(result, report_file, summary):
     report_file.close()
     summary.close()
     if result['expect'] == 'range':
-        assert result['return'] <= result['expect_high'] and result['return'] >= result['expect_low']
+        if type(result['return']) is list:
+            for return_value in result['return']:
+                assert return_value <= result['expect_high'] and return_value >= result['expect_low']
+        else:
+            assert result['return'] <= result['expect_high'] and result['return'] >= result['expect_low']
     else:
         assert result['expect'] == result['return']
 
@@ -225,11 +229,11 @@ def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=
 ### _assert functions for Sensors
 
 def _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, summary):
-    if ((result['return'] > result['expect_low']) and (result['return'] < result['expect_high'])):
-        print( "Sampling rate "+str(result['sampling_rate'])+" Hz behaved unexpectedly: Time between timestamps:  Received: "+str(result['return'])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed range: "+str(result['expect_low'])+"ns - "+str(result['expect_high'])+"ns ("+str(result['tolerance'])+"% tolerance)\nDifference between received and expected: "+str(result['return_diff'])+"ns\n", end='', file=report_file)
+    for x in range(len(result['return'])):
+        if ((result['return'][x] <= result['expect_low']) or (result['return'][x] >= result['expect_high'])):
+            print( "Sampling rate "+str(result['sampling_frequency'])+" Hz behaved unexpectedly: Time between timestamps:  Received: "+str(result['return'][x])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed range: "+str(result['expect_low'])+"ns - "+str(result['expect_high'])+"ns ("+str(result['tolerance'])+"% tolerance)\nDifference between received and expected: "+str(result['return_diff'][x])+"ns\n", end='', file=report_file)
 
-        print( "Sampling rate "+str(result['sampling_rate'])+" Hz behaved unexpectedly: Time between timestamps:  Received: "+str(result['return'])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed range: "+str(result['expect_low'])+"ns - "+str(result['expect_high'])+"ns ("+str(result['tolerance'])+"% tolerance) , Difference between received and expected: "+str(result['return_diff'])+"ns\n", end='', file=summary)
-
+            print( "Sampling rate "+str(result['sampling_frequency'])+" Hz behaved unexpectedly: Time between timestamps:  Received: "+str(result['return'][x])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed ("+str(result['tolerance'])+"% tolerance)\n", end='', file=summary)
     _assert_test(result, report_file, summary)
 
 def _assert_sensor_test_gsel(result, report_file, summary):
