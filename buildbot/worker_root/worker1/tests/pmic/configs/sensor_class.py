@@ -7,7 +7,7 @@ import copy
 import math
 import numbers
 
-from test_class_helpers import bitshift_index_by_bitmask, escape_path, pc_to_int
+from test_class_helpers import bitshift_index_by_bitmask, escape_path, pc_to_int, frequency_to_ns
 sys.path.append(os.path.abspath("."))
 
 @dataclass
@@ -20,10 +20,6 @@ class sensor:
     'return':       [],
     'expect':       [],
     })
-
-    def frequency_to_ns(self, frequency):
-        ns = (1/frequency) * pow(10,9)
-        return ns
 
     def find_iio_device_files(self, command):
         stdout, stderr, returncode = command.run("grep -RIn "+self.board.data['iio_device']['name']+" /sys/bus/iio/devices/*/name | sed 's![^/]*$!!'")
@@ -47,7 +43,7 @@ class sensor:
         self.result['expect'] = 'range'
         self.result['tolerance'] = tolerance
 
-        frequency_ns = self.frequency_to_ns(frequency)
+        frequency_ns = frequency_to_ns(frequency)
         self.result['expect_perfect'] = frequency_ns
 
         high_limit =(frequency_ns * pc_to_int(tolerance)) + frequency_ns

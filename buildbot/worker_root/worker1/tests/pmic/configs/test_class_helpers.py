@@ -13,3 +13,7 @@ def escape_path(path_str):
 def pc_to_int(percent):
     int_val = percent / 100
     return int_val
+
+def frequency_to_ns(frequency):
+    ns = (1/frequency) * pow(10,9)
+    return ns
