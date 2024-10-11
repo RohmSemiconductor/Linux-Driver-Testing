@@ -233,8 +233,8 @@ def build_kernel_arm32(project_name):
 
     initialize_test_report(project_name)
 
-    if project_name == 'linux_stable':
-        for branch in projects[project_name]['branches']:
+    if projects[project_name]['repo_git'] == 'https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git':
+        for branch in stable_branches:
             doStepIf_linux_stable_copy_config_partial = functools.partial(doStepIf_linux_stable_copy_config, project_name=project_name, branch=branch)
             projects[project_name]['factory'].addStep(steps.FileDownload(
                 mastersrc="../../../compilers/kernel_configs/arm32_bbb_"+branch+".config",
