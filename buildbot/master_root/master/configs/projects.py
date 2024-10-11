@@ -52,20 +52,6 @@ projects['linux-next']={
     'workerNames': ["worker1"],
     'factory': factory_linux_next,
 }
-projects['linux_stable']={
-    'name': 'linux_stable',
-#    'branches': tag_change,
-    'branches': [
-    'linux-5.15.y', 'linux-6.1.y', 'linux-6.6.y',    #LTS kernels
-    'linux-6.10.y', 'linux-6.11.y'],                #short time stable
-    'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git',
-    'polling': 480,
-    'treeStableTimer': 1100,
-    'scheduler_name': 'scheduler-linux_stable',
-    'builderNames': ["linux-stable"],
-    'workerNames': ["worker1"],
-    'factory': factory_linux_stable,
-}
 projects['linux_rohm_devel']={
     'name': 'linux_rohm_devel',
     'branches': ['rohm-pmic-test-temporary'],
@@ -76,4 +62,21 @@ projects['linux_rohm_devel']={
     'builderNames': ["linux-rohm-devel"],
     'workerNames': ["worker1"],
     'factory': factory_linux_rohm_devel,
+}
+
+stable_branches =   ['linux-5.15.y', 'linux-6.1.y', 'linux-6.6.y',  #LTS kernels
+                    'linux-6.10.y', 'linux-6.11.y']             #Short time stable
+
+for stable_branch in stable_branches:
+    projects['linux_stable_'+stable_branch]={
+    'name': 'linux_stable_'+stable_branch,
+#    'branches': tag_change,
+    'branches': [stable_branch],
+    'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git',
+    'polling': 480,
+    'treeStableTimer': 1100,
+    'scheduler_name': 'scheduler-linux_stable_'+stable_branch,
+    'builderNames': ['linux_stable_'+stable_branch],
+    'workerNames': ["worker1"],
+    'factory': factory_linux_stable,
 }

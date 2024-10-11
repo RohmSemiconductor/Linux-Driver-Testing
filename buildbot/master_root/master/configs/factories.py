@@ -1179,13 +1179,14 @@ def linux_driver_test(project_name):
     get_timestamp(project_name)
     copy_temp_results(project_name)
     save_good_commit(project_name)
-    git_bisect(project_name)
-    publish_results_git_PMIC(project_name)
+#    git_bisect(project_name)
+#    publish_results_git_PMIC(project_name)
     cleanup_db(project_name)
 
 ####### FACTORIES #######
 linux_driver_test('test_linux')
 linux_driver_test('linux-next')
 linux_driver_test('linux_mainline')
-linux_driver_test('linux_stable')
+for stable_branch in stable_branches:
+    linux_driver_test('linux_stable_'+stable_branch)
 linux_driver_test('linux_rohm_devel')
