@@ -68,6 +68,7 @@ elif sys.argv[1] == 'publish_results_git':
     timestamp_git_dir = sys.argv[2]
     bb_project = sys.argv[3]
     branch = sys.argv[4]
+    stdout = subprocess.run('git fetch', shell=True)
     stdout = subprocess.run('git checkout '+branch, shell=True)
     stdout = subprocess.run('git add '+timestamp_git_dir+'_'+bb_project+'/', shell=True)
     stdout = subprocess.run('git commit -m "Test results for: '+timestamp_git_dir+'_'+bb_project+'"', shell=True)
