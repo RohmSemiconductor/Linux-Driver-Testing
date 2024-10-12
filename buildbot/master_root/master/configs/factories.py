@@ -4,12 +4,6 @@ from buildbot.plugins import util, steps
 from buildbot.process import buildstep, logobserver
 from twisted.internet import defer
 
-factory_test_linux = util.BuildFactory()
-factory_linux_next = util.BuildFactory()
-factory_linux_mainline = util.BuildFactory()
-factory_linux_stable = util.BuildFactory()
-factory_linux_rohm_devel = util.BuildFactory()
-
 import math
 import sys
 import os
@@ -1141,8 +1135,8 @@ def linux_driver_test(project_name):
     get_timestamp(project_name)
     copy_temp_results(project_name)
     save_good_commit(project_name)
-#    git_bisect(project_name)
-#    publish_results_git_PMIC(project_name)
+    git_bisect(project_name)
+    publish_results_git_PMIC(project_name)
     cleanup_db(project_name)
 
 ####### FACTORIES #######

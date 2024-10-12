@@ -3,11 +3,15 @@ import os
 sys.path.append(os.path.abspath("./configs"))
 
 from factories import *
+from buildbot.plugins import util
+
+factory_test_linux = util.BuildFactory()
+factory_linux_mainline = util.BuildFactory()
+factory_linux_next = util.BuildFactory()
+factory_linux_rohm_devel = util.BuildFactory()
 
 #### 5.15.* <- oldest linux-stable to be tested
 tag_change = lambda ref: ref.startswith('refs/tags/')
-
-
 
 
 ###### PROJECTS
@@ -68,6 +72,8 @@ stable_branches =   ['linux-5.15.y', 'linux-6.1.y', 'linux-6.6.y',  #LTS kernels
                     'linux-6.10.y', 'linux-6.11.y']             #Short time stable
 
 for stable_branch in stable_branches:
+    globals()['factory_linux_stable_'+stable_branch] = util.BuildFactory()
+
     projects['linux_stable_'+stable_branch]={
     'name': 'linux_stable_'+stable_branch,
 #    'branches': tag_change,
@@ -78,5 +84,5 @@ for stable_branch in stable_branches:
     'scheduler_name': 'scheduler-linux_stable_'+stable_branch,
     'builderNames': ['linux_stable_'+stable_branch],
     'workerNames': ["worker1"],
-    'factory': factory_linux_stable,
+    'factory': globals()['factory_linux_stable_'+stable_branch],
 }
