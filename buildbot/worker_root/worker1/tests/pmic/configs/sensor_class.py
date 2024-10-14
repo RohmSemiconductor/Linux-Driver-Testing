@@ -7,7 +7,7 @@ import copy
 import math
 import numbers
 
-from test_class_helpers import bitshift_index_by_bitmask, escape_path, pc_to_int, frequency_to_ns
+from test_class_helpers import bitshift_index_by_bitmask, escape_path, pc_to_int, frequency_to_ns, combine_bytes, twos_complement
 sys.path.append(os.path.abspath("."))
 
 @dataclass
@@ -83,6 +83,19 @@ class sensor:
         stdout, stderr, returncode = command.run("echo 1 > "+path+"/scan_elements/in_accel_z_en")
         stdout, stderr, returncode = command.run("echo 1 > "+path+"/scan_elements/in_timestamp_en")
 
+    def enable_single_xyz_channel(self, command, xyz):
+        path = self.find_iio_device_files(command)
+        self.disable_all_channels(command)
+        stdout, stderr, returncode = command.run("echo 1 > "+path+"/scan_elements/in_accel_"+xyz+"_en")
+
+
+    def disable_all_channels(self, command):
+        path = self.find_iio_device_files(command)
+        stdout, stderr, returncode = command.run("echo 0 > "+path+"/scan_elements/in_accel_x_en")
+        stdout, stderr, returncode = command.run("echo 0 > "+path+"/scan_elements/in_accel_y_en")
+        stdout, stderr, returncode = command.run("echo 0 > "+path+"/scan_elements/in_accel_z_en")
+        stdout, stderr, returncode = command.run("echo 0 > "+path+"/scan_elements/in_timestamp_en")
+
     def read_timestamps(self, command, count=1):
         self.enable_all_accel_channels(command)
         count_str = str(count)
@@ -132,3 +145,27 @@ class sensor:
         index = bitshift_index_by_bitmask(self.board.data['settings']['gsel']['reg_bitmask'], unmasked_return)
 
         return index
+
+    def driver_read_raw_xyz(self, command, xyz):
+        path = self.find_iio_device_files(command)
+        stdout, stderr, returncode = command.run("cat "+path+"in_accel_"+xyz+"_raw")
+
+        return stdout[0]
+
+    def reg_read_raw_xyz(self, command, xyz):
+        if self.board.data['settings']['axis']['bits'] == 16:
+            return self._reg_read_xyz_16bit(command, xyz)
+
+    def _reg_read_xyz_16bit(self, command, xyz):
+        stdout, stderr, returncode = command.run("i2cget -f -y "+str(self.board.data['i2c']['bus'])+" "+str(self.board.data['i2c']['address'])+" "+str(self.board.data['settings']['axis']['regs'][xyz]['low_reg'])+" w")
+        word = int(stdout[0], 0)
+        raw_xyz = twos_complement(word, 16)
+
+        return raw_xyz
+
+    def driver_read_ms2_xyz(self, command, xyz):
+        self.set_watermark(command, 1)
+        self.enable_single_xyz_channel(command, xyz)
+        xyz_value = self.read_enabled_channels(command)
+
+        return xyz_value
