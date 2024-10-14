@@ -13,6 +13,11 @@ sys.path.append(os.path.abspath("."))
 @dataclass
 class sensor:
     board: dict
+
+    g_force: int = 9.80665      #Standard gravitational acceleration, Used to calculate m/s²
+    halved_16bit: int = 32768   #This is halved 16 bit used to calculate the multiplier to get a G out of register value
+                                # G with scale +-2G => register_value *( 2/32768 ) = G, G * g_force = ms/²
+
     result: dict = field(default_factory=lambda: {
     'type':         'Sensor',
     'stage':        None,
