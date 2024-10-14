@@ -17,3 +17,12 @@ def pc_to_int(percent):
 def frequency_to_ns(frequency):
     ns = (1/frequency) * pow(10,9)
     return ns
+
+def combine_bytes(high_byte, low_byte):
+    combined_bytes = (high_byte << 8) | low_byte
+    return combined_bytes
+
+def twos_complement(value, bits):
+    if ( value & (1 << (bits -1 ))) != 0:
+        value = value - (1 << bits)
+    return value
