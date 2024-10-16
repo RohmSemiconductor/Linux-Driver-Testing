@@ -137,12 +137,12 @@ class sensor:
 
         return self.result
 
-    def test_gscale_raw(self, command, axis, test_type='match', tolerance=3, append_results=False):
+    def test_gscale(self, command, axis, test_type='raw_match', tolerance=3, append_results=False):
         ### This test turns raw values to signed values, so that close to 0 values
         ### do not jump to something like 30 000
         if append_results == False:
             self.result['product'] = self.board.data['name']
-            self.result['stage'] = 'gscale_raw_'+test_type
+            self.result['stage'] = 'gscale_'+test_type
             self.result['expect'] = 'range'
             self.result['expect_high'] = []
             self.result['expect_low'] = []
@@ -166,14 +166,27 @@ class sensor:
             self.result['gscale_multiplier'].append(self.board.data['settings']['gsel']['list_values'][x])
             self.write_in_accel_scale(value, command)
 
-            self.result['return'].append(twos_complement(self.driver_read_raw_xyz(command, 'z'), bits))
+            self.result['return'].append(twos_complement(self.driver_read_raw_xyz(command, axis), bits))
 
-            if test_type == 'match':
+            if test_type == 'raw_match':
                 self.result['tolerance'].append(tolerance)
-                self.result['expect_perfect'].append(twos_complement(self.reg_read_raw_xyz(command, 'z'), bits))
+                self.result['expect_perfect'].append(twos_complement(self.reg_read_raw_xyz(command, axis), bits))
                 self.result['return_diff'].append(self.result['return'][y] - self.result['expect_perfect'][y])
-                high_limit =(self.result['expect_perfect'][y] * pc_to_int(tolerance)) + self.result['expect_perfect'][y]
-                low_limit =((self.result['expect_perfect'][y] * pc_to_int(tolerance)) * -1) + self.result['expect_perfect'][y]
+
+            elif test_type == 'raw_scale':
+                pass
+
+          #  elif test_type == 'ms2':
+          #      self.result['expect_perfect'].append(twos_complement()
+          #      pass
+
+            if self.result['expect_perfect'][y] >= 0:
+
+                high_limit =self.result['expect_perfect'][y] + (self.result['expect_perfect'][y] * pc_to_int(tolerance))
+                low_limit = self.result['expect_perfect'][y] - (self.result['expect_perfect'][y] * pc_to_int(tolerance))
+            else:
+                low_limit =self.result['expect_perfect'][y] + (self.result['expect_perfect'][y] * pc_to_int(tolerance))
+                high_limit = self.result['expect_perfect'][y] - (self.result['expect_perfect'][y] * pc_to_int(tolerance))
 
             self.result['expect_high'].append(high_limit)
             self.result['expect_low'].append(low_limit)
