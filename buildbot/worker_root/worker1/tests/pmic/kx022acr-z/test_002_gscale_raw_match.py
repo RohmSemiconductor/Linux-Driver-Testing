@@ -7,8 +7,6 @@ from test_util import check_result
 from sensor_class import sensor
 kx022acr_z = sensor(kx022acr_z)
 
-from time import sleep
-
 ### Only Z-axis is tested in this test. It is the only axis which' value can be relied to be
 ### fairly close to earths gravitational acceleration.
 def test_gscale_raw_match(command):
