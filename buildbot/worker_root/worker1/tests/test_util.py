@@ -106,8 +106,13 @@ def _assert_test(result, report_file, summary):
     summary.close()
     if result['expect'] == 'range':
         if type(result['return']) is list:
+            x=0
             for return_value in result['return']:
-                assert return_value <= result['expect_high'] and return_value >= result['expect_low']
+                if type(result['expect_high']) is list:
+                    assert return_value <= result['expect_high'][x] and return_value >= result['expect_low'][x]
+                else:
+                    assert return_value <= result['expect_high'] and return_value >= result['expect_low']
+                x=x+1
         else:
             assert result['return'] <= result['expect_high'] and result['return'] >= result['expect_low']
     else:
@@ -234,6 +239,15 @@ def _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, 
             print( "Sampling rate "+str(result['sampling_frequency'])+" Hz behaved unexpectedly: Time between timestamps:  Received: "+str(result['return'][x])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed range: "+str(result['expect_low'])+"ns - "+str(result['expect_high'])+"ns ("+str(result['tolerance'])+"% tolerance)\nDifference between received and expected: "+str(result['return_diff'][x])+"ns\n", end='', file=report_file)
 
             print( "Sampling rate "+str(result['sampling_frequency'])+" Hz behaved unexpectedly: Time between timestamps:  Received: "+str(result['return'][x])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed ("+str(result['tolerance'])+"% tolerance)\n", end='', file=summary)
+    _assert_test(result, report_file, summary)
+
+def _assert_sensor_test_gscale_raw_match(result, report_file, summary):
+    for x in range(len(result['return'])):
+        if ((result['return'][x] <= result['expect_low'][x]) or (result['return'][x] >= result['expect_high'][x])):
+            print( "G scale +/- "+str(result['gscale'][x])+" Failed :in_accel_"+result['axis'][x]+"_raw returned: "+str(result['return'][x])+", Expected: "+str(result['expect_perfect'][x])+", Allowed range: "+str(result['expect_low'][x])+" - "+str(result['expect_high'][x])+" ("+str(result['tolerance'][x])+"% tolerance)\nDifference between received and expected: "+str(result['return_diff'][x])+"\n", end='', file=report_file)
+
+            print( "G scale +/- "+str(result['gscale'][x])+" Failed :in_accel_"+result['axis'][x]+"_raw returned: "+str(result['return'][x])+", Expected: "+str(result['expect_perfect'][x])+", Allowed range: "+str(result['expect_low'][x])+" - "+str(result['expect_high'][x])+" ("+str(result['tolerance'][x])+"% tolerance)\n", end='', file=summary)
+
     _assert_test(result, report_file, summary)
 
 def _assert_sensor_test_gsel(result, report_file, summary):
@@ -471,5 +485,7 @@ def check_result(result):
     elif result['type'] == 'Sensor':
         if result['stage'] == 'test_gsel':
             _assert_sensor_test_gsel(result, report_file, summary)
+        elif result['stage'] == 'gscale_raw_match':
+            _assert_sensor_test_gscale_raw_match(result, report_file, summary)
         elif result['stage'] == 'test_sampling_frequency_match_timestamp':
             _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, summary)

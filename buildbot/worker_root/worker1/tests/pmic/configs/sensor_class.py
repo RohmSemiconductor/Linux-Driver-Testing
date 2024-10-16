@@ -124,6 +124,64 @@ class sensor:
         stdout, stderr, returncode = command.run("/./iio_generic_buffer -c "+count+" -g -n "+self.board.data['iio_device']['name'])
         return stdout
 
+    def init_test_gscale(self, command, test_type, axis):
+        self.result['product'] = self.board.data['name']
+        self.result['stage'] = 'gscale_'+test_type
+        self.result['expect'] = 'range'
+        self.result['driver_signed'] = []
+        self.result['register_signed'] = []
+        self.result['gscale'] = []
+        self.result['gscale_multiplier'] = []
+
+        self.enable_single_xyz_channel(command, axis)
+
+        return self.result
+
+    def test_gscale_raw(self, command, axis, test_type='match', tolerance=3, append_results=False):
+        ### This test turns raw values to signed values, so that close to 0 values
+        ### do not jump to something like 30 000
+        if append_results == False:
+            self.result['product'] = self.board.data['name']
+            self.result['stage'] = 'gscale_raw_'+test_type
+            self.result['expect'] = 'range'
+            self.result['expect_high'] = []
+            self.result['expect_low'] = []
+            self.result['expect_perfect'] = []
+            self.result['gscale'] = []
+            self.result['gscale_multiplier'] = []
+            self.result['axis'] = []
+            self.result['return_diff'] = []
+            self.result['tolerance'] = []
+        bits = self.board.data['settings']['axis']['reg_bits']
+
+        self.enable_single_xyz_channel(command, axis)
+
+        x = 0
+        # uses len() for case when more channel read results are appended to same result{}
+        y = len(self.result['expect_perfect'])
+
+        for value in self.board.data['settings']['gsel']['list_values']:
+            self.result['axis'].append(axis)
+            self.result['gscale'].append(self.board.data['settings']['gsel']['list_g_ranges'][x])
+            self.result['gscale_multiplier'].append(self.board.data['settings']['gsel']['list_values'][x])
+            self.write_in_accel_scale(value, command)
+
+            self.result['return'].append(twos_complement(self.driver_read_raw_xyz(command, 'z'), bits))
+
+            if test_type == 'match':
+                self.result['tolerance'].append(tolerance)
+                self.result['expect_perfect'].append(twos_complement(self.reg_read_raw_xyz(command, 'z'), bits))
+                self.result['return_diff'].append(self.result['return'][y] - self.result['expect_perfect'][y])
+                high_limit =(self.result['expect_perfect'][y] * pc_to_int(tolerance)) + self.result['expect_perfect'][y]
+                low_limit =((self.result['expect_perfect'][y] * pc_to_int(tolerance)) * -1) + self.result['expect_perfect'][y]
+
+            self.result['expect_high'].append(high_limit)
+            self.result['expect_low'].append(low_limit)
+            y = y + 1
+            x = x + 1
+
+        return self.result
+
     def test_gsel(self, scale, command):
         self.result['stage'] = 'test_gsel'
         self.result['expect'] = scale
@@ -153,18 +211,20 @@ class sensor:
 
     def driver_read_raw_xyz(self, command, xyz):
         path = self.find_iio_device_files(command)
+        self.disable_all_channels(command)
+        self.enable_single_xyz_channel(command, xyz)
         stdout, stderr, returncode = command.run("cat "+path+"in_accel_"+xyz+"_raw")
+        value = int(stdout[0])
 
-        return stdout[0]
+        return value
 
     def reg_read_raw_xyz(self, command, xyz):
-        if self.board.data['settings']['axis']['bits'] == 16:
+        if self.board.data['settings']['axis']['reg_bits'] == 16:
             return self._reg_read_xyz_16bit(command, xyz)
 
     def _reg_read_xyz_16bit(self, command, xyz):
         stdout, stderr, returncode = command.run("i2cget -f -y "+str(self.board.data['i2c']['bus'])+" "+str(self.board.data['i2c']['address'])+" "+str(self.board.data['settings']['axis']['regs'][xyz]['low_reg'])+" w")
-        word = int(stdout[0], 0)
-        raw_xyz = twos_complement(word, 16)
+        raw_xyz = int(stdout[0], 0)
 
         return raw_xyz
 
