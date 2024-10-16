@@ -137,7 +137,11 @@ class sensor:
 
         return self.result
 
-    def test_gscale(self, command, axis, test_type='raw_match', tolerance=3, append_results=False):
+    def _raw_g_tolerance(self, g_tolerance, scale):
+        regval = g_tolerance / (scale / self.halved_16bit)
+        return regval
+
+    def test_gscale(self, command, axis, test_type='raw_match', g_tolerance=0.1, append_results=False):
         ### This test turns raw values to signed values, so that close to 0 values
         ### do not jump to something like 30 000
         if append_results == False:
@@ -168,8 +172,10 @@ class sensor:
 
             self.result['return'].append(twos_complement(self.driver_read_raw_xyz(command, axis), bits))
 
+            regval_tolerance = self._raw_g_tolerance(g_tolerance, self.board.data['settings']['gsel']['list_g_ranges'][x])
+
             if test_type == 'raw_match':
-                self.result['tolerance'].append(tolerance)
+                self.result['tolerance'].append(g_tolerance)
                 self.result['expect_perfect'].append(twos_complement(self.reg_read_raw_xyz(command, axis), bits))
                 self.result['return_diff'].append(self.result['return'][y] - self.result['expect_perfect'][y])
 
@@ -180,13 +186,9 @@ class sensor:
           #      self.result['expect_perfect'].append(twos_complement()
           #      pass
 
-            if self.result['expect_perfect'][y] >= 0:
+            low_limit = self.result['expect_perfect'][y] - regval_tolerance
+            high_limit = self.result['expect_perfect'][y] + regval_tolerance
 
-                high_limit =self.result['expect_perfect'][y] + (self.result['expect_perfect'][y] * pc_to_int(tolerance))
-                low_limit = self.result['expect_perfect'][y] - (self.result['expect_perfect'][y] * pc_to_int(tolerance))
-            else:
-                low_limit =self.result['expect_perfect'][y] + (self.result['expect_perfect'][y] * pc_to_int(tolerance))
-                high_limit = self.result['expect_perfect'][y] - (self.result['expect_perfect'][y] * pc_to_int(tolerance))
 
             self.result['expect_high'].append(high_limit)
             self.result['expect_low'].append(low_limit)
