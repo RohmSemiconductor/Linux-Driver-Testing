@@ -1040,7 +1040,7 @@ def extract_git_bisect_output(rc, stdout, stderr):
 #### /Git bisect helpers
 
 def git_bisect(project_name):
-    if project_name != 'linux-next':
+    if project_name != 'linux-next' and project_name != 'linux_stable':
         projects[project_name]['factory'].addStep(steps.ShellCommand(
             command=['git','bisect','start'],
             workdir="build",
