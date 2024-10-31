@@ -1,0 +1,17 @@
+/linux/
+/bak/
+/bak2/
+/bak3/
+*/bd71828_pd_test/
+*/kx022acr-z/
+*/overlay_merger/
+
+compile_commands.json
+.Module.symvers*
+*.mod*
+*.dtbo
+*.dwo
+*.o*
+*.ko*
+*.symvers
+*.order
