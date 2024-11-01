@@ -10,6 +10,19 @@
 
 struct iio_channel *g_chan;
 struct iio_cb_buffer *g_buf;
+
+/*
+struct scan {
+	__le16 channels[3];
+	s64 ts __aligned(8);
+};
+
+struct accel_priv {
+	struct scan *scan;
+};
+
+struct accel_priv *cb_priv;
+*/
 const unsigned int ms2_mult = 1000;
 
 enum INT_TO_FRAC {
@@ -172,7 +185,7 @@ static ssize_t watermark_store (struct kobject *ko, struct kobj_attribute *a, co
 
 	iio_channel_stop_all_cb(buff);
 	pr_info("iio_channel_stop_all_cb called!\n");
-
+//	pr_info("watermark_storesta paivaa: %hx\n", cb->scan->channels[0]);
 	rval = c;
 	return rval;
 }
@@ -451,16 +464,37 @@ static const struct attribute_group *test_kx022acr_z_attr_groups[] = {
 
 static int cb(const void *data, void *private)
 {
-//	pr_info("cb func called!");
+//	struct accel_priv *cb_priv = private;
+
+	struct scan {
+		__le16 channels[3];
+		s64 ts __aligned(8);
+	};
+
+	struct scan *buf_data;
+
+	buf_data = (struct scan*)data;
+
+//	cb_priv->scan = (struct scan*)data;
+
+	pr_info("Chan0: %d\n", buf_data->channels[0]);
+	pr_info("Chan1: %d\n", buf_data->channels[1]);
+	pr_info("Chan2: %d\n", buf_data->channels[2]);
+
+	pr_info("CB FUNC CALLED!");
+
+//	iio_channel_stop_all_cb(buff);
 	return 0;
 }
+
+
 
 static int test_kx022acr_z_probe(struct platform_device *pdev)
 {
 	int retval = 0;
+	dev_info(&pdev->dev, "Ver 014\n");
 	int vcb = 0;
 	void *vcbp = &vcb;
-	dev_info(&pdev->dev, "Ver 009\n");
 
 	g_chan = devm_iio_channel_get_all(&pdev->dev);
 
