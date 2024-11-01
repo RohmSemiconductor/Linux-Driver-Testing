@@ -168,6 +168,9 @@ static ssize_t watermark_store (struct kobject *ko, struct kobj_attribute *a, co
 	unsigned int watermark;
 	struct iio_cb_buffer *buff = g_buf;
 
+	iio_channel_stop_all_cb(buff);
+	pr_info("iio_channel_stop_all_cb called!\n");
+
 	rval = sscanf(b, "%d", &watermark);
 
 	rval = iio_channel_cb_set_buffer_watermark(buff,watermark);
@@ -185,7 +188,7 @@ static ssize_t watermark_store (struct kobject *ko, struct kobj_attribute *a, co
 
 	iio_channel_stop_all_cb(buff);
 	pr_info("iio_channel_stop_all_cb called!\n");
-//	pr_info("watermark_storesta paivaa: %hx\n", cb->scan->channels[0]);
+
 	rval = c;
 	return rval;
 }
@@ -477,13 +480,13 @@ static int cb(const void *data, void *private)
 
 //	cb_priv->scan = (struct scan*)data;
 
+	pr_info("CB FUNC CALLED!");
+
 	pr_info("Chan0: %d\n", buf_data->channels[0]);
 	pr_info("Chan1: %d\n", buf_data->channels[1]);
 	pr_info("Chan2: %d\n", buf_data->channels[2]);
 
-	pr_info("CB FUNC CALLED!");
 
-//	iio_channel_stop_all_cb(buff);
 	return 0;
 }
 
@@ -514,9 +517,20 @@ static int test_kx022acr_z_probe(struct platform_device *pdev)
 	return retval;
 }
 
+
+static void test_cleanup(void *d)
+{
+	struct iio_cb_buffer *g_buf = (struct iio_cb_buffer *)d;
+
+	pr_info("iio_channel_stop_all_cb called!\n");
+	iio_channel_stop_all_cb(g_buf);
+}
+
 static void test_kx022acr_z_remove(struct platform_device *pdev)
 {
+	int ret;
 
+	ret = devm_add_action_or_reset(&pdev->dev, &test_cleanup, g_buf);
 }
 
 static const struct of_device_id test_kx022acr_z_of_match[] = {
