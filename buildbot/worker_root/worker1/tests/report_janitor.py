@@ -68,12 +68,15 @@ elif sys.argv[1] == 'publish_results_git':
     timestamp_git_dir = sys.argv[2]
     bb_project = sys.argv[3]
     branch = sys.argv[4]
+    result = sys.argv[5]
+
+    stdout = subprocess.run('mv '+timestamp_git_dir+'_'+bb_project+'/ '+timestamp_git_dir+'_'+bb_project+'_'+result+'/', shell=True)
+
     stdout = subprocess.run('git fetch', shell=True)
     stdout = subprocess.run('git checkout '+branch, shell=True)
-    stdout = subprocess.run('git add '+timestamp_git_dir+'_'+bb_project+'/', shell=True)
+    stdout = subprocess.run('git add '+timestamp_git_dir+'_'+bb_project+'_'+result+'/', shell=True)
     stdout = subprocess.run('git commit -m "Test results for: '+timestamp_git_dir+'_'+bb_project+'"', shell=True)
     stdout = subprocess.run('git push origin '+branch, shell=True)
-
 
 elif sys.argv[1] == 'get_timestamp':
     date = datetime.now()

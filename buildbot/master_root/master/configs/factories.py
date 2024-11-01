@@ -1089,7 +1089,8 @@ def git_bisect(project_name):
                 'git_bisect_state':'running',
                 'commit-description':util.Property('commit-description'),
                 'timestamped_dir':util.Property('timestamped_dir'),
-                'timestamp':util.Property('timestamp')
+                'timestamp':util.Property('timestamp'),
+                'RESULT':'FAILED',
                 },
             doStepIf=doStepIf_git_bisect_trigger
             ))
@@ -1114,9 +1115,46 @@ def doStepIf_git_push(step):
     else:
         return False
 
+def doStepIf_setProperty_RESULT_FAILED(step):
+    if step.getProperty('RESULT') == None:
+        if step.getProperty('preparation_step_failed') == True:
+            return True
+        elif step.getProperty('single_test_failed') == True:
+            return True
+        elif step.getProperty('single_login_failed') == True:
+            if step.getProperty('single_login_passed') == True:
+                return False
+            else:
+                return True
+        else:
+            return False
+    else:
+        return False
+
+def doStepIf_setProperty_RESULT_PASSED(step):
+    if step.getProperty('RESULT') == None:
+        return True
+
 def publish_results_git_PMIC(project_name):
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="Tests: FAILED",
+        property="RESULT",
+        value="FAILED",
+        doStepIf=doStepIf_setProperty_RESULT_FAILED,
+        hideStepIf=skipped
+        ))
+
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="Tests: PASSED",
+        property="RESULT",
+        value="PASSED",
+        doStepIf=doStepIf_setProperty_RESULT_PASSED,
+        hideStepIf=skipped
+        ))
+
+
     projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["python3", "../report_janitor.py", "publish_results_git", util.Property('timestamp'), projects[project_name]['builderNames'][0], "PMIC"],
+        command=["python3", "../report_janitor.py", "publish_results_git", util.Property('timestamp'), projects[project_name]['builderNames'][0], "PMIC", util.Property('RESULT')],
         name="Publish results to github.com",
         workdir="../tests/test-results",
         doStepIf=doStepIf_git_push,
