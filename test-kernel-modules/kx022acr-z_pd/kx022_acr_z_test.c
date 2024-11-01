@@ -486,7 +486,6 @@ static int cb(const void *data, void *private)
 	pr_info("Chan1: %d\n", buf_data->channels[1]);
 	pr_info("Chan2: %d\n", buf_data->channels[2]);
 
-
 	return 0;
 }
 
@@ -495,7 +494,7 @@ static int cb(const void *data, void *private)
 static int test_kx022acr_z_probe(struct platform_device *pdev)
 {
 	int retval = 0;
-	dev_info(&pdev->dev, "Ver 014\n");
+	dev_info(&pdev->dev, "Ver 015\n");
 	int vcb = 0;
 	void *vcbp = &vcb;
 
@@ -517,20 +516,20 @@ static int test_kx022acr_z_probe(struct platform_device *pdev)
 	return retval;
 }
 
-
-static void test_cleanup(void *d)
+static void test_cleanup_buffer(void *d)
 {
 	struct iio_cb_buffer *g_buf = (struct iio_cb_buffer *)d;
 
 	pr_info("iio_channel_stop_all_cb called!\n");
 	iio_channel_stop_all_cb(g_buf);
+	iio_channel_release_all_cb(g_buf);
 }
 
 static void test_kx022acr_z_remove(struct platform_device *pdev)
 {
 	int ret;
 
-	ret = devm_add_action_or_reset(&pdev->dev, &test_cleanup, g_buf);
+	ret = devm_add_action_or_reset(&pdev->dev, &test_cleanup_buffer, g_buf);
 }
 
 static const struct of_device_id test_kx022acr_z_of_match[] = {
