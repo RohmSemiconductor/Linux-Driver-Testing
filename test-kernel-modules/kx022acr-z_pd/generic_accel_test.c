@@ -9,6 +9,7 @@
 #include <linux/container_of.h>
 #include <linux/kfifo.h>
 
+
 struct iio_channel *g_chan;
 struct iio_cb_buffer *g_buf;
 
@@ -28,6 +29,15 @@ struct accel_test {
 };
 
 struct accel_test g_accel_test;
+
+#define FIFO_SIZE	2
+#define PROC_FIFO	"int-fifo"
+
+static DEFINE_MUTEX(read_access);
+static DEFINE_MUTEX(write_access);
+/* Here the kfifo_accel */
+static DECLARE_KFIFO_PTR(kfifo_accel, struct scan);
+void *ptr_kfifo_accel = &kfifo_accel;
 
 const unsigned int ms2_mult = 1000;
 
@@ -114,7 +124,11 @@ static struct kobj_attribute z_buffer = __ATTR_RO(z_buffer);
 
 static ssize_t buffer2list_show (struct kobject *ko, struct kobj_attribute *a, char *b)
 {
+	struct scan buf_out;
 	int rval;
+	
+	rval = kfifo_out(&kfifo_accel,&buf_out, 1);
+	rval = sprintf(b, "%d\n",buf_out.channels[0] );
 	return rval;
 }
 static ssize_t buffer2list_store (struct kobject *ko, struct kobj_attribute *a, const char *b, size_t c)
@@ -587,6 +601,7 @@ static ssize_t timestamp_show (struct kobject *ko, struct kobj_attribute *a, cha
 static struct kobj_attribute timestamp = __ATTR_RO(timestamp);
 
 static struct attribute *test_kx022acr_z_chattrs[] = {
+	&buffer2list.attr,
 	&read_buffer.attr,
 	&x_buffer.attr,
 	&y_buffer.attr,
@@ -627,9 +642,21 @@ static int cb(const void *data, void *private)
 		s64 ts __aligned(8);
 	};
 */
+
+/*
+	typeof(kfifo_scan) *kfifo_accel;
+	kfifo_accel = (typeof(kfifo_scan)*)private;
+	*/
 	struct scan *buf_data;
+	struct scan *cpyof_buf_data;
 
 	buf_data = (struct scan*)data;
+	cpyof_buf_data = kmemdup(buf_data, sizeof(*cpyof_buf_data), GFP_KERNEL);
+	kfifo_in(&kfifo_accel, cpyof_buf_data,1);
+
+	pr_info("%d\n", cpyof_buf_data->channels[0]);
+
+
 
 	cb_priv.scan = (struct scan*)data;
 
@@ -649,6 +676,8 @@ static int test_kx022acr_z_probe(struct platform_device *pdev)
 	dev_info(&pdev->dev, "Ver 021\n");
 	int vcb = 0;
 	void *vcbp = &vcb;
+	int ret;
+	ret = kfifo_alloc(&kfifo_accel, FIFO_SIZE, GFP_KERNEL);
 
 	g_chan = devm_iio_channel_get_all(&pdev->dev);
 
@@ -658,7 +687,7 @@ static int test_kx022acr_z_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "Error code: %d ", retval);
 	}
 
-	g_buf = iio_channel_get_all_cb(&pdev->dev,&cb,vcbp);
+	g_buf = iio_channel_get_all_cb(&pdev->dev,&cb,ptr_kfifo_accel);
 
 	if (IS_ERR(g_buf)) {
 		dev_info(&pdev->dev, "iio_channel_get_all_cb()  error\n");
