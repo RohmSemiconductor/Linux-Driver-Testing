@@ -6,6 +6,7 @@
 */kx022acr-z/
 */overlay_merger/
 
+BAK_Makefile
 compile_commands.json
 .Module.symvers*
 *.mod*

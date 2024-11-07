@@ -1,7 +1,7 @@
 obj-m += generic_accel_test.o
 
 all: generic_accel_test dtb
-generic_accel_test: accel_module_test.c
+generic_accel_test: generic_accel_test.c
 	make -C ${KERNEL_DIR} CROSS_COMPILE=${CC} ARCH=arm M=$(PWD) modules
 dtb: ${DTS_FILE}
 	dtc -O dtb -o ${TEST_TARGET}_test.dtbo -b 0 -@ ${DTS_FILE}
