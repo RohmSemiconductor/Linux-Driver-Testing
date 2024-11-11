@@ -20,9 +20,9 @@ struct scan {
 
 struct accel_priv {
 	struct scan *scan;
+	DECLARE_KFIFO_PTR(kfifo_accel, struct scan);
+	unsigned int watermark;
 };
-
-struct accel_priv cb_priv;
 
 struct accel_test {
 	unsigned int watermark;
@@ -30,14 +30,8 @@ struct accel_test {
 
 struct accel_test g_accel_test;
 
-#define FIFO_SIZE	2
+#define FIFO_SIZE	20
 #define PROC_FIFO	"int-fifo"
-
-static DEFINE_MUTEX(read_access);
-static DEFINE_MUTEX(write_access);
-/* Here the kfifo_accel */
-static DECLARE_KFIFO_PTR(kfifo_accel, struct scan);
-void *ptr_kfifo_accel = &kfifo_accel;
 
 const unsigned int ms2_mult = 1000;
 
@@ -73,22 +67,27 @@ static int char_to_frac(char f[], enum INT_TO_FRAC FRAC)
 	pr_info("res: %d\n", res);
 	return res;
 }
-
-static ssize_t x_buffer_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t x_buffer_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
-	struct iio_cb_buffer *buff = g_buf;
+	int kfifo_rval;
+	struct scan buf_out;
+	struct accel_priv *accel_priv = dev_get_drvdata(dev);
 
-	rval = iio_channel_start_all_cb(buff);
-	pr_info("iio_channel_start_all_cb called!\n");
+	kfifo_rval = kfifo_out(&accel_priv->kfifo_accel,&buf_out, 1);
+	rval = sprintf(b, "%d\n", buf_out.channels[0]);
 
-	rval = sprintf(b, "%d\n", cb_priv.scan->channels[0]);
+	for (int x = 0; x < g_accel_test.watermark; x++) {
+		kfifo_rval = kfifo_out(&accel_priv->kfifo_accel,&buf_out, 1);
+		rval += sprintf(b + rval, "%d\n", buf_out.channels[0]);
+	}
 
 	return rval;
 }
 
-static struct kobj_attribute x_buffer = __ATTR_RO(x_buffer);
+DEVICE_ATTR_RO(x_buffer);
 
+/*
 static ssize_t y_buffer_show (struct kobject *ko, struct kobj_attribute *a, char *b)
 {
 	int rval;
@@ -121,24 +120,31 @@ static ssize_t z_buffer_show (struct kobject *ko, struct kobj_attribute *a, char
 }
 
 static struct kobj_attribute z_buffer = __ATTR_RO(z_buffer);
-
+*/
+/*
 static ssize_t buffer2list_show (struct kobject *ko, struct kobj_attribute *a, char *b)
 {
 	struct scan buf_out;
 	int rval;
-	
+
 	rval = kfifo_out(&kfifo_accel,&buf_out, 1);
 	rval = sprintf(b, "%d\n",buf_out.channels[0] );
 	return rval;
 }
+*/
 static ssize_t buffer2list_store (struct kobject *ko, struct kobj_attribute *a, const char *b, size_t c)
 {
 	int rval;
+	struct iio_cb_buffer *buff = g_buf;
+	unsigned int watermark;
+
+	iio_channel_stop_all_cb(buff);
+	pr_info("iio_channel_stop_all_cb called!\n");
 
 	return rval;
 }
 
-static struct kobj_attribute buffer2list = __ATTR_RW(buffer2list);
+static struct kobj_attribute buffer2list = __ATTR_WO(buffer2list);
 
 static ssize_t read_buffer_show (struct kobject *ko, struct kobj_attribute *a, char *b)
 {
@@ -198,8 +204,9 @@ static ssize_t read_buffer_store (struct kobject *ko, struct kobj_attribute *a, 
 			pr_info("for loopissa: %d\n",x);
 			if (strncmp(axis, "x",1) == 0)
 			{
+
 				/* This does not get new values */
-				pr_info("%d\n", cb_priv.scan->channels[0]);
+				/* pr_info("%d\n", cb_priv.scan->channels[0]); */
 			}
 		}
 	}
@@ -211,7 +218,7 @@ static ssize_t read_buffer_store (struct kobject *ko, struct kobj_attribute *a, 
 static struct kobj_attribute read_buffer = __ATTR_RW(read_buffer);
 
 
-static ssize_t scale_available_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t scale_available_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
 	struct iio_channel *chan = g_chan;
@@ -239,9 +246,9 @@ static ssize_t scale_available_show (struct kobject *ko, struct kobj_attribute *
 	return rval;
 }
 
-static struct kobj_attribute scale_available = __ATTR_RO(scale_available);
+DEVICE_ATTR_RO(scale_available);
 
-static ssize_t sampling_frequency_available_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t sampling_frequency_available_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
 	struct iio_channel *chan = g_chan;
@@ -270,41 +277,9 @@ static ssize_t sampling_frequency_available_show (struct kobject *ko, struct kob
 	rval = sprintf(b,"%s\n", freq_avail);
 	return rval;
 }
+DEVICE_ATTR_RO(sampling_frequency_available);
 
-static struct kobj_attribute sampling_frequency_available = __ATTR_RO(sampling_frequency_available);
-
-static ssize_t hwfifo_watermark_show (struct kobject *ko, struct kobj_attribute *a, char *b)
-{
-	int rval;
-
-	rval = sprintf(b, "Write only\n");
-	pr_info("Write only\n");
-
-
-	return rval;
-}
-
-static ssize_t hwfifo_watermark_store (struct kobject *ko, struct kobj_attribute *a, const char *b, size_t c)
-{
-	int rval;
-	struct iio_channel *chan = g_chan;
-	size_t watermark;
-
-	rval = sscanf(b, "%d", &watermark);
-
-	rval = chan->indio_dev->info->hwfifo_set_watermark(chan->indio_dev, watermark);
-
-	if (rval < 0)
-		pr_err("watermark error: %d\n", rval);
-
-	rval = c;
-	return rval;
-}
-
-static struct kobj_attribute hwfifo_watermark = __ATTR_RW(hwfifo_watermark);
-
-
-static ssize_t watermark_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t watermark_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
 
@@ -314,7 +289,7 @@ static ssize_t watermark_show (struct kobject *ko, struct kobj_attribute *a, cha
 	return rval;
 }
 
-static ssize_t watermark_store (struct kobject *ko, struct kobj_attribute *a, const char *b, size_t c)
+static ssize_t watermark_store (struct device *dev, struct device_attribute *attr, const char *b, size_t c)
 {
 	int rval;
 	unsigned int watermark;
@@ -340,18 +315,17 @@ static ssize_t watermark_store (struct kobject *ko, struct kobj_attribute *a, co
 
 	if (rval != 0)
 		pr_err("iio_channel_start_all_cb: %d\n", rval);
-
+/*
 	iio_channel_stop_all_cb(buff);
 	pr_info("iio_channel_stop_all_cb called!\n");
-
+*/
 	rval = c;
 	return rval;
 }
 
-static struct kobj_attribute watermark = __ATTR_RW(watermark);
+DEVICE_ATTR_RW(watermark);
 
-
-static ssize_t sampling_frequency_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t sampling_frequency_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
 	struct iio_channel *chan = g_chan;
@@ -367,7 +341,7 @@ static ssize_t sampling_frequency_show (struct kobject *ko, struct kobj_attribut
 	return rval;
 }
 
-static ssize_t sampling_frequency_store (struct kobject *ko, struct kobj_attribute *a, const char *b, size_t c)
+static ssize_t sampling_frequency_store (struct device *dev, struct device_attribute *attr, const char *b, size_t c)
 {
 	struct iio_channel *chan = g_chan;
 	int rval;
@@ -402,9 +376,9 @@ static ssize_t sampling_frequency_store (struct kobject *ko, struct kobj_attribu
 	return rval;
 }
 
-static struct kobj_attribute sampling_frequency = __ATTR_RW(sampling_frequency);
+DEVICE_ATTR_RW(sampling_frequency);
 
-static ssize_t scale_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t scale_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
 	int val;
@@ -419,7 +393,7 @@ static ssize_t scale_show (struct kobject *ko, struct kobj_attribute *a, char *b
 	return rval;
 }
 
-static ssize_t scale_store (struct kobject *ko, struct kobj_attribute *a, const char *b, size_t c)
+static ssize_t scale_store (struct device *dev, struct device_attribute *attr, const char *b, size_t c)
 {
 	int rval;
 	int val;
@@ -449,9 +423,9 @@ static ssize_t scale_store (struct kobject *ko, struct kobj_attribute *a, const 
 	return rval;
 }
 
-static struct kobj_attribute scale = __ATTR_RW(scale);
+DEVICE_ATTR_RW(scale);
 
-static ssize_t x_raw_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t x_raw_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
 	int val;
@@ -471,9 +445,9 @@ static ssize_t x_raw_show (struct kobject *ko, struct kobj_attribute *a, char *b
 	return rval;
 }
 
-static struct kobj_attribute x_raw = __ATTR_RO(x_raw);
+DEVICE_ATTR_RO(x_raw);
 
-static ssize_t y_raw_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t y_raw_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
 	struct iio_channel *chan = g_chan;
@@ -493,9 +467,9 @@ static ssize_t y_raw_show (struct kobject *ko, struct kobj_attribute *a, char *b
 	return rval;
 }
 
-static struct kobj_attribute y_raw = __ATTR_RO(y_raw);
+DEVICE_ATTR_RO(y_raw);
 
-static ssize_t z_raw_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t z_raw_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
 	struct iio_channel *chan = g_chan;
@@ -515,9 +489,9 @@ static ssize_t z_raw_show (struct kobject *ko, struct kobj_attribute *a, char *b
 	return rval;
 }
 
-static struct kobj_attribute z_raw = __ATTR_RO(z_raw);
+DEVICE_ATTR_RO(z_raw);
 
-static ssize_t x_ms2_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t x_ms2_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
 	struct iio_channel *chan = g_chan;
@@ -537,9 +511,9 @@ static ssize_t x_ms2_show (struct kobject *ko, struct kobj_attribute *a, char *b
 	return rval;
 }
 
-static struct kobj_attribute x_ms2 = __ATTR_RO(x_ms2);
+DEVICE_ATTR_RO(x_ms2);
 
-static ssize_t y_ms2_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t y_ms2_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
 	struct iio_channel *chan = g_chan;
@@ -559,9 +533,9 @@ static ssize_t y_ms2_show (struct kobject *ko, struct kobj_attribute *a, char *b
 	return rval;
 }
 
-static struct kobj_attribute y_ms2 = __ATTR_RO(y_ms2);
+DEVICE_ATTR_RO(y_ms2);
 
-static ssize_t z_ms2_show (struct kobject *ko, struct kobj_attribute *a, char *b)
+static ssize_t z_ms2_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
 	struct iio_channel *chan = g_chan;
@@ -581,123 +555,110 @@ static ssize_t z_ms2_show (struct kobject *ko, struct kobj_attribute *a, char *b
 	return rval;
 }
 
-static struct kobj_attribute z_ms2 = __ATTR_RO(z_ms2);
+DEVICE_ATTR_RO(z_ms2);
 
+/*
 static ssize_t timestamp_show (struct kobject *ko, struct kobj_attribute *a, char *b)
 {
 	int rval;
 //	struct iio_channel *chan = g_chan;
 
-	/*
 	rval = iio_read_channel_raw(&chan[3], &val);
 
 	if (rval < 0)
 		pr_err("iio_read_channel_raw errno: %d\n", cb_priv.scan->ts);
-	*/
-	rval = sprintf(b,"%lld\n",cb_priv.scan->ts);
+//	rval = sprintf(b,"%lld\n",cb_priv.scan->ts);
+	rval = sprintf(b,"Dont use this for now\n");
 
 	return rval;
 }
 static struct kobj_attribute timestamp = __ATTR_RO(timestamp);
+*/
 
-static struct attribute *test_kx022acr_z_chattrs[] = {
+static struct attribute *generic_accel_test_attrs[] = {
 	&buffer2list.attr,
 	&read_buffer.attr,
-	&x_buffer.attr,
-	&y_buffer.attr,
-	&z_buffer.attr,
-	&scale_available.attr,
-	&sampling_frequency_available.attr,
-	&hwfifo_watermark.attr,
-	&watermark.attr,
-	&sampling_frequency.attr,
-	&scale.attr,
-	&x_raw.attr,
-	&y_raw.attr,
-	&z_raw.attr,
-	&x_ms2.attr,
-	&y_ms2.attr,
-	&z_ms2.attr,
-	&timestamp.attr,
+	&dev_attr_x_buffer.attr,
+//	&y_buffer.attr,
+//	&z_buffer.attr,
+	&dev_attr_scale_available.attr,
+	&dev_attr_sampling_frequency_available.attr,
+	&dev_attr_watermark.attr,
+	&dev_attr_sampling_frequency.attr,
+	&dev_attr_scale.attr,
+	&dev_attr_x_raw.attr,
+	&dev_attr_y_raw.attr,
+	&dev_attr_z_raw.attr,
+	&dev_attr_x_ms2.attr,
+	&dev_attr_y_ms2.attr,
+	&dev_attr_z_ms2.attr,
+//	&timestamp.attr,
 	NULL
 };
 
-static const struct attribute_group test_kx022acr_z_attrs[] = {
+
+static const struct attribute_group generic_accel_test_group[] = {
 	{
 		.name = "iio_channels",
-		.attrs = &test_kx022acr_z_chattrs[0],
+		.attrs = &generic_accel_test_attrs[0],
 	}
 };
 
-static const struct attribute_group *test_kx022acr_z_attr_groups[] = {
-	test_kx022acr_z_attrs,
+static const struct attribute_group *generic_accel_test_attr_groups[] = {
+	generic_accel_test_group,
 	NULL
 };
 
 static int cb(const void *data, void *private)
 {
-/*
-	struct scan {
-		__le16 channels[3];
-		s64 ts __aligned(8);
-	};
-*/
+	pr_info("callback kutsuttu\n");
+	struct accel_priv *accel_priv;
+	accel_priv = (struct accel_priv*)private;
 
-/*
-	typeof(kfifo_scan) *kfifo_accel;
-	kfifo_accel = (typeof(kfifo_scan)*)private;
-	*/
 	struct scan *buf_data;
-	struct scan *cpyof_buf_data;
-
 	buf_data = (struct scan*)data;
-	cpyof_buf_data = kmemdup(buf_data, sizeof(*cpyof_buf_data), GFP_KERNEL);
-	kfifo_in(&kfifo_accel, cpyof_buf_data,1);
 
+	struct scan *cpyof_buf_data;
+	cpyof_buf_data = kmemdup(buf_data, sizeof(*cpyof_buf_data), GFP_KERNEL);
+
+	kfifo_in(&accel_priv->kfifo_accel, cpyof_buf_data,1);
 	pr_info("%d\n", cpyof_buf_data->channels[0]);
 
-
-
-	cb_priv.scan = (struct scan*)data;
-
-/*
-	pr_info("CB FUNC CALLED!");
-
-	pr_info("Chan0: %d\n", buf_data->channels[0]);
-	pr_info("Chan1: %d\n", buf_data->channels[1]);
-	pr_info("Chan2: %d\n", buf_data->channels[2]);
-*/
 	return 0;
 }
 
-static int test_kx022acr_z_probe(struct platform_device *pdev)
+static int generic_accel_test_probe(struct platform_device *pdev)
 {
-	int retval = 0;
-	dev_info(&pdev->dev, "Ver 021\n");
-	int vcb = 0;
-	void *vcbp = &vcb;
-	int ret;
-	ret = kfifo_alloc(&kfifo_accel, FIFO_SIZE, GFP_KERNEL);
+	dev_info(&pdev->dev, "Ver 034\n");
+
+	int rval = 0;
+	struct accel_priv *dev_priv;
+
+	dev_priv = devm_kzalloc(&pdev->dev, sizeof(*dev_priv), GFP_KERNEL);
+	rval = kfifo_alloc(&dev_priv->kfifo_accel, FIFO_SIZE, GFP_KERNEL);
+	dev_set_drvdata(&pdev->dev, dev_priv);
+
+	if (rval != 0)
+		dev_info(&pdev->dev, "Cannot allocate kfifo, errno: %d\n", rval);
 
 	g_chan = devm_iio_channel_get_all(&pdev->dev);
 
 	if (IS_ERR(g_chan)) {
 		dev_info(&pdev->dev, "devm_iio_channel_get_all()  error\n");
-		retval = PTR_ERR(g_chan);
-		dev_info(&pdev->dev, "Error code: %d ", retval);
+		rval = PTR_ERR(g_chan);
+		dev_info(&pdev->dev, "Error code: %d ", rval);
 	}
 
-	g_buf = iio_channel_get_all_cb(&pdev->dev,&cb,ptr_kfifo_accel);
+	g_buf = iio_channel_get_all_cb(&pdev->dev,&cb, dev_priv);
 
 	if (IS_ERR(g_buf)) {
 		dev_info(&pdev->dev, "iio_channel_get_all_cb()  error\n");
-		retval = PTR_ERR(g_buf);
-		dev_info(&pdev->dev, "Error code: %d ", retval);
+		rval = PTR_ERR(g_buf);
+		dev_info(&pdev->dev, "Error code: %d ", rval);
 	}
+	dev_info(&pdev->dev, "end of probe\n");
 
-
-	retval = iio_channel_start_all_cb(g_buf);
-	return retval;
+	return rval;
 }
 
 static void test_cleanup_buffer(void *d)
@@ -709,33 +670,33 @@ static void test_cleanup_buffer(void *d)
 	iio_channel_release_all_cb(g_buf);
 }
 
-static void test_kx022acr_z_remove(struct platform_device *pdev)
+static void generic_accel_test_remove(struct platform_device *pdev)
 {
 	int ret;
 
 	ret = devm_add_action_or_reset(&pdev->dev, &test_cleanup_buffer, g_buf);
 }
 
-static const struct of_device_id test_kx022acr_z_of_match[] = {
+static const struct of_device_id generic_accel_test_of_match[] = {
 	{
-		.compatible = "test,kx022acr-z",
+		.compatible = "test,generic_accel",
 	},
 	{ }
 };
-MODULE_DEVICE_TABLE(of, test_kx022acr_z_of_match);
+MODULE_DEVICE_TABLE(of, generic_accel_test_of_match);
 
-static struct platform_driver test_kx022acr_z_struct = {
-	.probe = test_kx022acr_z_probe,
-	.remove = test_kx022acr_z_remove,
+static struct platform_driver generic_accel_test_struct = {
+	.probe = generic_accel_test_probe,
+	.remove = generic_accel_test_remove,
 	.driver = {
 		.name = "test_module_kx022acr-z",
 		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
-		.of_match_table = test_kx022acr_z_of_match,
-		.dev_groups = test_kx022acr_z_attr_groups
+		.of_match_table = generic_accel_test_of_match,
+		.dev_groups = generic_accel_test_attr_groups
 	},
 };
 
-module_platform_driver(test_kx022acr_z_struct);
+module_platform_driver(generic_accel_test_struct);
 
 MODULE_AUTHOR("Kalle Niemi");
 MODULE_DESCRIPTION("platform device test");
