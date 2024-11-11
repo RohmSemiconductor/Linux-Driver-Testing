@@ -58,6 +58,7 @@
 		__overlay__ {
 			generic_accel_test {
 				compatible = "test,generic_accel";
+				rohm,fifo-size = <43>;
 				/*io-channels = <&accel 0>, <&accel 1>, <&accel 2>, <&accel 3>; */
 				/*io-channel-names = "x", "y", "z", "timestamp"; */
 				io-channels = <&accel 0>, <&accel 1>, <&accel 2>;
