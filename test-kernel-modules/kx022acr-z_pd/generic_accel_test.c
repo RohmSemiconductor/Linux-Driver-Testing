@@ -30,7 +30,7 @@ struct accel_test {
 
 struct accel_test g_accel_test;
 
-#define FIFO_SIZE	20
+#define FIFO_SIZE	50
 #define PROC_FIFO	"int-fifo"
 
 const unsigned int ms2_mult = 1000;
@@ -69,15 +69,12 @@ static int char_to_frac(char f[], enum INT_TO_FRAC FRAC)
 }
 static ssize_t x_buffer_show (struct device *dev, struct device_attribute *attr, char *b)
 {
-	int rval;
+	int rval = 0;
 	int kfifo_rval;
 	struct scan buf_out;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
 
-	kfifo_rval = kfifo_out(&accel_priv->kfifo_accel,&buf_out, 1);
-	rval = sprintf(b, "%d\n", buf_out.channels[0]);
-
-	for (int x = 0; x < g_accel_test.watermark; x++) {
+	for (int x = 0; x < accel_priv->watermark; x++) {
 		kfifo_rval = kfifo_out(&accel_priv->kfifo_accel,&buf_out, 1);
 		rval += sprintf(b + rval, "%d\n", buf_out.channels[0]);
 	}
@@ -132,19 +129,6 @@ static ssize_t buffer2list_show (struct kobject *ko, struct kobj_attribute *a, c
 	return rval;
 }
 */
-static ssize_t buffer2list_store (struct kobject *ko, struct kobj_attribute *a, const char *b, size_t c)
-{
-	int rval;
-	struct iio_cb_buffer *buff = g_buf;
-	unsigned int watermark;
-
-	iio_channel_stop_all_cb(buff);
-	pr_info("iio_channel_stop_all_cb called!\n");
-
-	return rval;
-}
-
-static struct kobj_attribute buffer2list = __ATTR_WO(buffer2list);
 
 static ssize_t read_buffer_show (struct kobject *ko, struct kobj_attribute *a, char *b)
 {
@@ -282,8 +266,9 @@ DEVICE_ATTR_RO(sampling_frequency_available);
 static ssize_t watermark_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval;
+	struct accel_priv *accel_priv = dev_get_drvdata(dev);
 
-	rval = sprintf(b, "%d\n", g_accel_test.watermark);
+	rval = sprintf(b, "%d\n", accel_priv->watermark);
 	pr_info("write only\n");
 
 	return rval;
@@ -294,6 +279,7 @@ static ssize_t watermark_store (struct device *dev, struct device_attribute *att
 	int rval;
 	unsigned int watermark;
 	struct iio_cb_buffer *buff = g_buf;
+	struct accel_priv *accel_priv = dev_get_drvdata(dev);
 
 	iio_channel_stop_all_cb(buff);
 	pr_info("iio_channel_stop_all_cb called!\n");
@@ -308,7 +294,7 @@ static ssize_t watermark_store (struct device *dev, struct device_attribute *att
 	if (rval != 0)
 		pr_err("watermark error: %d\n", rval);
 	else
-		g_accel_test.watermark = watermark;
+		accel_priv->watermark = watermark;
 
 	rval = iio_channel_start_all_cb(buff);
 	pr_info("iio_channel_start_all_cb called!\n");
@@ -576,7 +562,6 @@ static struct kobj_attribute timestamp = __ATTR_RO(timestamp);
 */
 
 static struct attribute *generic_accel_test_attrs[] = {
-	&buffer2list.attr,
 	&read_buffer.attr,
 	&dev_attr_x_buffer.attr,
 //	&y_buffer.attr,
