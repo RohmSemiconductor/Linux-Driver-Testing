@@ -8,6 +8,7 @@
 #include <linux/iio/buffer.h>
 #include <linux/container_of.h>
 #include <linux/kfifo.h>
+#include <linux/completion.h>
 
 struct scan {
 	__le16 channels[3];
@@ -22,9 +23,10 @@ struct accel_priv {
 	uint32_t fifo_size;
 	DECLARE_KFIFO_PTR(kfifo_accel, struct scan);
 	unsigned int watermark;
+	struct completion kfifo_at_wm;
 };
 
-#define FIFO_SIZE	50
+#define FIFO_SIZE	100
 
 const unsigned int ms2_mult = 1000;
 
@@ -81,11 +83,13 @@ static ssize_t en_cb_buffer_store (struct device *dev, struct device_attribute *
 
 	if (endis_buffer == 0) {
 		iio_channel_stop_all_cb(accel_priv->buffer);
+		pr_info("stop cb buffer\n");
 	}
 	else if (endis_buffer == 1) {
 		iio_channel_stop_all_cb(accel_priv->buffer);
 		kfifo_reset_out(&accel_priv->kfifo_accel);
 		iio_channel_start_all_cb(accel_priv->buffer);
+		pr_info("start cb buffer\n");
 	}
 
 	accel_priv->en_cb_buffer = endis_buffer;
@@ -196,6 +200,8 @@ static ssize_t watermark_store (struct device *dev, struct device_attribute *att
 		pr_err("iio_channel_start_all_cb: %d\n", rval);
 
 	iio_channel_stop_all_cb(accel_priv->buffer);
+
+	accel_priv->en_cb_buffer = 0;
 	pr_info("iio_channel_stop_all_cb called!\n");
 	rval = c;
 	return rval;
@@ -315,10 +321,14 @@ static ssize_t x_buffer_show (struct device *dev, struct device_attribute *attr,
 		return rval;
 	}
 
+	wait_for_completion(&accel_priv->kfifo_at_wm);
+
 	for (int x = 0; x < accel_priv->watermark; x++) {
 		kfifo_rval = kfifo_out(&accel_priv->kfifo_accel,&buf_out, 1);
 		rval += sprintf(b + rval, "%d\n", buf_out.channels[0]);
 	}
+
+	reinit_completion(&accel_priv->kfifo_at_wm);
 
 	return rval;
 }
@@ -337,10 +347,14 @@ static ssize_t y_buffer_show (struct device *dev, struct device_attribute *attr,
 		return rval;
 	}
 
+	wait_for_completion(&accel_priv->kfifo_at_wm);
+
 	for (int x = 0; x < accel_priv->watermark; x++) {
 		kfifo_rval = kfifo_out(&accel_priv->kfifo_accel,&buf_out, 1);
 		rval += sprintf(b + rval, "%d\n", buf_out.channels[1]);
 	}
+
+	reinit_completion(&accel_priv->kfifo_at_wm);
 
 	return rval;
 }
@@ -359,10 +373,14 @@ static ssize_t z_buffer_show (struct device *dev, struct device_attribute *attr,
 		return rval;
 	}
 
+	wait_for_completion(&accel_priv->kfifo_at_wm);
+
 	for (int x = 0; x < accel_priv->watermark; x++) {
 		kfifo_rval = kfifo_out(&accel_priv->kfifo_accel,&buf_out, 1);
 		rval += sprintf(b + rval, "%d\n", buf_out.channels[2]);
 	}
+
+	reinit_completion(&accel_priv->kfifo_at_wm);
 
 	return rval;
 }
@@ -564,18 +582,24 @@ static int cb(const void *data, void *private)
 	kfifo_in(&accel_priv->kfifo_accel, cpyof_buf_data,1);
 	pr_info("%d\n", cpyof_buf_data->channels[0]);
 
+	if (kfifo_len(&accel_priv->kfifo_accel) >= (accel_priv->watermark)) {
+		complete(&accel_priv->kfifo_at_wm);
+	}
+
 	return 0;
 }
 
 static int generic_accel_test_probe(struct platform_device *pdev)
 {
-	dev_info(&pdev->dev, "Ver 037\n");
+	dev_info(&pdev->dev, "Ver 039\n");
 
 	int rval = 0;
 	struct accel_priv *accel_priv;
 
 	accel_priv = devm_kzalloc(&pdev->dev, sizeof(*accel_priv), GFP_KERNEL);
 	accel_priv->watermark = 1;
+	init_completion(&accel_priv->kfifo_at_wm);
+
 	rval = device_property_read_u32(&pdev->dev,"rohm,fifo-size", &accel_priv->fifo_size);
 
 	if (rval != 0) {
@@ -588,7 +612,6 @@ static int generic_accel_test_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Cannot allocate kfifo, errno: %d\n", rval);
 
 	dev_set_drvdata(&pdev->dev, accel_priv);
-
 
 	accel_priv->channel = devm_iio_channel_get_all(&pdev->dev);
 
