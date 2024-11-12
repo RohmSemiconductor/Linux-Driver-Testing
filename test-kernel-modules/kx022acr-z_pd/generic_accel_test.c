@@ -26,7 +26,7 @@ struct accel_priv {
 	struct completion kfifo_at_wm;
 };
 
-#define FIFO_SIZE	100
+#define FIFO_SIZE	128
 
 const unsigned int ms2_mult = 1000;
 
@@ -582,7 +582,7 @@ static int cb(const void *data, void *private)
 	kfifo_in(&accel_priv->kfifo_accel, cpyof_buf_data,1);
 	pr_info("%d\n", cpyof_buf_data->channels[0]);
 
-	if (kfifo_len(&accel_priv->kfifo_accel) >= (accel_priv->watermark)) {
+	if (kfifo_len(&accel_priv->kfifo_accel) >= accel_priv->watermark) {
 		complete(&accel_priv->kfifo_at_wm);
 	}
 
