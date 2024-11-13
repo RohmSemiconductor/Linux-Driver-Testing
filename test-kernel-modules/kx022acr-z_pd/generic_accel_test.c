@@ -328,6 +328,8 @@ static ssize_t x_buffer_show (struct device *dev, struct device_attribute *attr,
 		rval += sprintf(b + rval, "%d\n", buf_out.channels[0]);
 	}
 
+	reinit_completion(&accel_priv->kfifo_at_wm);
+
 	return rval;
 }
 
@@ -352,6 +354,8 @@ static ssize_t y_buffer_show (struct device *dev, struct device_attribute *attr,
 		rval += sprintf(b + rval, "%d\n", buf_out.channels[1]);
 	}
 
+	reinit_completion(&accel_priv->kfifo_at_wm);
+
 	return rval;
 }
 
@@ -375,6 +379,8 @@ static ssize_t z_buffer_show (struct device *dev, struct device_attribute *attr,
 		kfifo_rval = kfifo_out(&accel_priv->kfifo_accel,&buf_out, 1);
 		rval += sprintf(b + rval, "%d\n", buf_out.channels[2]);
 	}
+
+	reinit_completion(&accel_priv->kfifo_at_wm);
 
 	return rval;
 }
@@ -572,8 +578,6 @@ static int cb(const void *data, void *private)
 
 	struct scan *cpyof_buf_data;
 	cpyof_buf_data = kmemdup(buf_data, sizeof(*cpyof_buf_data), GFP_KERNEL);
-	if (kfifo_len(&accel_priv->kfifo_accel) < accel_priv->watermark)
-		reinit_completion(&accel_priv->kfifo_at_wm);
 
 	kfifo_in(&accel_priv->kfifo_accel, cpyof_buf_data,1);
 	pr_info("%d\n", cpyof_buf_data->channels[0]);
