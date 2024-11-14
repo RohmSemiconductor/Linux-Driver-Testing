@@ -19,6 +19,7 @@ struct accel_priv {
 	struct iio_cb_buffer *buffer;
 	struct iio_channel *channel;
 	struct scan *scan;
+	int axis_bits;
 	int en_cb_buffer;
 	uint32_t fifo_size;
 	DECLARE_KFIFO_PTR(kfifo_accel, struct scan);
@@ -27,12 +28,18 @@ struct accel_priv {
 };
 
 #define FIFO_SIZE	128
-
+#define AXIS_COUNT	3
 const unsigned int ms2_mult = 1000;
 
 enum INT_TO_FRAC {
 	INT_TO_FRAC_MICRO = 6,
 	INT_TO_FRAC_NANO = 9
+};
+
+enum AXIS_INFO {
+	AXIS_X = 4,
+	AXIS_Y = 2,
+	AXIS_Z = 1
 };
 
 static void pscale_split_to_ints(int val, unsigned int mult, int *value1,
@@ -309,6 +316,77 @@ static ssize_t scale_store (struct device *dev, struct device_attribute *attr, c
 
 DEVICE_ATTR_RW(scale);
 
+static ssize_t set_enabled_buffer_store (struct device *dev, struct device_attribute *attr, const char *b, size_t c)
+{
+	int rval;
+	char channels[4];
+	int channels_given = 0;
+	int channels_stored = 0;
+	char extracted_char;
+	struct accel_priv *accel_priv = dev_get_drvdata(dev);
+
+	accel_priv->axis_bits = 0;
+
+	sscanf(b, "%s", channels);
+	channels_given = strlen(channels);
+
+	while (channels_given > channels_stored) {
+		extracted_char = channels[channels_stored];
+		if (strncmp(&extracted_char, "x", 1) == 0)
+			accel_priv->axis_bits = accel_priv->axis_bits + AXIS_X;
+		else if (strncmp(&extracted_char, "y", 1) == 0)
+			accel_priv->axis_bits = accel_priv->axis_bits + AXIS_Y;
+		else if (strncmp(&extracted_char, "z", 1) == 0)
+			accel_priv->axis_bits = accel_priv->axis_bits + AXIS_Z;
+		pr_info("extracted_char: %c\n", extracted_char);
+		channels_stored++;
+	}
+
+	pr_info("axis_bits: %d\n", accel_priv->axis_bits);
+
+	rval = c;
+	return rval;
+}
+
+DEVICE_ATTR_WO(set_enabled_buffer);
+
+static ssize_t show_enabled_buffer_show (struct device *dev, struct device_attribute *attr, char *b)
+{
+	int rval = 0;
+	int kfifo_rval;
+	struct accel_priv *accel_priv = dev_get_drvdata(dev);
+	struct scan buf_out;
+
+	if (accel_priv->axis_bits == 0) {
+		rval = sprintf(b, "No channels assigned to read!\n");
+		return rval;
+	}
+	else if (accel_priv->en_cb_buffer == 0) {
+		rval = sprintf(b, "Enable buffer first!\n");
+		return rval;
+	}
+
+	wait_for_completion(&accel_priv->kfifo_at_wm);
+
+	for (int x = 0; x < accel_priv->watermark; x++) {
+		kfifo_rval = kfifo_out(&accel_priv->kfifo_accel,&buf_out, 1);
+
+		if (accel_priv->axis_bits & AXIS_X)
+			rval += sprintf(b + rval, "%d ", (int16_t)buf_out.channels[0]);
+		if (accel_priv->axis_bits & AXIS_Y)
+			rval += sprintf(b + rval, "%d ", (int16_t)buf_out.channels[1]);
+		if (accel_priv->axis_bits & AXIS_Z)
+			rval += sprintf(b + rval, "%d ", (int16_t)buf_out.channels[2]);
+	rval += sprintf(b + rval, "\n");
+	}
+
+	reinit_completion(&accel_priv->kfifo_at_wm);
+
+	return rval;
+}
+
+DEVICE_ATTR_RO(show_enabled_buffer);
+
 static ssize_t x_buffer_show (struct device *dev, struct device_attribute *attr, char *b)
 {
 	int rval = 0;
@@ -535,6 +613,8 @@ static struct kobj_attribute timestamp = __ATTR_RO(timestamp);
 */
 
 static struct attribute *generic_accel_test_attrs[] = {
+	&dev_attr_set_enabled_buffer.attr,
+	&dev_attr_show_enabled_buffer.attr,
 	&dev_attr_en_cb_buffer.attr,
 	&dev_attr_scale_available.attr,
 	&dev_attr_sampling_frequency_available.attr,
@@ -579,6 +659,11 @@ static int cb(const void *data, void *private)
 	struct scan *cpyof_buf_data;
 	cpyof_buf_data = kmemdup(buf_data, sizeof(*cpyof_buf_data), GFP_KERNEL);
 
+	for(int x=0; x<AXIS_COUNT; x++) {
+	       cpyof_buf_data->channels[x] = le16_to_cpu(cpyof_buf_data->channels[x]);
+	       pr_info("x: %d\n",x);
+	}
+
 	kfifo_in(&accel_priv->kfifo_accel, cpyof_buf_data,1);
 	pr_info("%d\n", cpyof_buf_data->channels[0]);
 
@@ -590,7 +675,7 @@ static int cb(const void *data, void *private)
 
 static int generic_accel_test_probe(struct platform_device *pdev)
 {
-	dev_info(&pdev->dev, "Ver 039\n");
+	dev_info(&pdev->dev, "Ver 040\n");
 
 	int rval = 0;
 	struct accel_priv *accel_priv;
