@@ -70,7 +70,9 @@ static int char_to_frac(char f[], enum INT_TO_FRAC FRAC)
 	return res;
 }
 
-static ssize_t en_cb_buffer_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t en_cb_buffer_show (struct device *dev,
+				  struct device_attribute *attr,
+				  char *b)
 {
 	int rval;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
@@ -80,7 +82,9 @@ static ssize_t en_cb_buffer_show (struct device *dev, struct device_attribute *a
 	return rval;
 }
 
-static ssize_t en_cb_buffer_store (struct device *dev, struct device_attribute *attr, const char *b, size_t c)
+static ssize_t en_cb_buffer_store (struct device *dev,
+				   struct device_attribute *attr,
+				   const char *b, size_t c)
 {
 	int rval;
 	int endis_buffer;
@@ -107,7 +111,9 @@ static ssize_t en_cb_buffer_store (struct device *dev, struct device_attribute *
 
 DEVICE_ATTR_RW(en_cb_buffer);
 
-static ssize_t scale_available_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t scale_available_show (struct device *dev,
+				     struct device_attribute *attr,
+				     char *b)
 {
 	int rval;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
@@ -118,7 +124,9 @@ static ssize_t scale_available_show (struct device *dev, struct device_attribute
 	char freq_avail[100];
 	char fval[15];
 
-	rval = iio_read_avail_channel_attribute(accel_priv->channel, vals, &type, &length, IIO_CHAN_INFO_SCALE);
+	rval = iio_read_avail_channel_attribute(accel_priv->channel, vals,
+						&type, &length,
+						IIO_CHAN_INFO_SCALE);
 
 	if (rval < 0) {
 		pr_err("Problems reading available scales! Errno: %d", rval);
@@ -137,7 +145,9 @@ static ssize_t scale_available_show (struct device *dev, struct device_attribute
 
 DEVICE_ATTR_RO(scale_available);
 
-static ssize_t sampling_frequency_available_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t sampling_frequency_available_show (struct device *dev,
+						  struct device_attribute *attr,
+						  char *b)
 {
 	int rval;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
@@ -148,10 +158,14 @@ static ssize_t sampling_frequency_available_show (struct device *dev, struct dev
 	char freq_avail[100];
 	char fval[15];
 
-	rval = iio_read_avail_channel_attribute(accel_priv->channel, vals, &type, &length, IIO_CHAN_INFO_SAMP_FREQ);
+	rval = iio_read_avail_channel_attribute(accel_priv->channel, vals,
+						&type, &length,
+						IIO_CHAN_INFO_SAMP_FREQ);
 
 	if (rval < 0) {
-		pr_err("Problems reading available sampling frequencies! Errno: %d", rval);
+		pr_err("Problems reading available sampling frequencies! "
+		       "Errno: %d", rval);
+
 		return rval;
 	}
 
@@ -166,7 +180,8 @@ static ssize_t sampling_frequency_available_show (struct device *dev, struct dev
 }
 DEVICE_ATTR_RO(sampling_frequency_available);
 
-static ssize_t watermark_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t watermark_show (struct device *dev,
+			       struct device_attribute *attr, char *b)
 {
 	int rval;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
@@ -177,7 +192,9 @@ static ssize_t watermark_show (struct device *dev, struct device_attribute *attr
 	return rval;
 }
 
-static ssize_t watermark_store (struct device *dev, struct device_attribute *attr, const char *b, size_t c)
+static ssize_t watermark_store (struct device *dev,
+				struct device_attribute *attr,
+				const char *b, size_t c)
 {
 	int rval;
 	unsigned int watermark;
@@ -188,7 +205,9 @@ static ssize_t watermark_store (struct device *dev, struct device_attribute *att
 
 	rval = sscanf(b, "%d", &watermark);
 
-	rval = iio_channel_cb_set_buffer_watermark(accel_priv->buffer, watermark);
+	rval = iio_channel_cb_set_buffer_watermark(accel_priv->buffer,
+						   watermark);
+
 	pr_info("iio_channel_cb_set_buffer_watermark called!\n");
 
 	pr_info("watermark_store rval: %d\n",rval);
@@ -216,14 +235,16 @@ static ssize_t watermark_store (struct device *dev, struct device_attribute *att
 
 DEVICE_ATTR_RW(watermark);
 
-static ssize_t sampling_frequency_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t sampling_frequency_show (struct device *dev,
+					struct device_attribute *attr, char *b)
 {
 	int rval;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
 	int val;
 	int val2;
 
-	rval = iio_read_channel_attribute(accel_priv->channel, &val, &val2, IIO_CHAN_INFO_SAMP_FREQ);
+	rval = iio_read_channel_attribute(accel_priv->channel, &val, &val2,
+					  IIO_CHAN_INFO_SAMP_FREQ);
 	if (val < 0)
 		pr_err("iio_read_channel_attribute errno %d\n", rval);
 
@@ -232,7 +253,9 @@ static ssize_t sampling_frequency_show (struct device *dev, struct device_attrib
 	return rval;
 }
 
-static ssize_t sampling_frequency_store (struct device *dev, struct device_attribute *attr, const char *b, size_t c)
+static ssize_t sampling_frequency_store (struct device *dev,
+					 struct device_attribute *attr,
+					 const char *b, size_t c)
 {
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
 	int rval;
@@ -249,16 +272,21 @@ static ssize_t sampling_frequency_store (struct device *dev, struct device_attri
 		val2 = char_to_frac(val2_buffer, INT_TO_FRAC_MICRO);
 
 		if (val2 < 0 ) {
-			pr_err("Dont put stuff where it does not belong! Error: %d\n", val2);
+			pr_err("Dont put stuff where it does not belong! "
+			       "Error: %d\n", val2);
+
 			return val2;
 		}
 	}
 
-	rval = iio_write_channel_attribute(accel_priv->channel, val, val2, IIO_CHAN_INFO_SAMP_FREQ);
+	rval = iio_write_channel_attribute(accel_priv->channel, val, val2,
+					   IIO_CHAN_INFO_SAMP_FREQ);
 
 	if (rval < 0)
 	{
-		pr_err("SAMP_FREQ: iio_write_channel_attribute errno %d\n", rval);
+		pr_err("SAMP_FREQ: iio_write_channel_attribute "
+		       "errno %d\n", rval);
+
 		return rval;
 	}
 
@@ -269,14 +297,16 @@ static ssize_t sampling_frequency_store (struct device *dev, struct device_attri
 
 DEVICE_ATTR_RW(sampling_frequency);
 
-static ssize_t scale_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t scale_show (struct device *dev, struct device_attribute *attr,
+			   char *b)
 {
 	int rval;
 	int val;
 	int val2;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
 
-	rval = iio_read_channel_attribute(accel_priv->channel, &val, &val2, IIO_CHAN_INFO_SCALE);
+	rval = iio_read_channel_attribute(accel_priv->channel, &val, &val2,
+					  IIO_CHAN_INFO_SCALE);
 	if (rval < 0)
 		pr_err("SCALE: iio_read_channel_attribute errno %d\n", rval);
 	rval = sprintf(b, "%d.%09d\n", val, val2);
@@ -284,7 +314,8 @@ static ssize_t scale_show (struct device *dev, struct device_attribute *attr, ch
 	return rval;
 }
 
-static ssize_t scale_store (struct device *dev, struct device_attribute *attr, const char *b, size_t c)
+static ssize_t scale_store (struct device *dev, struct device_attribute *attr,
+			    const char *b, size_t c)
 {
 	int rval;
 	int val;
@@ -296,11 +327,14 @@ static ssize_t scale_store (struct device *dev, struct device_attribute *attr, c
 
 	val2 = char_to_frac(val2_buffer, INT_TO_FRAC_NANO);
 	if (val2 < 0 ) {
-		pr_err("Dont put stuff where it does not belong! Error: %d\n", val2);
+		pr_err("Dont put stuff where it does not belong! "
+		       "Error: %d\n", val2);
+
 		return val2;
 	}
 
-	rval = iio_write_channel_attribute(accel_priv->channel, val, val2, IIO_CHAN_INFO_SCALE);
+	rval = iio_write_channel_attribute(accel_priv->channel, val, val2,
+					   IIO_CHAN_INFO_SCALE);
 
 	if (rval < 0)
 	{
@@ -316,7 +350,9 @@ static ssize_t scale_store (struct device *dev, struct device_attribute *attr, c
 
 DEVICE_ATTR_RW(scale);
 
-static ssize_t set_enabled_buffer_store (struct device *dev, struct device_attribute *attr, const char *b, size_t c)
+static ssize_t set_enabled_buffer_store (struct device *dev,
+					 struct device_attribute *attr,
+					 const char *b, size_t c)
 {
 	int rval;
 	char channels[4];
@@ -350,7 +386,8 @@ static ssize_t set_enabled_buffer_store (struct device *dev, struct device_attri
 
 DEVICE_ATTR_WO(set_enabled_buffer);
 
-static ssize_t show_enabled_buffer_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t show_enabled_buffer_show (struct device *dev,
+					 struct device_attribute *attr, char *b)
 {
 	int rval = 0;
 	int kfifo_rval;
@@ -372,11 +409,17 @@ static ssize_t show_enabled_buffer_show (struct device *dev, struct device_attri
 		kfifo_rval = kfifo_out(&accel_priv->kfifo_accel,&buf_out, 1);
 
 		if (accel_priv->axis_bits & AXIS_X)
-			rval += sprintf(b + rval, "%d ", (int16_t)buf_out.channels[0]);
+			rval += sprintf(b + rval, "%d ",
+				(int16_t)buf_out.channels[0]);
+
 		if (accel_priv->axis_bits & AXIS_Y)
-			rval += sprintf(b + rval, "%d ", (int16_t)buf_out.channels[1]);
+			rval += sprintf(b + rval, "%d ",
+				(int16_t)buf_out.channels[1]);
+
 		if (accel_priv->axis_bits & AXIS_Z)
-			rval += sprintf(b + rval, "%d ", (int16_t)buf_out.channels[2]);
+			rval += sprintf(b + rval, "%d ",
+				(int16_t)buf_out.channels[2]);
+
 	rval += sprintf(b + rval, "\n");
 	}
 
@@ -387,7 +430,8 @@ static ssize_t show_enabled_buffer_show (struct device *dev, struct device_attri
 
 DEVICE_ATTR_RO(show_enabled_buffer);
 
-static ssize_t x_buffer_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t x_buffer_show (struct device *dev, struct device_attribute *attr,
+			      char *b)
 {
 	int rval = 0;
 	int kfifo_rval;
@@ -413,7 +457,8 @@ static ssize_t x_buffer_show (struct device *dev, struct device_attribute *attr,
 
 DEVICE_ATTR_RO(x_buffer);
 
-static ssize_t y_buffer_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t y_buffer_show (struct device *dev, struct device_attribute *attr,
+			      char *b)
 {
 	int rval = 0;
 	int kfifo_rval;
@@ -439,7 +484,8 @@ static ssize_t y_buffer_show (struct device *dev, struct device_attribute *attr,
 
 DEVICE_ATTR_RO(y_buffer);
 
-static ssize_t z_buffer_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t z_buffer_show (struct device *dev, struct device_attribute *attr,
+			      char *b)
 {
 	int rval = 0;
 	int kfifo_rval;
@@ -465,7 +511,8 @@ static ssize_t z_buffer_show (struct device *dev, struct device_attribute *attr,
 
 DEVICE_ATTR_RO(z_buffer);
 
-static ssize_t x_raw_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t x_raw_show (struct device *dev, struct device_attribute *attr,
+			   char *b)
 {
 	int rval;
 	int val;
@@ -486,7 +533,8 @@ static ssize_t x_raw_show (struct device *dev, struct device_attribute *attr, ch
 
 DEVICE_ATTR_RO(x_raw);
 
-static ssize_t y_raw_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t y_raw_show (struct device *dev, struct device_attribute *attr,
+			   char *b)
 {
 	int rval;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
@@ -507,7 +555,8 @@ static ssize_t y_raw_show (struct device *dev, struct device_attribute *attr, ch
 
 DEVICE_ATTR_RO(y_raw);
 
-static ssize_t z_raw_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t z_raw_show (struct device *dev, struct device_attribute *attr,
+		           char *b)
 {
 	int rval;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
@@ -528,7 +577,8 @@ static ssize_t z_raw_show (struct device *dev, struct device_attribute *attr, ch
 
 DEVICE_ATTR_RO(z_raw);
 
-static ssize_t x_ms2_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t x_ms2_show (struct device *dev, struct device_attribute *attr,
+			   char *b)
 {
 	int rval;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
@@ -536,7 +586,8 @@ static ssize_t x_ms2_show (struct device *dev, struct device_attribute *attr, ch
 	int value1;
 	int value2;
 
-	rval = iio_read_channel_processed_scale(&accel_priv->channel[0], &val, ms2_mult);
+	rval = iio_read_channel_processed_scale(&accel_priv->channel[0], &val,
+						ms2_mult);
 
 	if (rval < 0)
 		pr_err("iio_read_channel_raw errno: %d\n", val);
@@ -550,7 +601,8 @@ static ssize_t x_ms2_show (struct device *dev, struct device_attribute *attr, ch
 
 DEVICE_ATTR_RO(x_ms2);
 
-static ssize_t y_ms2_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t y_ms2_show (struct device *dev, struct device_attribute *attr,
+			   char *b)
 {
 	int rval;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
@@ -558,7 +610,8 @@ static ssize_t y_ms2_show (struct device *dev, struct device_attribute *attr, ch
 	int value1;
 	int value2;
 
-	rval = iio_read_channel_processed_scale(&accel_priv->channel[1], &val, ms2_mult);
+	rval = iio_read_channel_processed_scale(&accel_priv->channel[1], &val,
+						ms2_mult);
 
 	if (rval < 0)
 		pr_err("iio_read_channel_raw errno: %d\n", val);
@@ -572,7 +625,8 @@ static ssize_t y_ms2_show (struct device *dev, struct device_attribute *attr, ch
 
 DEVICE_ATTR_RO(y_ms2);
 
-static ssize_t z_ms2_show (struct device *dev, struct device_attribute *attr, char *b)
+static ssize_t z_ms2_show (struct device *dev, struct device_attribute *attr,
+			   char *b)
 {
 	int rval;
 	struct accel_priv *accel_priv = dev_get_drvdata(dev);
@@ -580,7 +634,8 @@ static ssize_t z_ms2_show (struct device *dev, struct device_attribute *attr, ch
 	int value1;
 	int value2;
 
-	rval = iio_read_channel_processed_scale(&accel_priv->channel[2], &val, ms2_mult);
+	rval = iio_read_channel_processed_scale(&accel_priv->channel[2], &val,
+						ms2_mult);
 
 	if (rval < 0)
 		pr_err("iio_read_channel_raw errno: %d\n", val);
@@ -656,16 +711,16 @@ static int cb(const void *data, void *private)
 	struct scan *buf_data;
 	buf_data = (struct scan*)data;
 
-	struct scan *cpyof_buf_data;
-	cpyof_buf_data = kmemdup(buf_data, sizeof(*cpyof_buf_data), GFP_KERNEL);
+	struct scan *cp_buf_data;
+	cp_buf_data = kmemdup(buf_data, sizeof(*cp_buf_data), GFP_KERNEL);
 
 	for(int x=0; x<AXIS_COUNT; x++) {
-	       cpyof_buf_data->channels[x] = le16_to_cpu(cpyof_buf_data->channels[x]);
+	       cp_buf_data->channels[x] = le16_to_cpu(cp_buf_data->channels[x]);
 	       pr_info("x: %d\n",x);
 	}
 
-	kfifo_in(&accel_priv->kfifo_accel, cpyof_buf_data,1);
-	pr_info("%d\n", cpyof_buf_data->channels[0]);
+	kfifo_in(&accel_priv->kfifo_accel, cp_buf_data,1);
+	pr_info("%d\n", cp_buf_data->channels[0]);
 
 	if (kfifo_len(&accel_priv->kfifo_accel) >= accel_priv->watermark)
 		complete(&accel_priv->kfifo_at_wm);
@@ -684,10 +739,12 @@ static int generic_accel_test_probe(struct platform_device *pdev)
 	accel_priv->watermark = 1;
 	init_completion(&accel_priv->kfifo_at_wm);
 
-	rval = device_property_read_u32(&pdev->dev,"rohm,fifo-size", &accel_priv->fifo_size);
+	rval = device_property_read_u32(&pdev->dev,"rohm,fifo-size",
+					&accel_priv->fifo_size);
 
 	if (rval != 0) {
-		dev_err_probe(&pdev->dev, rval, "Device tree property rohm,fifo-size is missing!\n");
+		dev_err_probe(&pdev->dev, rval, "Device tree property "
+						"rohm,fifo-size is missing!\n");
 	}
 
 	rval = kfifo_alloc(&accel_priv->kfifo_accel, FIFO_SIZE, GFP_KERNEL);
@@ -731,7 +788,8 @@ static void generic_accel_test_remove(struct platform_device *pdev)
 	int ret;
 	struct accel_priv *accel_priv = dev_get_drvdata(&pdev->dev);
 
-	ret = devm_add_action_or_reset(&pdev->dev, &test_cleanup_buffer, accel_priv->buffer);
+	ret = devm_add_action_or_reset(&pdev->dev, &test_cleanup_buffer,
+				       accel_priv->buffer);
 }
 
 static const struct of_device_id generic_accel_test_of_match[] = {
