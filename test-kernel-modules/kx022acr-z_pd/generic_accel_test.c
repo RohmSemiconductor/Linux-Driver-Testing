@@ -163,8 +163,7 @@ static ssize_t sampling_frequency_available_show (struct device *dev,
 						IIO_CHAN_INFO_SAMP_FREQ);
 
 	if (rval < 0) {
-		pr_err("Problems reading available sampling frequencies! "
-		       "Errno: %d", rval);
+		pr_err("Problems reading available sampling frequencies! Errno: %d", rval);
 
 		return rval;
 	}
@@ -272,8 +271,7 @@ static ssize_t sampling_frequency_store (struct device *dev,
 		val2 = char_to_frac(val2_buffer, INT_TO_FRAC_MICRO);
 
 		if (val2 < 0 ) {
-			pr_err("Dont put stuff where it does not belong! "
-			       "Error: %d\n", val2);
+			pr_err("Dont put stuff where it does not belong! Error: %d\n", val2);
 
 			return val2;
 		}
@@ -327,8 +325,7 @@ static ssize_t scale_store (struct device *dev, struct device_attribute *attr,
 
 	val2 = char_to_frac(val2_buffer, INT_TO_FRAC_NANO);
 	if (val2 < 0 ) {
-		pr_err("Dont put stuff where it does not belong! "
-		       "Error: %d\n", val2);
+		pr_err("Dont put stuff where it does not belong! Error: %d\n", val2);
 
 		return val2;
 	}
@@ -743,8 +740,8 @@ static int generic_accel_test_probe(struct platform_device *pdev)
 					&accel_priv->fifo_size);
 
 	if (rval != 0) {
-		dev_err_probe(&pdev->dev, rval, "Device tree property "
-						"rohm,fifo-size is missing!\n");
+		dev_err_probe(&pdev->dev, rval,
+			"Device tree property rohm,fifo-size is missing!\n");
 	}
 
 	rval = kfifo_alloc(&accel_priv->kfifo_accel, FIFO_SIZE, GFP_KERNEL);
