@@ -24,5 +24,6 @@ def combine_bytes(high_byte, low_byte):
 
 def twos_complement(value, bits):
     if ( value & (1 << (bits -1 ))) != 0:
-        value = value - (1 << bits)
+        mask = pow(2,bits) -1
+        value = ((~value & mask) + 1) * -1
     return value
