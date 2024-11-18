@@ -241,6 +241,23 @@ def _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, 
             print( "Sampling rate "+str(result['sampling_frequency'])+" Hz behaved unexpectedly: Time between timestamps:  Received: "+str(result['return'][x])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed ("+str(result['tolerance'])+"% tolerance)\n", end='', file=summary)
     _assert_test(result, report_file, summary)
 
+def _assert_sensor_test_gscale_ms2_match(result, report_file, summary):
+    for x in range(len(result['return'])):
+        if ((result['return'][x] <= result['expect_low'][x]) or (result['return'][x] >= result['expect_high'][x])):
+            print("menee yli laidan")
+            print( "m/s^2 Does not match: G scale +/- "+str(result['gscale'][x])+" Axis: "+result['axis'][x]+" returned: "+str(result['return'][x])+", Expected: "+str(result['expect_perfect'][x])+", Allowed range: "+str(result['expect_low'][x])+" - "+str(result['expect_high'][x])+" ("+str(result['tolerance'][x])+"m/s^2 tolerance)\nDifference between received and expected: "+str(result['return_diff'][x])+"\n", end='', file=report_file)
+
+    _assert_test(result, report_file, summary)
+
+def _assert_sensor_test_gscale_raw_scale(result, report_file, summary):
+    for x in range(len(result['expect_perfect'])):
+        if ((result['return'][x] <= result['expect_low'][x]) or (result['return'][x] >= result['expect_high'][x])):
+            print("Scaling raw values failed: G scale +/- "+str(result['gscale'][x])+" Failed :in_accel_"+result['axis'][x]+"_raw returned: "+str(result['return'][x])+", Expected: "+str(result['expect_perfect'][x])+", Allowed range: "+str(result['expect_low'][x])+" - "+str(result['expect_high'][x])+" ("+str(result['tolerance'][x])+" raw tolerance)\nDifference between received and expected: "+str(result['return_diff'][x])+"\n", end='', file=report_file)
+#
+#            print( "G scale +/- "+str(result['gscale'][x])+" Failed :in_accel_"+result['axis'][x]+"_raw returned: "+str(result['return'][x])+", Expected: "+str(result['expect_perfect'][x])+", Allowed range: "+str(result['expect_low'][x])+" - "+str(result['expect_high'][x])+" ("+str(result['tolerance'][x])+"G tolerance)\n", end='', file=summary)
+
+    _assert_test(result, report_file, summary)
+
 def _assert_sensor_test_gscale_raw_match(result, report_file, summary):
     for x in range(len(result['return'])):
         if ((result['return'][x] <= result['expect_low'][x]) or (result['return'][x] >= result['expect_high'][x])):
@@ -487,5 +504,9 @@ def check_result(result):
             _assert_sensor_test_gsel(result, report_file, summary)
         elif result['stage'] == 'gscale_raw_match':
             _assert_sensor_test_gscale_raw_match(result, report_file, summary)
+        elif result['stage'] == 'gscale_raw_scale':
+            _assert_sensor_test_gscale_raw_scale(result, report_file, summary)
+        elif result['stage'] == 'gscale_ms2_match':
+            _assert_sensor_test_gscale_ms2_match(result, report_file, summary)
         elif result['stage'] == 'test_sampling_frequency_match_timestamp':
             _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, summary)
