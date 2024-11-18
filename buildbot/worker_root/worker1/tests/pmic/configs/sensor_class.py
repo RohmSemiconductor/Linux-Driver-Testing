@@ -175,7 +175,7 @@ class sensor:
             regval_tolerance = self._raw_g_tolerance(g_tolerance, self.board.data['settings']['gsel']['list_g_ranges'][x])
 
             if test_type == 'raw_match':
-                self.result['return'].append(twos_complement(self.driver_read_raw_xyz(command, axis), bits))
+                self.result['return'].append(self.driver_read_raw_xyz(command, axis))
 
                 self.result['tolerance'].append(g_tolerance)
 
