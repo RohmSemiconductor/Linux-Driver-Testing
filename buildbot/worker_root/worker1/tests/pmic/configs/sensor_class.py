@@ -141,7 +141,7 @@ class sensor:
         regval = g_tolerance / (scale / self.halved_16bit)
         return regval
 
-    def test_gscale(self, command, axis, test_type='raw_match', g_tolerance=0.1, append_results=False):
+    def test_gscale(self, command, axis, test_type='raw_match', tolerance=10, g_tolerance=0.1, append_results=False):
         ### This test turns raw values to signed values, so that close to 0 values
         ### do not jump to something like 30 000
         if append_results == False:
@@ -163,35 +163,64 @@ class sensor:
         x = 0
         # uses len() for case when more channel read results are appended to same result{}
         y = len(self.result['expect_perfect'])
-
+        last_raw = None
         for value in self.board.data['settings']['gsel']['list_values']:
-            self.result['axis'].append(axis)
-            self.result['gscale'].append(self.board.data['settings']['gsel']['list_g_ranges'][x])
-            self.result['gscale_multiplier'].append(self.board.data['settings']['gsel']['list_values'][x])
+            if test_type != 'raw_scale':
+                self.result['axis'].append(axis)
+                self.result['gscale'].append(self.board.data['settings']['gsel']['list_g_ranges'][x])
+                self.result['gscale_multiplier'].append(self.board.data['settings']['gsel']['list_values'][x])
             self.write_in_accel_scale(value, command)
 
-            self.result['return'].append(twos_complement(self.driver_read_raw_xyz(command, axis), bits))
 
             regval_tolerance = self._raw_g_tolerance(g_tolerance, self.board.data['settings']['gsel']['list_g_ranges'][x])
 
             if test_type == 'raw_match':
+                self.result['return'].append(twos_complement(self.driver_read_raw_xyz(command, axis), bits))
+
                 self.result['tolerance'].append(g_tolerance)
+
                 self.result['expect_perfect'].append(twos_complement(self.reg_read_raw_xyz(command, axis), bits))
+                low_limit = self.result['expect_perfect'][y] - regval_tolerance
+                high_limit = self.result['expect_perfect'][y] + regval_tolerance
+
                 self.result['return_diff'].append(self.result['return'][y] - self.result['expect_perfect'][y])
 
             elif test_type == 'raw_scale':
-                pass
 
-          #  elif test_type == 'ms2':
-          #      self.result['expect_perfect'].append(twos_complement()
-          #      pass
+                if last_raw != None:
+                    self.result['axis'].append(axis)
+                    self.result['gscale'].append(self.board.data['settings']['gsel']['list_g_ranges'][x])
+                    self.result['gscale_multiplier'].append(self.board.data['settings']['gsel']['list_values'][x])
 
-            low_limit = self.result['expect_perfect'][y] - regval_tolerance
-            high_limit = self.result['expect_perfect'][y] + regval_tolerance
+                    divider = self.board.data['settings']['gsel']['list_g_ranges'][x] / self.board.data['settings']['gsel']['list_g_ranges'][x-1]
+                    print(divider)
 
+                    self.result['tolerance'].append(tolerance)
+                    self.result['expect_perfect'].append(last_raw / divider)
+                    self.result['return'].append(self.driver_read_raw_xyz(command, axis))
 
-            self.result['expect_high'].append(high_limit)
-            self.result['expect_low'].append(low_limit)
+                    low_limit = round((self.result['expect_perfect'][y-1] - tolerance), 6)
+                    high_limit = round((self.result['expect_perfect'][y-1] + tolerance), 6)
+                    self.result['expect_high'].append(high_limit)
+                    self.result['expect_low'].append(low_limit)
+                    self.result['return_diff'].append(self.result['return'][y-1] - self.result['expect_perfect'][y-1])
+
+                last_raw = copy.copy(self.driver_read_raw_xyz(command, axis))
+
+            elif test_type == 'ms2_match':
+                self.result['return'].append(self.driver_read_ms2_xyz(command, axis))
+                reg_val = twos_complement(self.reg_read_raw_xyz(command, axis), bits)
+
+                self.result['tolerance'].append(tolerance)
+                self.result['expect_perfect'].append(round((reg_val * self.board.data['settings']['gsel']['list_values'][x]), 6))
+                low_limit = round((self.result['expect_perfect'][y] - tolerance), 6)
+                high_limit = round((self.result['expect_perfect'][y] + tolerance), 6)
+
+                self.result['return_diff'].append(round((self.result['return'][y] - self.result['expect_perfect'][y]), 6))
+
+            if test_type != 'raw_scale':
+                self.result['expect_high'].append(high_limit)
+                self.result['expect_low'].append(low_limit)
             y = y + 1
             x = x + 1
 
@@ -247,5 +276,6 @@ class sensor:
         self.set_watermark(command, 1)
         self.enable_single_xyz_channel(command, xyz)
         xyz_value = self.read_enabled_channels(command)
+        xyz_value = float(xyz_value[0])
 
         return xyz_value
