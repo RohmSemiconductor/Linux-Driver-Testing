@@ -2,7 +2,7 @@ data={
 'name':'kx022acr-z',
 'i2c':{
     'bus':      2,
-    'address':  0x1F,
+    'address':  0x1E,
     },
 
 'iio_device':{
