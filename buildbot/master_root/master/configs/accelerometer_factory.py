@@ -51,7 +51,11 @@ def run_accelerometer_tests():
                                             'default',
                                             generic_module='generic_accel_test')
 
-#            initialize_driver_test(project_name, test_board, product, 'default')
+            initialize_driver_test(factory_accelerometer_test,
+                                   test_board,
+                                   product, 'default',
+                                   dev_setup=True,
+                                   type='accelerometer')
 #            generate_driver_tests(project_name,test_boards[test_board]['name'],product, "regulator", "default")
 #
 #            dts_tests = check_dts_tests(product)

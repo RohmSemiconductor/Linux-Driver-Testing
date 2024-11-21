@@ -65,7 +65,9 @@ kernel_modules['test']={
 'bd71828':['bd71828-test.ko','bd71828-gpio-test.ko','bd71828-clktest.ko'],
 'bd71837':['bd71837-test.ko'],
 'bd71847':['bd71847-test.ko','bd71847-test2.ko'],
-'bd9576':['bd9576-test.ko']
+'bd9576':['bd9576-test.ko'],
+'kx022acr_z':['generic_accel_test.ko'],
+'kx132acr_lbz':['generic_accel_test.ko'],
 }
 
 #Used for assert: test_merge_dt_overlay.py, output of lsmod
@@ -87,6 +89,8 @@ kernel_modules['insmod_tests']={
 'bd71837':['bd71837_test'],
 'bd71847':['bd71847_test','bd71847_test2'],
 'bd9576':['bd9576_test'],
+'kx022acr_z':['generic_accel_test'],
+'kx132acr_lbz':['generic_accel_test'],
 }
 
 #useless

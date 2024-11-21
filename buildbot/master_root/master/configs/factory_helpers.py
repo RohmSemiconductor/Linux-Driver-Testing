@@ -5,6 +5,7 @@ import re
 import math
 import functools
 from kernel_modules import *
+from test_boards import *
 from paths import *
 ####### Generates steps for tests
 class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
@@ -116,6 +117,111 @@ def check_tag(step,product):
 
 
 ####### HELPERS TO ADD STEPS + RELATED doStepIf_ and extract_fn_ functions
+
+
+def extract_init_driver_test(rc, stdout, stderr, product):
+    if 'FAILURES' in stdout:
+        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False }
+    elif rc != 0:
+        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False }
+    else:
+        return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True }
+
+
+def extract_init_driver_test_login(rc, stdout, stderr, product):
+    if 'FAILURES' in stdout:
+        return {product+'_init_driver_tests_passed': False,product+'_login_failed': True,  product+'_do_steps' : False, 'single_login_failed' : True }
+    elif rc != 0:
+        return {product+'_init_driver_tests_passed': False, product+'_login_failed': True, product+'_do_steps' : False, 'single_login_failed' : True }
+    else:
+        return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True, 'single_login_passed' : True }
+
+
+def doStepIf_login(step, product):
+    if step.getProperty(product+'_init_driver_test_passed') == False:
+        return False
+    elif step.getProperty(product+'_do_steps') == True:
+        return True
+    else:
+        return False
+
+
+def initialize_driver_test(_factory, test_board, product, test_dts, dev_setup=False, type=None):
+    extract_init_driver_test_partial= functools.partial(extract_init_driver_test, product=product)
+    extract_init_driver_test_login_partial= functools.partial(extract_init_driver_test_login, product=product)
+    doStepIf_login_partial = functools.partial(doStepIf_login, product=product)
+
+    if dev_setup == False:
+        _factory.addStep(steps.SetPropertyFromCommand(
+            command=["pytest","-W","ignore::DeprecationWarning", "-ra",
+                     "test_000_login.py",
+                     "--power_port="+test_boards[test_board]['power_port'],
+                     "--beagle="+test_boards[test_board]['name']],
+
+            workdir="../tests/pmic",
+            extract_fn=extract_init_driver_test_login_partial,
+            doStepIf=doStepIf_login_partial,
+            name=product+": Login to "+test_boards[test_board]['name']
+            ))
+
+    if dev_setup == True:
+        _factory.addStep(steps.SetPropertyFromCommand(
+            command=["pytest","-W","ignore::DeprecationWarning", "-ra",
+                     "test_000_no_ippower_login.py",
+                     "--power_port="+test_boards[test_board]['power_port'],
+                     "--beagle="+test_boards[test_board]['name']],
+
+            workdir="../tests/pmic",
+            extract_fn=extract_init_driver_test_login_partial,
+            doStepIf=doStepIf_login_partial,
+            name=product+": Login to "+test_boards[test_board]['name']
+            ))
+
+
+    _factory.addStep(steps.SetPropertyFromCommand(
+        command=["pytest","-W","ignore::DeprecationWarning", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_board]['name']+".yaml", "test_001_init_overlay.py"],
+        workdir="../tests/pmic",
+        extract_fn=extract_init_driver_test_partial,
+        doStepIf=util.Property(product+'_do_steps') == True,
+        hideStepIf=skipped, name=product+": Install overlay merger"
+        ))
+
+    _factory.addStep(steps.SetPropertyFromCommand(
+        command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_board]['name']+".yaml", "test_002_merge_dt_overlay.py","--product="+product],
+        workdir="../tests/pmic",
+        extract_fn=extract_init_driver_test_partial,
+        doStepIf=util.Property(product+'_do_steps') == True,
+        hideStepIf=skipped, name=product+": Merge device tree overlays"
+        ))
+
+    if type == None:
+        _factory.addStep(steps.SetPropertyFromCommand(
+            command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_board]['name']+".yaml", "test_003_insmod_tests.py","--product="+product],
+            workdir="../tests/pmic",
+            extract_fn=extract_init_driver_test_partial,
+            doStepIf=util.Property(product+'_do_steps') == True,
+            hideStepIf=skipped,
+            name=product+": insmod test modules"))
+
+    elif type == 'accelerometer':
+        _factory.addStep(steps.SetPropertyFromCommand(
+            command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_board]['name']+".yaml", "test_003_insmod_accel_tests.py","--product="+product],
+            workdir="../tests/pmic",
+            extract_fn=extract_init_driver_test_partial,
+            doStepIf=util.Property(product+'_do_steps') == True,
+            hideStepIf=skipped,
+            name=product+": insmod test modules"))
+
+
+
+ #   _factory.addStep(steps.SetPropertyFromCommand(command=[
+ #       "pytest","-W","ignore::DeprecationWarning","-ra", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_board]['name']+".yaml", "test_004_init_regulator_test.py","--product="+product],
+ #       workdir="../tests/pmic",
+ #       extract_fn=extract_init_driver_test_partial,
+ #       doStepIf=util.Property(product+'_do_steps') == True,
+ #       hideStepIf=skipped,
+ #       name=product+": init_regulator_test.py"
+ #       ))
 
 def doStepIf_copy_test_kernel_modules_to_nfs(step, product, test_dts):
     if step.getProperty('kernel_build_failed') == True:
