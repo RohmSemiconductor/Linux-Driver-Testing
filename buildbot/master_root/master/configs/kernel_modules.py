@@ -22,6 +22,8 @@ kernel_modules['build']={
 'bd71847':['bd71847_test.dtbo','bd71847-test.ko','bd71847-test2.ko'],
 'bd9576':['bd9576_test.dtbo','bd9576-test.ko'],
 'bd99954':['bd99954_test.dtbo'],
+'kx022acr_z':['kx022acr_z_test.dtbo', 'generic_accel_test.ko'],
+'kx132acr_lbz':['kx132acr_lbz_test.dtbo', 'generic_accel_test.ko'],
 }
 kernel_modules['dts_tests']={
         'bd71847':['ramprate2'],

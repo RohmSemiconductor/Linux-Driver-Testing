@@ -46,7 +46,11 @@ def run_accelerometer_tests():
 #            build_dts(project_name, product, 'default')
             dts_report(factory_accelerometer_test, product, 'default')
 
-#            copy_test_kernel_modules_to_nfs(project_name, product, 'default')
+            copy_test_kernel_modules_to_nfs(factory_accelerometer_test,
+                                            product,
+                                            'default',
+                                            generic_module='generic_accel_test')
+
 #            initialize_driver_test(project_name, test_board, product, 'default')
 #            generate_driver_tests(project_name,test_boards[test_board]['name'],product, "regulator", "default")
 #

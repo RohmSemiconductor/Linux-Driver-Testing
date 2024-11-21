@@ -5,7 +5,7 @@ import re
 import math
 import functools
 from kernel_modules import *
-
+from paths import *
 ####### Generates steps for tests
 class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
 
@@ -115,7 +115,54 @@ def check_tag(step,product):
                     return False
 
 
-####### HELPERS TO ADD STEPS
+####### HELPERS TO ADD STEPS + RELATED doStepIf_ and extract_fn_ functions
+
+def doStepIf_copy_test_kernel_modules_to_nfs(step, product, test_dts):
+    if step.getProperty('kernel_build_failed') == True:
+        return False
+    elif step.getProperty('preparation_step_failed') == True:
+        return False
+    elif step.getProperty('overlay_merger_build_failed') == True:
+        return False
+    elif step.getProperty(product+'_'+test_dts+'_dts_make_passed') == True:
+        if step.getProperty(product+'_skip_dts_tests') != True:
+            return True
+    else:
+        return False
+
+
+def copy_test_kernel_modules_to_nfs(_factory, product, test_dts, generic_module = None):
+    doStepIf_copy_test_kernel_modules_to_nfs_partial = functools.partial(doStepIf_copy_test_kernel_modules_to_nfs, product=product, test_dts=test_dts)
+
+    copy_commands =[]
+    for value in kernel_modules['build'][product]:
+        if generic_module == None:
+            copy_commands.append(util.ShellArg(
+                command=["cp", "_test-kernel-modules/"+product+"/"+value, dir_nfs],
+                logname="Copy "+value+" to nfs"))
+        else:
+            copy_commands.append(util.ShellArg(
+                command=util.Interpolate('cp ../../%(prop:linuxdir)s/build/_test-kernel-modules/'
+                                         +generic_module+'/'+value+' '+dir_nfs),
+                logname="Copy "+value+" to nfs"))
+
+    _factory.addStep(steps.ShellSequence(
+            commands=copy_commands,
+            doStepIf=doStepIf_copy_test_kernel_modules_to_nfs_partial,
+            hideStepIf=skipped,
+            name=product+": Copy test kernel modules to nfs"
+            ))
+
+
+def doStepIf_dts_report(step, product, test_dts):
+    if step.getProperty('preparation_step_failed') == True:
+        return False
+    elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+        if step.getProperty(product+'_'+test_dts+'_dts_make_passed') == False:
+            return True
+    else:
+        return False
+
 
 def dts_report(_factory, product, test_dts='default'):
     doStepIf_dts_report_partial=functools.partial(doStepIf_dts_report, product=product, test_dts=test_dts)
@@ -136,6 +183,8 @@ def dts_report(_factory, product, test_dts='default'):
             hideStepIf=skipped,
             name=product+": write dts build fail to report"
             ))
+
+
 ####### Generic doStepIf_ and extract_ functions for
 ##      PMIC and sensor factories.
 
@@ -163,15 +212,6 @@ def doStepIf_dts_test_preparation(step, product):
             return True
         else:
             return False
-    else:
-        return False
-
-def doStepIf_dts_report(step, product, test_dts):
-    if step.getProperty('preparation_step_failed') == True:
-        return False
-    elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
-        if step.getProperty(product+'_'+test_dts+'_dts_make_passed') == False:
-            return True
     else:
         return False
 
