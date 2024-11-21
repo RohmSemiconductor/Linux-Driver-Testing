@@ -7,20 +7,25 @@ import string
 
 factory_accelerometer_test = util.BuildFactory()
 
+
 def build_dts_accelerometer(product):
     extract_dts_error_partial = functools.partial(extract_dts_error, product=product)
     doStepIf_dts_test_preparation_partial = functools.partial(doStepIf_dts_test_preparation, product=product)
 
     factory_accelerometer_test.addStep(steps.SetPropertyFromCommand(
-#    factory_accelerometer_test.addStep(steps.ShellCommand(
         command=['make'],
-        env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./','DTS_FILE':product+'_test.dts', 'TEST_TARGET':product},
-    workdir=util.Interpolate('../%(prop:linuxdir)s/build/_test-kernel-modules/generic_accel_test'),
+        env={'KERNEL_DIR':'../../',
+             'CC':dir_compiler_arm32+'arm-linux-gnueabihf-',
+             'PWD':'./','DTS_FILE':product+'_test.dts',
+             'TEST_TARGET':product},
+        workdir=util.Interpolate('../%(prop:linuxdir)s/build/_test-kernel-modules/generic_accel_test'),
         doStepIf=doStepIf_dts_test_preparation_partial,
         hideStepIf=skipped,
         extract_fn=extract_dts_error_partial,
         name=product+": Build dts: "+product
         ))
+
+
 def initialize_accelerometer_report(product):
     doStepIf_initialize_product_partial = functools.partial(doStepIf_initialize_product, product=product)
     factory_accelerometer_test.addStep(steps.ShellCommand(
@@ -30,6 +35,7 @@ def initialize_accelerometer_report(product):
         doStepIf=doStepIf_initialize_product_partial,
         ))
 
+
 def run_accelerometer_tests():
     for test_board in test_boards:
         for product in test_boards[test_board]['products']:
@@ -38,7 +44,7 @@ def run_accelerometer_tests():
 ##            copy_generated_dts(project_name, product, 'default')
             build_dts_accelerometer(product)
 #            build_dts(project_name, product, 'default')
-#            dts_report(project_name, product, 'default')
+            dts_report(factory_accelerometer_test, product, 'default')
 
 #            copy_test_kernel_modules_to_nfs(project_name, product, 'default')
 #            initialize_driver_test(project_name, test_board, product, 'default')

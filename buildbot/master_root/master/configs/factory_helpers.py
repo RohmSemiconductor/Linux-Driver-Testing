@@ -3,9 +3,10 @@ from buildbot.process import buildstep, logobserver
 from twisted.internet import defer
 import re
 import math
+import functools
 from kernel_modules import *
 
-
+####### Generates steps for tests
 class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
 
     def __init__(self,test_board, product,test_type, dts, extract_driver_tests_partial, **kwargs):
@@ -57,7 +58,7 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                 ])
         return result
 
-
+####### GENERIC HELPERS
 def skipped(results, build):
   return results == 3
 
@@ -114,7 +115,27 @@ def check_tag(step,product):
                     return False
 
 
+####### HELPERS TO ADD STEPS
 
+def dts_report(_factory, product, test_dts='default'):
+    doStepIf_dts_report_partial=functools.partial(doStepIf_dts_report, product=product, test_dts=test_dts)
+    if test_dts == 'default':
+        _factory.addStep(steps.ShellCommand(
+            command=["python3", "report_janitor.py", "dts_error", product, 'default', util.Property(product+'_default_dts_error')],
+            workdir="../tests",
+            doStepIf=doStepIf_dts_report_partial,
+            hideStepIf=skipped,
+            name=product+": write dts build fail to report"
+            ))
+
+    elif test_dts != 'default':
+        _factory.addStep(steps.ShellCommand(
+            command=["python3", "report_janitor.py", "dts_error", product, test_dts, util.Property(product+'_'+test_dts+'_dts_error')],
+            workdir="../tests",
+            doStepIf=doStepIf_dts_report_partial,
+            hideStepIf=skipped,
+            name=product+": write dts build fail to report"
+            ))
 ####### Generic doStepIf_ and extract_ functions for
 ##      PMIC and sensor factories.
 
@@ -142,6 +163,15 @@ def doStepIf_dts_test_preparation(step, product):
             return True
         else:
             return False
+    else:
+        return False
+
+def doStepIf_dts_report(step, product, test_dts):
+    if step.getProperty('preparation_step_failed') == True:
+        return False
+    elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+        if step.getProperty(product+'_'+test_dts+'_dts_make_passed') == False:
+            return True
     else:
         return False
 
