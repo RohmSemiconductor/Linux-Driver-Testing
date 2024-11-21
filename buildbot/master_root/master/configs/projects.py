@@ -9,7 +9,7 @@ tag_change = lambda ref: ref.startswith('refs/tags/')
 
 
 
-
+factory_build_linux_test_linux = util.BuildFactory()
 ###### PROJECTS
 # To trigger gitpoller on tag changes, use tag_change instead of ['branch_name'] in the 'branches'
 projects = {}
@@ -37,7 +37,7 @@ projects['test_linux']= {
 #    'builderNames': ["builder_test_linux"],
     'builderNames': ["Test_Linux"],
     'workerNames': ["worker1"],
-    'factory': factory_test_linux,
+    'factory': factory_build_linux_test_linux,
 #    'factory': factory_driver_test,
 }
 projects['linux-next']={
