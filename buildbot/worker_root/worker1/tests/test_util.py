@@ -179,6 +179,20 @@ def _assert_generic_login(result, report_file, summary):
 
     _assert_test(result, report_file, summary)
 
+def _assert_generic_iio_generic_buffer(result, report_file, summary):
+    if result['expect'] != result['return']:
+        print("iio_generic_buffer binary is not found in the NFS!!\n"+
+              "Reason: "+result['reason']+"\n"+
+              "Build again from source found @ Linux-Driver-Testing/tools/\n",
+              end='', file=report_file)
+
+        print("iio_generic_buffer binary is not found in the NFS!!\n"+
+              "Reason: "+result['reason']+"\n"+
+              "Build again from source found @ Linux-Driver-Testing/tools/\n",
+              end='', file=summary)
+
+    _assert_test(result, report_file, summary)
+
 def _assert_generic_ip_power(result, report_file, summary):
     if result['expect'] != result['return']:
         print( "Something wrong with controlling IP Power 9850: Received: "+str(result['return'])+", Expected: "+str(result['expect'])+". Check cable?\n", end='', file=report_file)
@@ -459,6 +473,8 @@ def check_result(result):
             _assert_generic_ip_power(result, report_file, summary)
         elif result['stage'] == 'login':
             _assert_generic_login(result, report_file, summary)
+        elif result['stage'] == 'iio_generic_buffer':
+            _assert_generic_iio_generic_buffer(result, report_file, summary)
         elif result['stage'] == 'init_overlay':
             _assert_generic_init_overlay(result, report_file, summary)
         elif result['stage'] == 'merge_dt_overlay' or result['stage'] == 'insmod_tests':

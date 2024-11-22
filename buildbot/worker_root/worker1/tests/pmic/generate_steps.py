@@ -11,6 +11,8 @@ test_type = sys.argv[2]
 pwd = os.getcwd()
 if test_type == 'regulator':
     pwd = pwd + '/'+product
+elif test_type == 'accelerometer':
+    pwd = pwd + '/'+product
 elif test_type == 'dts':
     dts = sys.argv[3]
     pwd = pwd + '/'+product+'/dts/'+dts

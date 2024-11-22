@@ -37,13 +37,15 @@ def initialize_accelerometer_report(product):
 
 
 def run_accelerometer_tests():
+####### IIO_GENERIC_BUFFER_CHECK_HERE!!!
+
+
     for test_board in test_boards:
         for product in test_boards[test_board]['products']:
             initialize_accelerometer_report(product)
 ##            generate_dts(project_name, product, 'default')
 ##            copy_generated_dts(project_name, product, 'default')
             build_dts_accelerometer(product)
-#            build_dts(project_name, product, 'default')
             dts_report(factory_accelerometer_test, product, 'default')
 
             copy_test_kernel_modules_to_nfs(factory_accelerometer_test,
@@ -56,7 +58,11 @@ def run_accelerometer_tests():
                                    product, 'default',
                                    dev_setup=True,
                                    type='accelerometer')
-#            generate_driver_tests(project_name,test_boards[test_board]['name'],product, "regulator", "default")
+            generate_driver_tests(factory_accelerometer_test,
+                                  test_boards[test_board]['name'],
+                                  product,
+                                  "accelerometer",
+                                  "default")
 #
 #            dts_tests = check_dts_tests(product)
 #            for dts in dts_tests:

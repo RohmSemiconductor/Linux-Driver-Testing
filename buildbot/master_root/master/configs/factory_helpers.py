@@ -48,6 +48,15 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                     extract_fn=self.extract_driver_tests_partial)
                     for stage in self.extract_stages(self.observer.getStdout())
                 ])
+            elif self.test_type == "accelerometer":
+                self.build.addStepsAfterCurrentStep([steps.SetPropertyFromCommand(
+                    command=["pytest","--lg-log","../temp_results/","--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
+                    name=self.product+": "+stage,
+                    workdir="../tests/pmic",
+                    doStepIf=util.Property(self.product+'_do_steps') == True,
+                    extract_fn=self.extract_driver_tests_partial)
+                    for stage in self.extract_stages(self.observer.getStdout())
+                ])
             elif self.test_type == "dts":
                 self.build.addStepsAfterCurrentStep([steps.SetPropertyFromCommand(
                     command=["pytest","--lg-log","../temp_results/","--lg-env="+self.test_board+".yaml",self.product+"/dts/"+self.dts+"/"+stage,"--dts="+self.dts],
@@ -118,6 +127,116 @@ def check_tag(step,product):
 
 ####### HELPERS TO ADD STEPS + RELATED doStepIf_ and extract_fn_ functions
 
+def doStepIf_kunit_iio_gts_test(step):
+    if step.getProperty('kunit_login_failed') == False:
+        if step.getProperty('preparation_step_failed') == False:
+            if check_kunit_iio_gts_test(step) == True:
+                return True
+            else:
+                return False
+        else:
+            return False
+    else:
+        return False
+
+
+def doStepIf_kunit_tests(step):
+    if step.getProperty('kunit_login_failed') == False:
+        if step.getProperty('preparation_step_failed') != True:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
+def extract_driver_tests(rc, stdout, stderr, product):
+    if 'FAILURES' in stdout:
+        return {product+'_skip_dts_tests': True, product+'_do_steps': False, product+'_dts_collected':False, product+'_dmesg_collected':False, 'single_test_failed': True, 'git_bisect_trigger': True}
+    elif rc != 0:
+        return {product+'_skip_dts_tests': True, product+'_do_steps': False, product+'_dts_collected':False, product+'_dmesg_collected':False, 'single_test_failed': True, 'git_bisect_trigger': True}
+    else:
+        return {product+'_skip_dts_tests': False, product+'_do_steps' : True, 'single_test_passed': True}
+
+def doStepIf_powerdown_beagle(step, product):
+    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+        if step.getProperty(product+'_dts_fail') == True:
+            return False
+        elif step.getProperty('preparation_step_failed') == True:
+            return False
+        else:
+            return True
+    else:
+        return False
+
+def doStepIf_generate_driver_tests(step, product, dts):
+    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+        if step.getProperty(product+'_'+dts+'_dts_make_passed') == True:
+            if step.getProperty(product+'_do_steps') == True:
+                return True
+            else:
+                return False
+        else:
+            return False
+    else:
+        return False
+
+def generate_driver_tests(_factory, test_board,product, test_type, dts=None):
+    extract_driver_tests_partial = functools.partial(extract_driver_tests, product=product)
+    doStepIf_kunit_iio_gts_test_partial = functools.partial(doStepIf_kunit_iio_gts_test, product=product, dts=dts)
+    doStepIf_generate_driver_tests_partial = functools.partial(doStepIf_generate_driver_tests, product=product, dts=dts)
+    doStepIf_powerdown_beagle_partial = functools.partial(doStepIf_powerdown_beagle, product=product)
+
+    if test_type == "regulator":
+
+        extract_sanitycheck_error_partial = functools.partial(extract_sanitycheck_error, product=product)
+        _factory.addStep(steps.SetPropertyFromCommand(command=[
+            'pytest','--lg-log', "../temp_results/", '--lg-env='+test_board+".yaml", product+'/test_000_sanitycheck.py'],
+            workdir="../tests/pmic/",
+            extract_fn=extract_sanitycheck_error_partial,
+            doStepIf=doStepIf_generate_driver_tests_partial,
+            hideStepIf=skipped,
+            name=product+": test_000_sanitycheck.py"
+            ))
+
+        _factory.addStep(GenerateStagesCommand(
+            test_board, product, test_type, dts, extract_driver_tests_partial,
+            name=product+": Generate "+test_type+" test stages",
+            command=["python3", "generate_steps.py", product, test_type], workdir="../tests/pmic",
+            haltOnFailure=True,
+            doStepIf=doStepIf_generate_driver_tests_partial
+            ))
+
+        collect_dmesg_and_dts(project_name, test_board, product, test_dts=dts)
+
+    elif test_type =="accelerometer":
+
+        _factory.addStep(GenerateStagesCommand(
+            test_board, product, test_type, dts, extract_driver_tests_partial,
+            name=product+": Generate "+test_type+" test stages",
+            command=["python3", "generate_steps.py", product, test_type], workdir="../tests/pmic",
+            haltOnFailure=True,
+            doStepIf=doStepIf_generate_driver_tests_partial
+            ))
+
+    elif test_type == "dts":
+        _factory.addStep(GenerateStagesCommand(
+            test_board, product, test_type, dts, extract_driver_tests_partial,
+            name=product+": Generate "+test_type+" test stages",
+            command=["python3", "generate_steps.py", product, test_type, dts], workdir="../tests/pmic",
+            haltOnFailure=True,
+            doStepIf=doStepIf_generate_driver_tests_partial
+            ))
+
+        collect_dmesg_and_dts(project_name, test_board, product, test_dts=dts)
+
+    _factory.addStep(steps.ShellCommand(
+        command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_005_powerdown_beagle.py","--power_port="+test_boards[test_board]['power_port'],"--beagle="+test_boards[test_board]['name']],
+        workdir="../tests/pmic/",
+        doStepIf=doStepIf_powerdown_beagle_partial,
+        hideStepIf=skipped,
+        name=product+": power down beagle"
+        ))
 
 def extract_init_driver_test(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
