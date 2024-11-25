@@ -1,10 +1,5 @@
 test_boards ={}
 
-product_types = {
-        'PMIC':             ['bd9576', 'bd71847', 'bd71837', 'bd71828', 'bd96801'],
-        'accelerometer':    ['kx022acr_z', 'kx132acr_lbz']
-        }
-
 #test_boards['beagle1']={
 #'name':'beagle1',
 #'products':['bd9576','bd71847'],
@@ -32,11 +27,16 @@ product_types = {
 #'power_port':'4',
 #'arch':'arm32',
 #}
-
-test_boards['beagle5']={
-'name':'beagle5',
-'products':['kx022acr_z'],
-#'products':['kx022acr-z', 'kx132acr-lbz'],
-'power_port':'4',
-'arch':'arm32',
+test_boards['accelerometer'] = {
+    'power_ports':{
+        '4':{
+            'beagle5':{
+                'name':'beagle5',
+                'power_port':'4',
+                'products':['kx022acr_z'],
+                #'products':['kx022acr-z', 'kx132acr-lbz'],
+                'arch':'arm32',
+            }
+        }
+    }
 }
