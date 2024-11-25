@@ -266,7 +266,7 @@ def check_iio_generic_buffer(project_name):
                 "--power_port="+power_port,
                 "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
         workdir="../tests/pmic",
-        name="Login to "+test_boards['accelerometer']['power_ports'][power_port][test_board]['name'],
+        name="Check for iio_generic_buffer",
         doStepIf=util.Property('preparation_step_failed') != False,
         hideStepIf=skipped,
         extract_fn=extract_check_iio_generic_buffer
