@@ -11,10 +11,15 @@ def test_insmod_tests(command,product):
     result['stage'] = 'iio_generic_buffer'
     result['expect'] = '0'
 
-    stdout, stderr, returncode = command.run('ls /joo/iio_generic_buffer; echo $?')
+    stdout, stderr, returncode = command.run('ls /iio_generic_buffer; echo $?')
 
     result['reason'] = stdout[0]
     result['return'] = stdout[1]
+
+    if result['return'] != result['expect']:
+        print("iio_generic_buffer binary is not found in the NFS!!\n"+
+              "Reason: "+result['reason']+"\n"+
+              "Build again from source found @ Linux-Driver-Testing/tools/\n")
 
     check_result(result)
 

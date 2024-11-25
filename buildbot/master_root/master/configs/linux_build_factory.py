@@ -237,6 +237,47 @@ def get_timestamp(project_name):
         doStepIf=util.Property('git_bisecting') != True
         ))
 
+def extract_check_iio_generic_buffer(rc, stdout, stderr):
+    if 'FAILURES' in stdout:
+        return { 'iio_generic_buffer_found': False }
+    else:
+        return { 'iio_generic_buffer_found': True }
+
+def check_iio_generic_buffer(project_name):
+    power_port = list(test_boards['accelerometer']['power_ports'])[0]
+    test_board = list(test_boards['accelerometer']['power_ports'][power_port])[0]
+
+
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["pytest","-W","ignore::DeprecationWarning", "-ra",
+                "test_000_no_ippower_login.py",
+                "--power_port="+power_port,
+                "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
+
+        workdir="../tests/pmic",
+        name="Login to "+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']
+        ))
+
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+        command=["pytest","-W","ignore::DeprecationWarning",
+                "test_000_check_iio_generic_buffer.py",
+                "--lg-log", "../temp_results/",
+                "--lg-env", test_boards['accelerometer']['power_ports'][power_port][test_board]['name']+".yaml",
+                "--power_port="+power_port,
+                "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
+        workdir="../tests/pmic",
+        name="Login to "+test_boards['accelerometer']['power_ports'][power_port][test_board]['name'],
+        doStepIf=util.Property('preparation_step_failed') != False,
+        hideStepIf=skipped,
+        extract_fn=extract_check_iio_generic_buffer
+        ))
+
+def doStepIf_trigger_sensor_factory(step):
+    if step.getProperty('preparation_step_failed') == False and step.getProperty('iio_generic_buffer_found') == True:
+        return True
+    else:
+        return False
+
 def trigger_sensor_factory(project_name):
         projects[project_name]['factory'].addStep(steps.Trigger(
             schedulerNames=['scheduler-accelerometer_tests'],
@@ -247,11 +288,12 @@ def trigger_sensor_factory(project_name):
                # 'git_bisect_state':'running',
                 'commit-description':util.Property('commit-description'),
              #   'timestamped_dir':util.Property('timestamped_dir'),
+                'factory_type':'accelerometer',
                 'timestamp':util.Property('timestamp'),
                 'linuxdir':util.Property('buildername'),
               #  'RESULT':'FAILED',
                 },
-            doStepIf = util.Property('preparation_step_failed') != True
+            doStepIf = doStepIf_trigger_sensor_factory
             ))
 
 def download_test_boards(project_name):
@@ -270,6 +312,7 @@ def build_deploy_kernel(project_name):
     copy_overlay_merger_to_nfs(project_name)
     get_timestamp(project_name)
     download_test_boards(project_name)
+    check_iio_generic_buffer(project_name)
     trigger_sensor_factory(project_name)
 
 build_deploy_kernel('test_linux')
