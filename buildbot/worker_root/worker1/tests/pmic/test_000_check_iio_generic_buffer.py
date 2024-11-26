@@ -6,9 +6,10 @@ sys.path.append('./configs')
 from test_util import checkStdOut, check_result, result
 from kernel_modules import *
 
-def test_insmod_tests(command,product):
+def test_insmod_tests(command,product, result_dir):
     result['type'] = 'generic'
     result['stage'] = 'iio_generic_buffer'
+    result['result_dir'] = result_dir
     result['expect'] = '0'
 
     stdout, stderr, returncode = command.run('ls /iio_generic_buffer; echo $?')

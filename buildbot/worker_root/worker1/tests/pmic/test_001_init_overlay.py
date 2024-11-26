@@ -4,9 +4,10 @@ from pathlib import Path
 sys.path.append('..')
 from test_util import checkStdOut, check_result, result
 
-def test_init_overlay(command):
+def test_init_overlay(command, result_dir):
     result['type'] = 'generic'
     result['stage'] = 'init_overlay'
+    result['result_dir'] = result_dir
 
     stdout, stderr, returncode = command.run('insmod /mva_overlay.ko')
     if (returncode != 0):

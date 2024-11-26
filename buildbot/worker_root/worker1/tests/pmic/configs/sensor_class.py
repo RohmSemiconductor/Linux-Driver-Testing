@@ -20,6 +20,7 @@ class sensor:
 
     result: dict = field(default_factory=lambda: {
     'type':         'Sensor',
+    'result_dir':   'sensor',
     'stage':        None,
     'product':      None,
     'return':       [],

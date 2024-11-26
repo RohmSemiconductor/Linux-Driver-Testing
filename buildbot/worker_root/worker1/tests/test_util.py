@@ -31,18 +31,18 @@ def initialize_report(bb_project, linux_ver, revision):
 
 def initialize_product(type, product):
     for report_file in report_file_names:
-        report_file = open('./temp_results/'+report_file+'.txt', 'a', encoding='utf-8')
+        report_file = open('./temp_results_'+type+'/'+report_file+'.txt', 'a', encoding='utf-8')
         report_file.seek(0,2)
         print("Testing: "+product+" "+type+"\n", end='', file=report_file)
         report_file.close()
 
-def finalize_product(product, do_steps):
+def finalize_product(product, do_steps, type):
     if do_steps == 'True':
         result = "PASSED"
     else:
         result = "FAILED"
     for report_file in report_file_names:
-        report_file = open('./temp_results/'+report_file+'.txt', 'a', encoding='utf-8')
+        report_file = open('./temp_results_'+type+'/'+report_file+'.txt', 'a', encoding='utf-8')
         report_file.seek(0,2)
         print("Test results: "+product+": "+result+"\n\n", end='', file=report_file)
         report_file.close()
@@ -463,8 +463,16 @@ def _assert_pmic_validate_config(result, report_file, summary):
     assert result['return'] == result['expect']
 
 def check_result(result):
-    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
-    summary = open('../temp_results/summary.txt', 'a', encoding='utf-8')
+    if result['result_dir'] == 'PMIC':
+        report_file = open('../temp_results_PMIC/temp_results.txt', 'a', encoding='utf-8')
+        summary = open('../temp_results/summary.txt', 'a', encoding='utf-8')
+
+    elif result['result_dir'] == 'sensor':
+        report_file = open('../temp_results_sensor/temp_results.txt', 'a', encoding='utf-8')
+        summary = open('../temp_results/summary.txt', 'a', encoding='utf-8')
+    elif result['result_dir'] == 'linux':
+        report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
+        summary = open('../temp_results/summary.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     summary.seek(0,2)
 

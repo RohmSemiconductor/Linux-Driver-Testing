@@ -8,9 +8,10 @@ from test_util import *
 from time import sleep
 from kernel_modules import *
 
-def test_merge_dt_overlay(command,product):
+def test_merge_dt_overlay(command,product, result_dir):
     result['type'] = 'generic'
     result['stage'] = 'merge_dt_overlay'
+    result['result_dir'] = result_dir
 
     for x in range(0,len(kernel_modules['dt_overlays'][product])):
         stdout, stderr, returncode = command.run('dd if=/'+kernel_modules['dt_overlays'][product][x]+' of=/sys/kernel/mva_overlay/overlay_add bs=1M')

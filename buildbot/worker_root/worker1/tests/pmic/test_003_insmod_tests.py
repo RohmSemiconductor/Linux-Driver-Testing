@@ -5,9 +5,10 @@ sys.path.append('./configs')
 from test_util import checkStdOut, check_result, result
 from kernel_modules import *
 
-def test_insmod_tests(command,product):
+def test_insmod_tests(command,product, result_dir):
     result['type'] = 'generic'
     result['stage'] = 'insmod_tests'
+    result['result_dir'] = result_dir
     for x in range(0,len(kernel_modules['test'][product])):
         stdout, stderr, returncode = command.run('insmod /'+kernel_modules['test'][product][x])
     if (returncode != 0):

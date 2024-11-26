@@ -14,6 +14,7 @@ class pmic:
     board: dict
     result: dict = field(default_factory=lambda: {
     'type':         'PMIC',
+    'result_dir':   'PMIC',
     'stage':        None,
     'product':      None,
     'regulator':    None,
