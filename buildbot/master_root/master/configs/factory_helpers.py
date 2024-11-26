@@ -41,7 +41,7 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
             # create a ShellCommand for each stage and add them to the build
             if self.test_type == "regulator":
                 self.build.addStepsAfterCurrentStep([steps.SetPropertyFromCommand(
-                    command=["pytest","--lg-log","../temp_results/","--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
+                    command=["pytest","--lg-log","../temp_results_PMIC/","--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
                     name=self.product+": "+stage,
                     workdir="../tests/pmic",
                     doStepIf=util.Property(self.product+'_do_steps') == True,
@@ -50,7 +50,7 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                 ])
             elif self.test_type == "accelerometer":
                 self.build.addStepsAfterCurrentStep([steps.SetPropertyFromCommand(
-                    command=["pytest","--lg-log","../temp_results/","--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
+                    command=["pytest","--lg-log","../temp_results_sensor/","--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
                     name=self.product+": "+stage,
                     workdir="../tests/pmic",
                     doStepIf=util.Property(self.product+'_do_steps') == True,
@@ -127,6 +127,18 @@ def check_tag(step,product):
 
 ####### HELPERS TO ADD STEPS + RELATED doStepIf_ and extract_fn_ functions
 
+def extract_kunit_login(rc, stdout, stderr):
+    if 'FAILURES' in stdout:
+        return { 'kunit_login_failed' : True, 'kunit_login_tried': True }
+    else:
+        return { 'kunit_login_failed' : False, 'kunit_login_tried': True }
+
+def extract_kunit_test_error(rc, stdout, stderr):
+    if rc != 0:
+        return { 'preparation_step_failed': True }
+    else:
+        return { 'kunit_test_passed': True }
+
 def doStepIf_kunit_iio_gts_test(step):
     if step.getProperty('kunit_login_failed') == False:
         if step.getProperty('preparation_step_failed') == False:
@@ -181,7 +193,7 @@ def doStepIf_generate_driver_tests(step, product, dts):
     else:
         return False
 
-def generate_driver_tests(_factory, power_port, test_board, product, test_type='PMIC', dts=None):
+def generate_driver_tests(_factory, power_port, test_board, product, test_type='PMIC', result_dir='PMIC', dts=None):
     extract_driver_tests_partial = functools.partial(extract_driver_tests, product=product)
     doStepIf_kunit_iio_gts_test_partial = functools.partial(doStepIf_kunit_iio_gts_test, product=product, dts=dts)
     doStepIf_generate_driver_tests_partial = functools.partial(doStepIf_generate_driver_tests, product=product, dts=dts)
@@ -274,7 +286,7 @@ def extract_check_iio_generic_buffer(rc, stdout, stderr):
         return {'iio_generic_buffer_found' : True }
 
 def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
-                           test_type='PMIC', dev_setup=False, type=None):
+                           test_type='PMIC', result_dir='PMIC', dev_setup=False, type=None):
 
     extract_init_driver_test_partial= functools.partial(extract_init_driver_test, product=product)
     extract_init_driver_test_login_partial= functools.partial(extract_init_driver_test_login, product=product)
@@ -285,7 +297,8 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
             command=["pytest","-W","ignore::DeprecationWarning", "-ra",
                      "test_000_login.py",
                      "--power_port="+power_port,
-                     "--beagle="+test_boards[test_type]['power_ports'][power_port][test_board]['name']],
+                     "--beagle="+test_boards[test_type]['power_ports'][power_port][test_board]['name'],
+                     "--result_dir="+result_dir,],
 
             workdir="../tests/pmic",
             extract_fn=extract_init_driver_test_login_partial,
@@ -298,7 +311,9 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
             command=["pytest","-W","ignore::DeprecationWarning", "-ra",
                      "test_000_no_ippower_login.py",
                      "--power_port="+power_port,
-                     "--beagle="+test_boards[test_type]['power_ports'][power_port][test_board]['name']],
+                     "--beagle="+test_boards[test_type]['power_ports'][power_port][test_board]['name'],
+                     "--result_dir="+result_dir,
+                     ],
 
             workdir="../tests/pmic",
             extract_fn=extract_init_driver_test_login_partial,
@@ -322,7 +337,11 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
 
 
     _factory.addStep(steps.SetPropertyFromCommand(
-        command=["pytest","-W","ignore::DeprecationWarning", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml", "test_001_init_overlay.py"],
+        command=["pytest","-W","ignore::DeprecationWarning",
+                 "--lg-log", "../temp_results/",
+                 "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml",
+                 "--result_dir="+result_dir,
+                 "test_001_init_overlay.py"],
         workdir="../tests/pmic",
         extract_fn=extract_init_driver_test_partial,
         doStepIf=util.Property(product+'_do_steps') == True,
@@ -330,14 +349,19 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
         ))
 
     _factory.addStep(steps.SetPropertyFromCommand(
-        command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml", "test_002_merge_dt_overlay.py","--product="+product],
+        command=["pytest","-W","ignore::DeprecationWarning","-ra",
+                 "--lg-log", "../temp_results/",
+                 "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml",
+                 "test_002_merge_dt_overlay.py",
+                 "--product="+product,
+                 "--result_dir="+result_dir],
         workdir="../tests/pmic",
         extract_fn=extract_init_driver_test_partial,
         doStepIf=util.Property(product+'_do_steps') == True,
         hideStepIf=skipped, name=product+": Merge device tree overlays"
         ))
 
-    if type == None:
+    if test_type == 'PMIC':
         _factory.addStep(steps.SetPropertyFromCommand(
             command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml", "test_003_insmod_tests.py","--product="+product],
             workdir="../tests/pmic",
@@ -346,7 +370,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
             hideStepIf=skipped,
             name=product+": insmod test modules"))
 
-    elif type == 'accelerometer':
+    elif test_type == 'accelerometer':
         _factory.addStep(steps.SetPropertyFromCommand(
             command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml", "test_003_insmod_accel_tests.py","--product="+product],
             workdir="../tests/pmic",
@@ -433,13 +457,13 @@ def doStepIf_finalize_product(step, product):
     else:
         return False
 
-def finalize_product(_factory, product):
+def finalize_product(_factory, product, result_dir):
     doStepIf_finalize_product_partial = functools.partial(doStepIf_finalize_product, product=product)
     _factory.addStep(steps.ShellCommand(
         command=["python3", "report_janitor.py", "finalize_product",
                  util.Property('buildername'),
                  util.Property('commit-description'),
-                 "accelerometer",
+                 result_dir,
                  product,
                  util.Property(product+'_do_steps')],
         workdir="../tests",
