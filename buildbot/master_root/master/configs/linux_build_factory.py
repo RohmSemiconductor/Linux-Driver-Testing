@@ -72,6 +72,7 @@ def build_kernel_arm32(project_name):
         mode='incremental',
         getDescription={'tags':True},
         name="Update linux source files from git",
+        tags=True,
         doStepIf=util.Property('git_bisect_state') != 'running'
         ))
 
@@ -243,35 +244,6 @@ def extract_check_iio_generic_buffer(rc, stdout, stderr):
     else:
         return { 'iio_generic_buffer_found': True }
 
-def check_iio_generic_buffer(project_name):
-    power_port = list(test_boards['accelerometer']['power_ports'])[0]
-    test_board = list(test_boards['accelerometer']['power_ports'][power_port])[0]
-
-
-    projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["pytest","-W","ignore::DeprecationWarning", "-ra",
-                "test_000_no_ippower_login.py",
-                "--power_port="+power_port,
-                "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
-
-        workdir="../tests/pmic",
-        name="Login to "+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']
-        ))
-
-    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
-        command=["pytest","-W","ignore::DeprecationWarning",
-                "test_000_check_iio_generic_buffer.py",
-                "--lg-log", "../temp_results/",
-                "--lg-env", test_boards['accelerometer']['power_ports'][power_port][test_board]['name']+".yaml",
-                "--power_port="+power_port,
-                "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
-        workdir="../tests/pmic",
-        name="Check for iio_generic_buffer",
-        doStepIf=util.Property('preparation_step_failed') != False,
-        hideStepIf=skipped,
-        extract_fn=extract_check_iio_generic_buffer
-        ))
-
 def doStepIf_trigger_sensor_factory(step):
     if step.getProperty('preparation_step_failed') == False and step.getProperty('iio_generic_buffer_found') == True:
         return True
@@ -296,6 +268,24 @@ def trigger_sensor_factory(project_name):
             doStepIf = doStepIf_trigger_sensor_factory
             ))
 
+def trigger_pmic_factory(project_name):
+        projects[project_name]['factory'].addStep(steps.Trigger(
+            schedulerNames=['scheduler-pmic_tests'],
+            updateSourceStamp=True,
+            name="Trigger PMIC tests",
+            set_properties= {
+                #'git_bisecting':True,
+               # 'git_bisect_state':'running',
+                'commit-description':util.Property('commit-description'),
+             #   'timestamped_dir':util.Property('timestamped_dir'),
+                'factory_type':'PMIC',
+                'timestamp':util.Property('timestamp'),
+                'linuxdir':util.Property('buildername'),
+              #  'RESULT':'FAILED',
+                },
+            doStepIf = util.Property('preparation_step_failed') != False
+            ))
+
 def download_test_boards(project_name):
     projects[project_name]['factory'].addStep(steps.FileDownload(
         mastersrc="configs/kernel_modules.py",
@@ -304,15 +294,103 @@ def download_test_boards(project_name):
         doStepIf=util.Property('preparation_step_failed') != True
         ))
 
+def copy_results_for_factories(project_name):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["python3", "report_janitor.py", "initialize_factories"],
+        name="Copy result files to factories",
+        workdir="../tests",
+        ))
+
+def sanity_checks(project_name):
+    power_port = list(test_boards['accelerometer']['power_ports'])[0]
+    test_board = list(test_boards['accelerometer']['power_ports'][power_port])[0]
+
+
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["pytest","-W","ignore::DeprecationWarning", "-ra",
+                "test_000_no_ippower_login.py",
+                "--power_port="+power_port,
+                "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
+
+        workdir="../tests/pmic",
+        name="Login to "+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']
+        ))
+
+    ### Check for iio_generic_buffer
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+        command=["pytest","-W","ignore::DeprecationWarning",
+                "test_000_check_iio_generic_buffer.py",
+                "--lg-log", "../temp_results/",
+                "--lg-env", test_boards['accelerometer']['power_ports'][power_port][test_board]['name']+".yaml",
+                "--power_port="+power_port,
+                "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
+        workdir="../tests/pmic",
+        name="Check for iio_generic_buffer",
+        doStepIf=util.Property('preparation_step_failed') != False,
+        hideStepIf=skipped,
+        extract_fn=extract_check_iio_generic_buffer
+        ))
+
+    ### Kunit test_linear_ranges test
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=[
+        'pytest','--lg-log', "../temp_results/",
+        '--lg-env='+test_board+".yaml",
+        'test_get_kunit.py',
+        '--kunit_test=test_linear_ranges'],
+        workdir="../tests/pmic/",
+        extract_fn=extract_kunit_test_error,
+        doStepIf=doStepIf_kunit_tests,
+        hideStepIf=skipped,
+        name="Kunit linear ranges test"
+        ))
+
+    ### Kunit iio_test_gets
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+        command=['pytest','--lg-log', "../temp_results/",
+        '--lg-env='+test_board+".yaml",
+        'test_get_kunit.py',
+        '--kunit_test=iio_test_gts'],
+        workdir="../tests/pmic/",
+        extract_fn=extract_kunit_test_error,
+        doStepIf=doStepIf_kunit_iio_gts_test,
+        hideStepIf=skipped,
+        name="Kunit IIO GTS test"
+        ))
+
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["python3", "report_janitor.py", "finalize_kunit"],
+        workdir="../tests",
+        name="Rename kunit UART log",
+        doStepIf=util.Property('kunit_login_tried') == True,
+        hideStepIf=skipped
+        ))
+
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["pytest","-W","ignore::DeprecationWarning", "-ra",
+                 "test_005_powerdown_beagle.py",
+                 "--power_port="+power_port,
+                 "--beagle="+test_board],
+        workdir="../tests/pmic/",
+        doStepIf=util.Property('kunit_login_tried') == True,
+        hideStepIf=skipped,
+        name="Power down beagle"
+        ))
+
 def build_deploy_kernel(project_name):
+
+    ### Build and deploy
     build_kernel_arm32(project_name)
     copy_kernel_binaries_to_tftpboot(project_name)
     update_test_kernel_modules(project_name)
     build_overlay_merger(project_name)
     copy_overlay_merger_to_nfs(project_name)
+
     get_timestamp(project_name)
     download_test_boards(project_name)
-    check_iio_generic_buffer(project_name)
+    ### Sanitycheks
+    sanity_checks(project_name)
+    ### Prepare and trigger
+    copy_results_for_factories(project_name)
     trigger_sensor_factory(project_name)
 
 build_deploy_kernel('test_linux')
