@@ -193,7 +193,7 @@ def doStepIf_generate_driver_tests(step, product, dts):
     else:
         return False
 
-def generate_driver_tests(_factory, power_port, test_board, product, test_type='PMIC', result_dir='PMIC', dts=None):
+def generate_driver_tests(_factory, power_port, test_board, product, test_type='PMIC', dts=None):
     extract_driver_tests_partial = functools.partial(extract_driver_tests, product=product)
     doStepIf_kunit_iio_gts_test_partial = functools.partial(doStepIf_kunit_iio_gts_test, product=product, dts=dts)
     doStepIf_generate_driver_tests_partial = functools.partial(doStepIf_generate_driver_tests, product=product, dts=dts)
