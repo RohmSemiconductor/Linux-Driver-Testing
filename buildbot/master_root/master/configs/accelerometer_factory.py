@@ -29,7 +29,7 @@ def build_dts_accelerometer(product):
 def initialize_accelerometer_report(product):
     doStepIf_initialize_product_partial = functools.partial(doStepIf_initialize_product, product=product)
     factory_accelerometer_test.addStep(steps.ShellCommand(
-        command=["python3", "report_janitor.py", "initialize_product", "PMIC", product],
+        command=["python3", "report_janitor.py", "initialize_product", "sensor", product],
         workdir="../tests",
         name="Initialize test report: "+product,
         doStepIf=doStepIf_initialize_product_partial,
@@ -56,13 +56,16 @@ def run_accelerometer_tests():
                                        test_board,
                                        product, 'default',
                                        dev_setup=True,
-                                       test_type='accelerometer')
+                                       test_type='accelerometer',
+                                       result_dir='sensor'
+                                       )
                 generate_driver_tests(factory_accelerometer_test,
                                       power_port,
                                       test_boards['accelerometer']['power_ports'][power_port][test_board]['name'],
                                       product,
-                                      "accelerometer",
-                                      "default")
+                                      test_type="accelerometer",
+                                      result_dir='sensor',
+                                      dts="default")
 #
 #                dts_tests = check_dts_tests(product)
 #                for dts in dts_tests:
@@ -75,6 +78,6 @@ def run_accelerometer_tests():
 #                    initialize_driver_test(project_name, test_board, product, dts)
 #                    generate_driver_tests(project_name, test_boards[test_type][test_board]['name'], product, "dts", dts )
 #
-#                finalize_product(project_name, product)
+                finalize_product(factory_accelerometer_test, product, "sensor")
 
 run_accelerometer_tests()
