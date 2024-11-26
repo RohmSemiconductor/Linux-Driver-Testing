@@ -13,10 +13,14 @@ if sys.argv[1] == 'initialize_report':
     stdout = subprocess.run('mkdir temp_results', shell=True)
     initialize_report(bb_project, linux_ver, revision)
 
+elif sys.argv[1] == 'initialize_factories':
+    stdout = subprocess.run('cp -r ./temp_results/* temp_results_PMIC/', shell=True)
+    stdout = subprocess.run('cp -r ./temp_results/* temp_results_sensor/', shell=True)
+
 elif sys.argv[1] == 'initialize_product':
     type = sys.argv[2]
     product = sys.argv[3]
-    stdout = subprocess.run('mkdir ./temp_results/'+product, shell=True)
+    stdout = subprocess.run('mkdir ./temp_results_'+type+'/'+product, shell=True)
     initialize_product(type, product)
 
 elif sys.argv[1] == 'finalize_product':
@@ -28,10 +32,10 @@ elif sys.argv[1] == 'finalize_product':
     type = sys.argv[4]
     product = sys.argv[5]
     do_steps = sys.argv[6]
-    finalize_product(product, do_steps)
+    finalize_product(product, do_steps, type)
 
-    stdout = subprocess.run('mv ./temp_results/temp_results.txt ./temp_results/'+product+'/'+product+'_results.txt', shell=True)
-    stdout = subprocess.run('mv ./temp_results/console_main ./temp_results/'+product+'/'+product+'_UART_LOG', shell=True)
+    stdout = subprocess.run('mv ./temp_results_'+type+'/temp_results.txt ./temp_results_'+type+'/'+product+'/'+product+'_results.txt', shell=True)
+    stdout = subprocess.run('mv ./temp_results_'+type+'/console_main ./temp_results_'+type+'/'+product+'/'+product+'_UART_LOG', shell=True)
 
 elif sys.argv[1] == 'finalize_kunit':
     stdout = subprocess.run('mv ./temp_results/console_main ./temp_results/Kunit_UART_LOG', shell=True)
