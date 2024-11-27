@@ -9,36 +9,36 @@ from factory_helpers import *
 
 def check_boneblack_old_dir(step):
     if re.search('^next.*', step.getProperty('commit-description')):    #check for linux next
-        return False
+        return 'False'
     else:
         git_ver = tagConvert(step.getProperty('commit-description'))
         if git_ver[0] > 6:
-            return False
+            return 'False'
         elif git_ver[0] == 6:
             if math.floor(git_ver[1]) <= 1:
-                return True
+                return 'True'
             else:
-                return False
+                return 'False'
         else:
-            return True
+            return 'True'
 
 def extract_boneblack_dts(rc, stdout, stderr):
     if rc != 0:
-        return {'boneblack_dts_failed': True, 'preparation_step_failed':True }
+        return {'boneblack_dts_failed': 'True', 'preparation_step_failed':'True' }
     if rc == 0:
-        return {'preparation_step_failed':False}
+        return {'preparation_step_failed':'False'}
 
 def initialize_test_report(project_name):
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["python3", "report_janitor.py", "initialize_report", projects[project_name]['builderNames'][0], util.Property('commit-description'), util.Property('revision')],
         workdir="../tests",
         name="Initialize test report",
-        doStepIf=util.Property('git_bisecting') != True
+        doStepIf=util.Property('git_bisecting') != 'True'
         ))
 
 def doStepIf_dtc_boneblack(step):
-    if step.getProperty('kernel_build_failed') != True:
-        if check_boneblack_old_dir(step) != True:
+    if step.getProperty('kernel_build_failed') != 'True':
+        if check_boneblack_old_dir(step) != 'True':
             return True
         else:
             return False
@@ -46,8 +46,8 @@ def doStepIf_dtc_boneblack(step):
         return False
 
 def doStepIf_dtc_boneblack_old_dir(step):
-    if step.getProperty('kernel_build_failed') != True:
-        if check_boneblack_old_dir(step) == True:
+    if step.getProperty('kernel_build_failed') != 'True':
+        if check_boneblack_old_dir(step) == 'True':
             return True
         else:
             return False
@@ -62,9 +62,9 @@ def doStepIf_linux_stable_copy_config(step, project_name, branch):
 
 def extract_make_kernel(rc, stdout, stderr):
     if rc != 0:
-        return {'kernel_build_failed':True, 'preparation_step_failed':True, 'kernel_error_stderr':stderr}
+        return {'kernel_build_failed':'True', 'preparation_step_failed':'True', 'kernel_error_stderr':stderr}
     if rc == 0:
-        return {'preparation_step_failed':False}
+        return {'preparation_step_failed':'False'}
 
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(
@@ -111,14 +111,14 @@ def build_kernel_arm32(project_name):
         command=["python3", "report_janitor.py", "kernel_error", util.Property('kernel_error_stderr')],
         workdir="../tests",
         name="Write kernel make stderr to log",
-        doStepIf=util.Property('kernel_build_failed') == True,
+        doStepIf=util.Property('kernel_build_failed') == 'True',
         hideStepIf=skipped
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "INSTALL_MOD_PATH="+dir_nfs, "modules_install"],
         name="Install kernel modules",
-        doStepIf=util.Property('kernel_build_failed') != True
+        doStepIf=util.Property('kernel_build_failed') != 'True'
         ))
 
     if project_name == 'linux_rohm_devel':
@@ -153,7 +153,7 @@ def copy_kernel_binaries_to_tftpboot(project_name):
             util.ShellArg(command=['cp',"arch/arm/boot/zImage", dir_tftpboot], logname='Copy zImage to tftpboot')
             ],
             name="Copy kernel binaries to tftpboot",
-            doStepIf=util.Property('kernel_build_failed') != True ,
+            doStepIf=util.Property('kernel_build_failed') != 'True' ,
             hideStepIf=skipped
             ))
     else:
@@ -187,14 +187,14 @@ def update_test_kernel_modules(project_name):
         workdir="build/_test-kernel-modules",
         name="Update kernel module source files from git",
         hideStepIf=skipped,
-        doStepIf=util.Property('preparation_step_failed') != True
+        doStepIf=util.Property('preparation_step_failed') != 'True'
         ))
 
 def extract_make_overlay_merger(rc, stdout, stderr):
     if rc != 0:
-        return {'overlay_merger_build_failed':True, 'preparation_step_failed':True, 'overlay_merger_stderr':stderr}
+        return {'overlay_merger_build_failed':'True', 'preparation_step_failed':'True', 'overlay_merger_stderr':stderr}
     if rc == 0:
-        return {'preparation_step_failed':False}
+        return {'preparation_step_failed':'False'}
 
 def build_overlay_merger(project_name):
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
@@ -204,14 +204,14 @@ def build_overlay_merger(project_name):
         name="Build test kernel module: overlay_merger",
         hideStepIf=skipped,
         extract_fn=extract_make_overlay_merger,
-        doStepIf=util.Property('preparation_step_failed') != True
+        doStepIf=util.Property('preparation_step_failed') != 'True'
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["python3", "report_janitor.py", "overlay_merger_error", util.Property('overlay_merger_error_stderr')],
         workdir="../tests",
         name="Write overlay merger make stderr to log",
-        doStepIf=util.Property('overlay_merger_build_failed') == True,
+        doStepIf=util.Property('overlay_merger_build_failed') == 'True',
         hideStepIf=skipped
         ))
 
@@ -221,7 +221,7 @@ def copy_overlay_merger_to_nfs(project_name):
         command=["cp", "_test-kernel-modules/overlay_merger/mva_overlay.ko", dir_nfs],
         name="Copy overlay merger to nfs",
         hideStepIf=skipped,
-        doStepIf=util.Property('preparation_step_failed') != True
+        doStepIf=util.Property('preparation_step_failed') != 'True'
         ))
 
 def extract_get_timestamp(rc, stdout, stderr):
@@ -235,17 +235,11 @@ def get_timestamp(project_name):
         workdir="../tests",
         name="Set timestamp property for results",
         extract_fn=extract_get_timestamp,
-        doStepIf=util.Property('git_bisecting') != True
+        doStepIf=util.Property('git_bisecting') != 'True'
         ))
 
-def extract_check_iio_generic_buffer(rc, stdout, stderr):
-    if 'FAILURES' in stdout:
-        return { 'iio_generic_buffer_found': False }
-    else:
-        return { 'iio_generic_buffer_found': True }
-
 def doStepIf_trigger_sensor_factory(step):
-    if step.getProperty('preparation_step_failed') == False and step.getProperty('iio_generic_buffer_found') == True:
+    if step.getProperty('preparation_step_failed') == 'False' and step.getProperty('iio_generic_buffer_found') == 'True':
         return True
     else:
         return False
@@ -256,6 +250,8 @@ def trigger_sensor_factory(project_name):
             updateSourceStamp=True,
             name="Trigger accelerometer tests",
             set_properties= {
+                'iio_generic_buffer_found':util.Property('iio_generic_buffer_found'),
+                'preparation_step_failed':util.Property('preparation_step_failed'),
                 #'git_bisecting':True,
                # 'git_bisect_state':'running',
                 'commit-description':util.Property('commit-description'),
@@ -265,7 +261,8 @@ def trigger_sensor_factory(project_name):
                 'linuxdir':util.Property('buildername'),
               #  'RESULT':'FAILED',
                 },
-            doStepIf = doStepIf_trigger_sensor_factory
+            #doStepIf = util.Property('preparation_step_failed') != False
+            #doStepIf = doStepIf_trigger_sensor_factory
             ))
 
 def trigger_pmic_factory(project_name):
@@ -283,7 +280,7 @@ def trigger_pmic_factory(project_name):
                 'linuxdir':util.Property('buildername'),
               #  'RESULT':'FAILED',
                 },
-            doStepIf = util.Property('preparation_step_failed') != False
+            #doStepIf = util.Property('preparation_step_failed') != False
             ))
 
 def download_test_boards(project_name):
@@ -291,7 +288,7 @@ def download_test_boards(project_name):
         mastersrc="configs/kernel_modules.py",
         workerdest="../../tests/pmic/configs/kernel_modules.py",
         name="Download kernel_modules.py",
-        doStepIf=util.Property('preparation_step_failed') != True
+        doStepIf=util.Property('preparation_step_failed') != 'True'
         ))
 
 def copy_results_for_factories(project_name):
@@ -326,7 +323,7 @@ def sanity_checks(project_name):
                 "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
         workdir="../tests/pmic",
         name="Check for iio_generic_buffer",
-        doStepIf=util.Property('preparation_step_failed') != False,
+        doStepIf=util.Property('preparation_step_failed') != 'True',
         hideStepIf=skipped,
         extract_fn=extract_check_iio_generic_buffer
         ))
@@ -361,7 +358,7 @@ def sanity_checks(project_name):
         command=["python3", "report_janitor.py", "finalize_kunit"],
         workdir="../tests",
         name="Rename kunit UART log",
-        doStepIf=util.Property('kunit_login_tried') == True,
+        doStepIf=util.Property('kunit_login_tried') == 'True',
         hideStepIf=skipped
         ))
 
@@ -371,7 +368,7 @@ def sanity_checks(project_name):
                  "--power_port="+power_port,
                  "--beagle="+test_board],
         workdir="../tests/pmic/",
-        doStepIf=util.Property('kunit_login_tried') == True,
+        doStepIf=util.Property('kunit_login_tried') == 'True',
         hideStepIf=skipped,
         name="Power down beagle"
         ))

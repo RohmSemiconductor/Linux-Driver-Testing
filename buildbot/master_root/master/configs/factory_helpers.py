@@ -129,20 +129,20 @@ def check_tag(step,product):
 
 def extract_kunit_login(rc, stdout, stderr):
     if 'FAILURES' in stdout:
-        return { 'kunit_login_failed' : True, 'kunit_login_tried': True }
+        return { 'kunit_login_failed' : 'True', 'kunit_login_tried': 'True' }
     else:
-        return { 'kunit_login_failed' : False, 'kunit_login_tried': True }
+        return { 'kunit_login_failed' : 'False', 'kunit_login_tried': 'True' }
 
 def extract_kunit_test_error(rc, stdout, stderr):
     if rc != 0:
-        return { 'preparation_step_failed': True }
+        return { 'preparation_step_failed': 'True' }
     else:
-        return { 'kunit_test_passed': True }
+        return { 'kunit_test_passed': 'True' }
 
 def doStepIf_kunit_iio_gts_test(step):
-    if step.getProperty('kunit_login_failed') == False:
-        if step.getProperty('preparation_step_failed') == False:
-            if check_kunit_iio_gts_test(step) == True:
+    if step.getProperty('kunit_login_failed') == 'False':
+        if step.getProperty('preparation_step_failed') == 'False':
+            if check_kunit_iio_gts_test(step) == 'True':
                 return True
             else:
                 return False
@@ -153,8 +153,8 @@ def doStepIf_kunit_iio_gts_test(step):
 
 
 def doStepIf_kunit_tests(step):
-    if step.getProperty('kunit_login_failed') == False:
-        if step.getProperty('preparation_step_failed') != True:
+    if step.getProperty('kunit_login_failed') == 'False':
+        if step.getProperty('preparation_step_failed') != 'True':
             return True
         else:
             return False
@@ -164,17 +164,17 @@ def doStepIf_kunit_tests(step):
 
 def extract_driver_tests(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
-        return {product+'_skip_dts_tests': True, product+'_do_steps': False, product+'_dts_collected':False, product+'_dmesg_collected':False, 'single_test_failed': True, 'git_bisect_trigger': True}
+        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'single_test_failed': 'True', 'git_bisect_trigger': 'True'}
     elif rc != 0:
-        return {product+'_skip_dts_tests': True, product+'_do_steps': False, product+'_dts_collected':False, product+'_dmesg_collected':False, 'single_test_failed': True, 'git_bisect_trigger': True}
+        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'single_test_failed': 'True', 'git_bisect_trigger': 'True'}
     else:
-        return {product+'_skip_dts_tests': False, product+'_do_steps' : True, 'single_test_passed': True}
+        return {product+'_skip_dts_tests': 'False', product+'_do_steps' : 'True', 'single_test_passed': 'True'}
 
 def doStepIf_powerdown_beagle(step, product):
     if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
-        if step.getProperty(product+'_dts_fail') == True:
+        if step.getProperty(product+'_dts_fail') == 'True':
             return False
-        elif step.getProperty('preparation_step_failed') == True:
+        elif step.getProperty('preparation_step_failed') == 'True':
             return False
         else:
             return True
@@ -183,8 +183,8 @@ def doStepIf_powerdown_beagle(step, product):
 
 def doStepIf_generate_driver_tests(step, product, dts):
     if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
-        if step.getProperty(product+'_'+dts+'_dts_make_passed') == True:
-            if step.getProperty(product+'_do_steps') == True:
+        if step.getProperty(product+'_'+dts+'_dts_make_passed') == 'True':
+            if step.getProperty(product+'_do_steps') == 'True':
                 return True
             else:
                 return False
@@ -252,47 +252,47 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
 
 def extract_init_driver_test(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
-        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False }
+        return {product+'_init_driver_tests_passed': 'False', product+'_do_steps' : 'False' }
     elif rc != 0:
-        return {product+'_init_driver_tests_passed': False, product+'_do_steps' : False }
+        return {product+'_init_driver_tests_passed': 'False', product+'_do_steps' : 'False' }
     else:
-        return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True }
+        return {product+'_init_driver_tests_passed': 'True', product+'_do_steps' : 'True' }
 
 
 def extract_init_driver_test_login(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
-        return {product+'_init_driver_tests_passed': False,product+'_login_failed': True,  product+'_do_steps' : False, 'single_login_failed' : True }
+        return {product+'_init_driver_tests_passed': 'False',product+'_login_failed': 'True',  product+'_do_steps' : 'False', 'single_login_failed' : 'True' }
     elif rc != 0:
-        return {product+'_init_driver_tests_passed': False, product+'_login_failed': True, product+'_do_steps' : False, 'single_login_failed' : True }
+        return {product+'_init_driver_tests_passed': 'False', product+'_login_failed': 'True', product+'_do_steps' : 'False', 'single_login_failed' : 'True' }
     else:
-        return {product+'_init_driver_tests_passed': True, product+'_do_steps' : True, 'single_login_passed' : True }
+        return {product+'_init_driver_tests_passed': 'True', product+'_do_steps' : 'True', 'single_login_passed' : 'True' }
 
 
 def doStepIf_login(step, product):
     if step.getProperty('factory_type') == 'accelerometer':
-        if step.getProperty('iio_generic_buffer_found') == False:
+        if step.getProperty('iio_generic_buffer_found') == 'False':
             return False
-    if step.getProperty(product+'_init_driver_test_passed') == False:
+    if step.getProperty(product+'_init_driver_test_passed') == 'False':
         return False
-    elif step.getProperty(product+'_do_steps') == True:
+    elif step.getProperty(product+'_do_steps') == 'True':
         return True
     else:
         return False
 
 def extract_check_iio_generic_buffer(rc, stdout, stderr):
     if 'FAILURES' in stdout:
-        return {'iio_generic_buffer_found' : False }
+        return {'iio_generic_buffer_found' : 'False' }
     else:
-        return {'iio_generic_buffer_found' : True }
+        return {'iio_generic_buffer_found' : 'True' }
 
 def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
-                           test_type='PMIC', result_dir='PMIC', dev_setup=False, type=None):
+                           test_type='PMIC', result_dir='PMIC', dev_setup='False', type=None):
 
     extract_init_driver_test_partial= functools.partial(extract_init_driver_test, product=product)
     extract_init_driver_test_login_partial= functools.partial(extract_init_driver_test_login, product=product)
     doStepIf_login_partial = functools.partial(doStepIf_login, product=product)
 
-    if dev_setup == False:
+    if dev_setup == 'False':
         _factory.addStep(steps.SetPropertyFromCommand(
             command=["pytest","-W","ignore::DeprecationWarning", "-ra",
                      "test_000_login.py",
@@ -306,7 +306,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
             name=product+": Login to "+test_boards[test_type][test_board]['name']
             ))
 
-    if dev_setup == True:
+    if dev_setup == 'True':
         _factory.addStep(steps.SetPropertyFromCommand(
             command=["pytest","-W","ignore::DeprecationWarning", "-ra",
                      "test_000_no_ippower_login.py",
@@ -344,7 +344,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
                  "test_001_init_overlay.py"],
         workdir="../tests/pmic",
         extract_fn=extract_init_driver_test_partial,
-        doStepIf=util.Property(product+'_do_steps') == True,
+        doStepIf=util.Property(product+'_do_steps') == 'True',
         hideStepIf=skipped, name=product+": Install overlay merger"
         ))
 
@@ -357,7 +357,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
                  "--result_dir="+result_dir],
         workdir="../tests/pmic",
         extract_fn=extract_init_driver_test_partial,
-        doStepIf=util.Property(product+'_do_steps') == True,
+        doStepIf=util.Property(product+'_do_steps') == 'True',
         hideStepIf=skipped, name=product+": Merge device tree overlays"
         ))
 
@@ -366,7 +366,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
             command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml", "test_003_insmod_tests.py","--product="+product],
             workdir="../tests/pmic",
             extract_fn=extract_init_driver_test_partial,
-            doStepIf=util.Property(product+'_do_steps') == True,
+            doStepIf=util.Property(product+'_do_steps') == 'True',
             hideStepIf=skipped,
             name=product+": insmod test modules"))
 
@@ -375,20 +375,20 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
             command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml", "test_003_insmod_accel_tests.py","--product="+product],
             workdir="../tests/pmic",
             extract_fn=extract_init_driver_test_partial,
-            doStepIf=util.Property(product+'_do_steps') == True,
+            doStepIf=util.Property(product+'_do_steps') == 'True',
             hideStepIf=skipped,
             name=product+": insmod test modules"))
 
 
 def doStepIf_copy_test_kernel_modules_to_nfs(step, product, test_dts):
-    if step.getProperty('kernel_build_failed') == True:
+    if step.getProperty('kernel_build_failed') == 'True':
         return False
-    elif step.getProperty('preparation_step_failed') == True:
+    elif step.getProperty('preparation_step_failed') == 'True':
         return False
-    elif step.getProperty('overlay_merger_build_failed') == True:
+    elif step.getProperty('overlay_merger_build_failed') == 'True':
         return False
-    elif step.getProperty(product+'_'+test_dts+'_dts_make_passed') == True:
-        if step.getProperty(product+'_skip_dts_tests') != True:
+    elif step.getProperty(product+'_'+test_dts+'_dts_make_passed') == 'True':
+        if step.getProperty(product+'_skip_dts_tests') != 'True':
             return True
     else:
         return False
@@ -418,10 +418,10 @@ def copy_test_kernel_modules_to_nfs(_factory, product, test_dts, generic_module 
 
 
 def doStepIf_dts_report(step, product, test_dts):
-    if step.getProperty('preparation_step_failed') == True:
+    if step.getProperty('preparation_step_failed') == 'True':
         return False
-    elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
-        if step.getProperty(product+'_'+test_dts+'_dts_make_passed') == False:
+    elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == 'True':
+        if step.getProperty(product+'_'+test_dts+'_dts_make_passed') == 'False':
             return True
     else:
         return False
@@ -448,9 +448,9 @@ def dts_report(_factory, product, test_dts='default'):
             ))
 
 def doStepIf_finalize_product(step, product):
-    if step.getProperty('preparation_step_failed') == True:
+    if step.getProperty('preparation_step_failed') == 'True':
         return False
-    elif step.getProperty('git_bisecting') == True:
+    elif step.getProperty('git_bisecting') == 'True':
         return False
     elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
         return True
@@ -476,7 +476,9 @@ def finalize_product(_factory, product, result_dir):
 
 def doStepIf_initialize_product(step, product):
     if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
-        if step.getProperty('preparation_step_failed') != True:
+        if step.getProperty('factory_type') == 'accelerometer' and step.getProperty('iio_generic_buffer_found') == 'False':
+            return False
+        elif step.getProperty('preparation_step_failed') != 'True':
             return True
         else:
             return False
@@ -485,16 +487,18 @@ def doStepIf_initialize_product(step, product):
 
 
 def doStepIf_dts_test_preparation(step, product):
-    if step.getProperty('kernel_build_failed') == True:
+    if step.getProperty('kernel_build_failed') == 'True':
         return False
-    elif step.getProperty('preparation_step_failed') == True:
+    elif step.getProperty('preparation_step_failed') == 'True':
         return False
-    elif step.getProperty('overlay_merger_build_failed') == True:
+    elif step.getProperty('overlay_merger_build_failed') == 'True':
         return False
-    elif step.getProperty(product+'_do_steps') == False:
+    elif step.getProperty('factory_type') == 'accelerometer' and step.getProperty('iio_generic_buffer_found')== 'False':
+        return False
+    elif step.getProperty(product+'_do_steps') == 'False':
         return False
     elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
-        if step.getProperty(product+'_skip_dts_tests') != True:
+        if step.getProperty(product+'_skip_dts_tests') != 'True':
             return True
         else:
             return False
@@ -506,17 +510,17 @@ def extract_dts_error(rc, stdout, stderr, product, test_dts='default'):
     if 'Error' in stderr:
         return {
                 product+'_'+test_dts+'_dts_error': stderr,
-                product+'_'+test_dts+'_dts_make_passed': False,
-                product+'_do_steps' : False,
-                product+'_skip_dts_tests' : True,
-                'single_test_failed' : True,
-                product+'_dts_fail': True
+                product+'_'+test_dts+'_dts_make_passed': 'False',
+                product+'_do_steps' : 'False',
+                product+'_skip_dts_tests' : 'True',
+                'single_test_failed' : 'True',
+                product+'_dts_fail': 'True'
                 }
     else:
         return {
                 product+'_'+test_dts+'_dts_error': stderr,
-                product+'_'+test_dts+'_dts_make_passed': True,
-                product+'_do_steps' : True,
-                product+'_skip_dts_tests' : False,
-                product+'_dts_fail':False
+                product+'_'+test_dts+'_dts_make_passed': 'True',
+                product+'_do_steps' : 'True',
+                product+'_skip_dts_tests' : 'False',
+                product+'_dts_fail': 'False'
                 }
