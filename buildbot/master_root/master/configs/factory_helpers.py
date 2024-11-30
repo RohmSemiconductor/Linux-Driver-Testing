@@ -176,6 +176,8 @@ def doStepIf_powerdown_beagle(step, product):
             return False
         elif step.getProperty('preparation_step_failed') == 'True':
             return False
+        elif step.getProperty('iio_generic_buffer_found') == 'False' and step.getProperty('factory_type') == 'accelerometer':
+            return False
         else:
             return True
     else:
@@ -449,6 +451,8 @@ def dts_report(_factory, product, test_dts='default'):
 
 def doStepIf_finalize_product(step, product):
     if step.getProperty('preparation_step_failed') == 'True':
+        return False
+    elif step.getProperty('iio_generic_buffer_found') == 'False' and step.getProperty('factory_type') == 'accelerometer':
         return False
     elif step.getProperty('git_bisecting') == 'True':
         return False
