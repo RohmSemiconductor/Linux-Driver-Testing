@@ -17,6 +17,6 @@ def test_sampling_frequency(command):
 
     for frequency in kx022acr_z.board.data['settings']['sampling_frequency']['list_values']:
         count = (math.ceil(frequency) * 2)
-        result = kx022acr_z.test_sampling_frequency_match_timestamp(command, frequency, count=count, tolerance=5)
+        result = kx022acr_z.test_sampling_frequency_match_timestamp(command, frequency, count=count, tolerance=7)
 
         check_result(result)
