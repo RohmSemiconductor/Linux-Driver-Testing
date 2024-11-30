@@ -44,7 +44,7 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                     command=["pytest","--lg-log","../temp_results_PMIC/","--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
                     name=self.product+": "+stage,
                     workdir="../tests/pmic",
-                    doStepIf=util.Property(self.product+'_do_steps') == True,
+                    doStepIf=util.Property(self.product+'_do_steps') == 'True',
                     extract_fn=self.extract_driver_tests_partial)
                     for stage in self.extract_stages(self.observer.getStdout())
                 ])
@@ -53,7 +53,7 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                     command=["pytest","--lg-log","../temp_results_sensor/","--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
                     name=self.product+": "+stage,
                     workdir="../tests/pmic",
-                    doStepIf=util.Property(self.product+'_do_steps') == True,
+                    doStepIf=util.Property(self.product+'_do_steps') == 'True',
                     extract_fn=self.extract_driver_tests_partial)
                     for stage in self.extract_stages(self.observer.getStdout())
                 ])
