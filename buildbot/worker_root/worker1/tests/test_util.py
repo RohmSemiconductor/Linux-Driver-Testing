@@ -22,12 +22,12 @@ def checkStr(stdout,checkString):
         return 0
 
 def initialize_report(bb_project, linux_ver, revision):
-    for report_file in report_file_names:
-        report_file = open('./temp_results/'+report_file+'.txt', 'w+', encoding='utf-8')
-        print("BuildBot project: "+bb_project+"\n", end='', file=report_file)
-        print("Linux version: "+linux_ver+"\n", end='', file=report_file)
-        print("Commit hash: "+revision+"\n\n", end='', file=report_file)
-        report_file.close()
+    report_file = open('./temp_results/summary.txt', 'w+', encoding='utf-8')
+
+    print("BuildBot project: "+bb_project+"\n", end='', file=report_file)
+    print("Linux version: "+linux_ver+"\n", end='', file=report_file)
+    print("Commit hash: "+revision+"\n\n", end='', file=report_file)
+    report_file.close()
 
 def initialize_product(type, product):
     for report_file in report_file_names:
@@ -181,11 +181,6 @@ def _assert_generic_login(result, report_file, summary):
 
 def _assert_generic_iio_generic_buffer(result, report_file, summary):
     if result['expect'] != result['return']:
-        print("iio_generic_buffer binary is not found in the NFS!!\n"+
-              "Reason: "+result['reason']+"\n"+
-              "Build again from source found @ Linux-Driver-Testing/tools/\n",
-              end='', file=report_file)
-
         print("iio_generic_buffer binary is not found in the NFS!!\n"+
               "Reason: "+result['reason']+"\n"+
               "Build again from source found @ Linux-Driver-Testing/tools/\n",
@@ -466,13 +461,13 @@ def check_result(result):
     if result['result_dir'] == 'PMIC':
         report_file = open('../temp_results_PMIC/temp_results.txt', 'a', encoding='utf-8')
         summary = open('../temp_results/summary.txt', 'a', encoding='utf-8')
-
     elif result['result_dir'] == 'sensor':
         report_file = open('../temp_results_sensor/temp_results.txt', 'a', encoding='utf-8')
         summary = open('../temp_results/summary.txt', 'a', encoding='utf-8')
     elif result['result_dir'] == 'linux':
         report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
         summary = open('../temp_results/summary.txt', 'a', encoding='utf-8')
+
     report_file.seek(0,2)
     summary.seek(0,2)
 
