@@ -80,3 +80,5 @@ def run_accelerometer_tests():
                 finalize_product(factory_accelerometer_test, product, "sensor")
 
 run_accelerometer_tests()
+copy_temp_results(factory_accelerometer_test)
+publish_results_git(factory_accelerometer_test, 'Sensor')
