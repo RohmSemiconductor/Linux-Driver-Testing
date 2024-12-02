@@ -127,20 +127,37 @@ def check_tag(step,product):
 
 ####### HELPERS TO ADD STEPS + RELATED doStepIf_ and extract_fn_ functions
 
-def extract_kunit_login(rc, stdout, stderr):
+def extract_sanitycheck_login(rc, stdout, stderr):
     if 'FAILURES' in stdout:
-        return { 'kunit_login_failed' : 'True', 'kunit_login_tried': 'True' }
+        return { 'sanitycheck_login_failed' : 'True', 'sanitycheck_login_tried': 'True' }
     else:
-        return { 'kunit_login_failed' : 'False', 'kunit_login_tried': 'True' }
+        return { 'sanitycheck_login_failed' : 'False', 'sanitycheck_login_tried': 'True' }
 
 def extract_kunit_test_error(rc, stdout, stderr):
     if rc != 0:
         return { 'preparation_step_failed': 'True' }
     else:
-        return { 'kunit_test_passed': 'True' }
+        return { 'sanitycheck_test_passed': 'True' }
+
+def check_kunit_iio_gts_test(step):
+    if re.search('^next.*', step.getProperty('commit-description')):    #check for linux next
+        return True
+    elif step.getProperty('repository') == 'https://github.com/RohmSemiconductor/Linux-Kernel-PMIC-Drivers.git':
+        return True
+    else:
+        git_ver = tagConvert(step.getProperty('commit-description'))
+        if git_ver[0] > 7:
+            return True
+        elif git_ver[0] == 6:
+            if math.floor(git_ver[1]) >= 10:
+                return True
+            else:
+                return False
+        else:
+            return False
 
 def doStepIf_kunit_iio_gts_test(step):
-    if step.getProperty('kunit_login_failed') == 'False':
+    if step.getProperty('sanitycheck_login_failed') == 'False':
         if step.getProperty('preparation_step_failed') == 'False':
             if check_kunit_iio_gts_test(step) == 'True':
                 return True
@@ -153,7 +170,7 @@ def doStepIf_kunit_iio_gts_test(step):
 
 
 def doStepIf_kunit_tests(step):
-    if step.getProperty('kunit_login_failed') == 'False':
+    if step.getProperty('sanitycheck_login_failed') == 'False':
         if step.getProperty('preparation_step_failed') != 'True':
             return True
         else:
@@ -475,6 +492,80 @@ def finalize_product(_factory, product, result_dir):
         doStepIf=doStepIf_finalize_product_partial,
         hideStepIf=skipped
         ))
+
+
+
+def copy_temp_results(_factory):
+    _factory.addStep(steps.ShellCommand(
+        command=["python3", "report_janitor.py", "copy_results",
+                 util.Property('timestamp'),
+                 util.Property('linuxdir'),
+                 util.Property('factory_type')],
+        workdir="../tests",
+        name="Copy temp_results/ to results/",
+        doStepIf=util.Property('git_bisecting') != True
+        ))
+
+###### git result functions, doStepIf_'s and extract_ functions
+
+
+def doStepIf_git_push(step):
+    if not step.getProperty('git_bisecting'):
+        return True
+    else:
+        return False
+
+def doStepIf_setProperty_RESULT_FAILED(step):
+    if step.getProperty('RESULT') == None:
+
+        if step.getProperty('iio_generic_buffer_found') == 'False' and step.getProperty('factory_type') == 'accelerometer':
+            return True
+        elif step.getProperty('preparation_step_failed') == True:
+            return True
+        elif step.getProperty('single_test_failed') == True:
+            return True
+        elif step.getProperty('single_login_failed') == True:
+            if step.getProperty('single_login_passed') == True:
+                return False
+            else:
+                return True
+        else:
+            return False
+    else:
+        return False
+
+def doStepIf_setProperty_RESULT_PASSED(step):
+    if step.getProperty('RESULT') == None:
+        return True
+
+def publish_results_git(_factory, branch_dir):
+    _factory.addStep(steps.SetProperty(
+        name="Tests: FAILED",
+        property="RESULT",
+        value="FAILED",
+        doStepIf=doStepIf_setProperty_RESULT_FAILED,
+        hideStepIf=skipped
+        ))
+
+    _factory.addStep(steps.SetProperty(
+        name="Tests: PASSED",
+        property="RESULT",
+        value="PASSED",
+        doStepIf=doStepIf_setProperty_RESULT_PASSED,
+        hideStepIf=skipped
+        ))
+
+
+    _factory.addStep(steps.ShellCommand(
+        command=["python3", "../report_janitor.py", "publish_results_git",
+                 util.Property('timestamp'), util.Property('linuxdir'),
+                 branch_dir, util.Property('RESULT')],
+        name="Publish results to github.com",
+        workdir="../tests/test-results",
+        doStepIf=doStepIf_git_push,
+        ))
+
+
 ####### Generic doStepIf_ and extract_ functions for
 ##      PMIC and sensor factories.
 
