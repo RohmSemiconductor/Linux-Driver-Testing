@@ -11,6 +11,10 @@ if sys.argv[1] == 'initialize_report':
     revision = sys.argv[4]
     stdout = subprocess.run('rm -rf temp_results/', shell=True)
     stdout = subprocess.run('mkdir temp_results', shell=True)
+    stdout = subprocess.run('rm -rf temp_results_PMIC/', shell=True)
+    stdout = subprocess.run('mkdir temp_results_PMIC', shell=True)
+    stdout = subprocess.run('rm -rf temp_results_sensor/', shell=True)
+    stdout = subprocess.run('mkdir temp_results_sensor', shell=True)
     initialize_report(bb_project, linux_ver, revision)
 
 elif sys.argv[1] == 'initialize_factories':
@@ -57,9 +61,14 @@ elif sys.argv[1] == 'dts_error':
 elif sys.argv[1] == 'copy_results':
     timestamped_dir = sys.argv[2]
     bb_project = sys.argv[3]
+    factory_type = sys.argv[4]
+    if factory_type == 'accelerometer':
+        stdout = subprocess.run('cp -r temp_results_sensor/ test-results/Sensor/', shell=True)
+        stdout = subprocess.run('mv test-results/Sensor/temp_results_sensor/ test-results/Sensor/'+timestamped_dir+'_'+bb_project, shell=True)
 
-    stdout = subprocess.run('cp -r temp_results/ test-results/', shell=True)
-    stdout = subprocess.run('mv test-results/temp_results '+timestamped_dir+'_'+bb_project, shell=True)
+    elif (factory_type == 'PMIC'):
+        stdout = subprocess.run('cp -r temp_results/ test-results/PMIC', shell=True)
+        stdout = subprocess.run('mv test-results/PMIC/temp_results '+timestamped_dir+'_'+bb_project, shell=True)
 
 elif sys.argv[1] == 'bisect_result':
     timestamped_dir = sys.argv[2]
@@ -74,13 +83,19 @@ elif sys.argv[1] == 'publish_results_git':
     branch = sys.argv[4]
     result = sys.argv[5]
 
-    stdout = subprocess.run('mv '+timestamp_git_dir+'_'+bb_project+'/ '+timestamp_git_dir+'_'+bb_project+'_'+result+'/', shell=True)
+    stdout = subprocess.run('mv '+branch+'/'+timestamp_git_dir+'_'+bb_project+'/ '+branch+'/'+timestamp_git_dir+'_'+bb_project+'_'+result+'/', shell=True)
 
-    stdout = subprocess.run('git fetch', shell=True)
-    stdout = subprocess.run('git checkout '+branch, shell=True)
-    stdout = subprocess.run('git add '+timestamp_git_dir+'_'+bb_project+'_'+result+'/', shell=True)
-    stdout = subprocess.run('git commit -m "Test results for: '+timestamp_git_dir+'_'+bb_project+'"', shell=True)
-    stdout = subprocess.run('git push origin '+branch, shell=True)
+    commands = (
+        'cd '+branch+'/',
+        'rm -f '+timestamp_git_dir+'_'+bb_project+'_'+result+'/temp_results.txt',
+        'git fetch origin',
+        'git checkout '+branch,
+        'git add '+timestamp_git_dir+'_'+bb_project+'_'+result+'/',
+        'git commit -m "Test results for: '+timestamp_git_dir+'_'+bb_project+'"',
+        'git push origin '+branch
+    )
+
+    subprocess.run(" && ".join(commands), shell=True)
 
 elif sys.argv[1] == 'get_timestamp':
     date = datetime.now()
