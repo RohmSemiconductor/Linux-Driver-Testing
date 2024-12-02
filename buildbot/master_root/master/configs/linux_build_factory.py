@@ -303,14 +303,17 @@ def sanity_checks(project_name):
     test_board = list(test_boards['accelerometer']['power_ports'][power_port])[0]
 
 
-    projects[project_name]['factory'].addStep(steps.ShellCommand(
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
         command=["pytest","-W","ignore::DeprecationWarning", "-ra",
                 "test_000_no_ippower_login.py",
                 "--power_port="+power_port,
                 "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
 
         workdir="../tests/pmic",
-        name="Login to "+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']
+        name="Login to "+test_boards['accelerometer']['power_ports'][power_port][test_board]['name'],
+        doStepIf=util.Property('preparation_step_failed') != False,
+        hideStepIf=skipped,
+        extract_fn=extract_sanitycheck_login
         ))
 
     ### Check for iio_generic_buffer
@@ -341,7 +344,7 @@ def sanity_checks(project_name):
         name="Kunit linear ranges test"
         ))
 
-    ### Kunit iio_test_gets
+    ### Kunit iio_test_gts
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
         command=['pytest','--lg-log', "../temp_results/",
         '--lg-env='+test_board+".yaml",
@@ -358,7 +361,7 @@ def sanity_checks(project_name):
         command=["python3", "report_janitor.py", "finalize_kunit"],
         workdir="../tests",
         name="Rename kunit UART log",
-        doStepIf=util.Property('kunit_login_tried') == 'True',
+        doStepIf=util.Property('sanitycheck_login_tried') == 'True',
         hideStepIf=skipped
         ))
 
@@ -384,7 +387,7 @@ def build_deploy_kernel(project_name):
 
     get_timestamp(project_name)
     download_test_boards(project_name)
-    ### Sanitycheks
+    ### Sanitychecks
     sanity_checks(project_name)
     ### Prepare and trigger
     copy_results_for_factories(project_name)
