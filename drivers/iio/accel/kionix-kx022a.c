@@ -364,11 +364,11 @@ static const struct iio_chan_spec kx132_channels[] = {
  * and slower ODRs. The slowest is 0.78 Hz.
  */
 static const int kx022a_accel_samp_freq_table[][2] = {
-	{ 0, 380000 },
-	{ 1, 363000 },
-	{ 3, 325000 },
-	{ 6, 350000 },
-	{ 12, 300000 },
+	{ 0, 780000 },
+	{ 1, 563000 },
+	{ 3, 125000 },
+	{ 6, 250000 },
+	{ 12, 500000 },
 	{ 25, 0 },
 	{ 50, 0 },
 	{ 100, 0 },
