@@ -31,7 +31,7 @@ def extract_boneblack_dts(rc, stdout, stderr):
 def initialize_test_report(project_name):
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["python3", "report_janitor.py", "initialize_report", projects[project_name]['builderNames'][0], util.Property('commit-description'), util.Property('revision')],
-        workdir="../tests",
+        workdir="../../Test_Worker/tests",
         name="Initialize test report",
         doStepIf=util.Property('git_bisecting') != 'True'
         ))
@@ -109,7 +109,7 @@ def build_kernel_arm32(project_name):
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["python3", "report_janitor.py", "kernel_error", util.Property('kernel_error_stderr')],
-        workdir="../tests",
+        workdir="../../Test_Worker/tests",
         name="Write kernel make stderr to log",
         doStepIf=util.Property('kernel_build_failed') == 'True',
         hideStepIf=skipped
@@ -209,7 +209,7 @@ def build_overlay_merger(project_name):
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["python3", "report_janitor.py", "overlay_merger_error", util.Property('overlay_merger_error_stderr')],
-        workdir="../tests",
+        workdir="../../Test_Worker/tests",
         name="Write overlay merger make stderr to log",
         doStepIf=util.Property('overlay_merger_build_failed') == 'True',
         hideStepIf=skipped
@@ -232,7 +232,7 @@ def extract_get_timestamp(rc, stdout, stderr):
 def get_timestamp(project_name):
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
         command=["python3", "report_janitor.py", "get_timestamp"],
-        workdir="../tests",
+        workdir="../../Test_Worker/tests",
         name="Set timestamp property for results",
         extract_fn=extract_get_timestamp,
         doStepIf=util.Property('git_bisecting') != 'True'
@@ -249,6 +249,7 @@ def trigger_sensor_factory(project_name):
             schedulerNames=['scheduler-accelerometer_tests'],
             updateSourceStamp=True,
             name="Trigger accelerometer tests",
+            waitForFinish = True,
             set_properties= {
                 'iio_generic_buffer_found':util.Property('iio_generic_buffer_found'),
                 'preparation_step_failed':util.Property('preparation_step_failed'),
@@ -286,7 +287,7 @@ def trigger_pmic_factory(project_name):
 def download_test_boards(project_name):
     projects[project_name]['factory'].addStep(steps.FileDownload(
         mastersrc="configs/kernel_modules.py",
-        workerdest="../../tests/pmic/configs/kernel_modules.py",
+        workerdest="../../../Test_Worker/tests/pmic/configs/kernel_modules.py",
         name="Download kernel_modules.py",
         doStepIf=util.Property('preparation_step_failed') != 'True'
         ))
@@ -295,7 +296,7 @@ def copy_results_for_factories(project_name):
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["python3", "report_janitor.py", "initialize_factories"],
         name="Copy result files to factories",
-        workdir="../tests",
+        workdir="../../Test_Worker/tests",
         ))
 
 def sanity_checks(project_name):
@@ -309,7 +310,7 @@ def sanity_checks(project_name):
                 "--power_port="+power_port,
                 "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
 
-        workdir="../tests/pmic",
+        workdir="../../Test_Worker/tests/pmic",
         name="Login to "+test_boards['accelerometer']['power_ports'][power_port][test_board]['name'],
         doStepIf=util.Property('preparation_step_failed') != False,
         hideStepIf=skipped,
@@ -324,7 +325,7 @@ def sanity_checks(project_name):
                 "--lg-env", test_boards['accelerometer']['power_ports'][power_port][test_board]['name']+".yaml",
                 "--power_port="+power_port,
                 "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
-        workdir="../tests/pmic",
+        workdir="../../Test_Worker/tests/pmic",
         name="Check for iio_generic_buffer",
         doStepIf=util.Property('preparation_step_failed') != 'True',
         hideStepIf=skipped,
@@ -337,7 +338,7 @@ def sanity_checks(project_name):
         '--lg-env='+test_board+".yaml",
         'test_get_kunit.py',
         '--kunit_test=test_linear_ranges'],
-        workdir="../tests/pmic/",
+        workdir="../../Test_Worker/tests/pmic/",
         extract_fn=extract_kunit_test_error,
         doStepIf=doStepIf_kunit_tests,
         hideStepIf=skipped,
@@ -350,7 +351,7 @@ def sanity_checks(project_name):
         '--lg-env='+test_board+".yaml",
         'test_get_kunit.py',
         '--kunit_test=iio_test_gts'],
-        workdir="../tests/pmic/",
+        workdir="../../Test_Worker/tests/pmic/",
         extract_fn=extract_kunit_test_error,
         doStepIf=doStepIf_kunit_iio_gts_test,
         hideStepIf=skipped,
@@ -359,7 +360,7 @@ def sanity_checks(project_name):
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["python3", "report_janitor.py", "finalize_kunit"],
-        workdir="../tests",
+        workdir="../../Test_Worker/tests",
         name="Rename kunit UART log",
         doStepIf=util.Property('sanitycheck_login_tried') == 'True',
         hideStepIf=skipped
@@ -370,10 +371,37 @@ def sanity_checks(project_name):
                  "test_005_powerdown_beagle.py",
                  "--power_port="+power_port,
                  "--beagle="+test_board],
-        workdir="../tests/pmic/",
+        workdir="../../Test_Worker/tests/pmic/",
         doStepIf=util.Property('kunit_login_tried') == 'True',
         hideStepIf=skipped,
         name="Power down beagle"
+        ))
+
+def publish_results_git_sensor(project_name, branch_dir):
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="Tests: FAILED",
+        property="RESULT",
+        value="FAILED",
+        doStepIf=doStepIf_setProperty_RESULT_FAILED,
+        hideStepIf=skipped
+        ))
+
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="Tests: PASSED",
+        property="RESULT",
+        value="PASSED",
+        doStepIf=doStepIf_setProperty_RESULT_PASSED,
+        hideStepIf=skipped
+        ))
+
+
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["python3", "../report_janitor.py", "publish_results_git",
+                 util.Property('timestamp'), util.Property('linuxdir'),
+                 branch_dir, util.Property('RESULT')],
+        name="Publish results to github.com",
+        workdir="../../Test_Worker/tests/test-results",
+        doStepIf=doStepIf_git_push,
         ))
 
 def build_deploy_kernel(project_name):
@@ -392,5 +420,7 @@ def build_deploy_kernel(project_name):
     ### Prepare and trigger
     copy_results_for_factories(project_name)
     trigger_sensor_factory(project_name)
+
+    publish_results_git_sensor(project_name, 'Sensor')
 
 build_deploy_kernel('test_linux')

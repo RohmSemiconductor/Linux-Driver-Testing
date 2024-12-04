@@ -424,7 +424,7 @@ def copy_test_kernel_modules_to_nfs(_factory, product, test_dts, generic_module 
                 logname="Copy "+value+" to nfs"))
         else:
             copy_commands.append(util.ShellArg(
-                command=util.Interpolate('cp ../../%(prop:linuxdir)s/build/_test-kernel-modules/'
+                command=util.Interpolate('cp ../../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'
                                          +generic_module+'/'+value+' '+dir_nfs),
                 logname="Copy "+value+" to nfs"))
 

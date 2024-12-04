@@ -88,11 +88,11 @@ elif sys.argv[1] == 'publish_results_git':
     commands = (
         'cd '+branch+'/',
         'rm -f '+timestamp_git_dir+'_'+bb_project+'_'+result+'/temp_results.txt',
-        'git fetch origin',
-        'git checkout '+branch,
-        'git add '+timestamp_git_dir+'_'+bb_project+'_'+result+'/',
-        'git commit -m "Test results for: '+timestamp_git_dir+'_'+bb_project+'"',
-        'git push origin '+branch
+#        'git fetch origin',
+#        'git checkout '+branch,
+#        'git add '+timestamp_git_dir+'_'+bb_project+'_'+result+'/',
+#        'git commit -m "Test results for: '+timestamp_git_dir+'_'+bb_project+'"',
+#        'git push origin '+branch
     )
 
     subprocess.run(" && ".join(commands), shell=True)

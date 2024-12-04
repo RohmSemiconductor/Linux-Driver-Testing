@@ -10,6 +10,7 @@ def test_get_kunit(command,kunit_test):
     result['stage'] = 'kunit_test'
     result['substage'] = kunit_test
     result['expect'] = None
+    result['result_dir'] = 'linux'
 
     ### Get kernel log before installing Kunit modules
     ### This needs to be done so that we can only get the results that we want

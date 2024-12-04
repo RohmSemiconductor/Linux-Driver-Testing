@@ -1,5 +1,5 @@
 buildbot/master_root/master/secrets/
-buildbot/master_root/master/workers/
+buildbot/master_root/master/workers/Linux_Worker/
 buildbot/master_root/master/gitpoller-workdir*/
 buildbot/master_root/master/http.log
 buildbot/master_root/master/master.cfg.sample

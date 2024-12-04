@@ -23,7 +23,7 @@ projects['linux_mainline']={
     'treeStableTimer': 1100,                                                            # This is a timer which resets everytime a new change is made, helps during mergewindow so BB doesn't build every change
     'scheduler_name': 'scheduler-linux_mainline',                                       # Scheduler used for the project, in master.cfg there is regex rules for schedulers: change_commit_is_release(change)
     'builderNames': ["Linux_Mainline"],                                                 # Separate builder for each projects, these appear separately in the BuildBot Web view
-    'workerNames': ["worker1"],                                                         # List of workers which can build and run this project, worker1 is a local worker
+    'workerNames': ["Linux_Worker"],                                                         # List of workers which can build and run this project, Linux_Worker is a local worker
     'factory': factory_linux_mainline,                                                  # Factory used for this project
 }
 projects['test_linux']= {
@@ -36,7 +36,7 @@ projects['test_linux']= {
     'scheduler_name': 'scheduler-test_linux',
 #    'builderNames': ["builder_test_linux"],
     'builderNames': ["Test_Linux"],
-    'workerNames': ["worker1"],
+    'workerNames': ["Linux_Worker"],
     'factory': factory_build_linux_test_linux,
 #    'factory': factory_driver_test,
 }
@@ -49,7 +49,7 @@ projects['linux-next']={
     'treeStableTimer': 1100,
     'scheduler_name': 'scheduler-linux-next',
     'builderNames': ["linux-next"],
-    'workerNames': ["worker1"],
+    'workerNames': ["Linux_Worker"],
     'factory': factory_linux_next,
 }
 projects['linux_rohm_devel']={
@@ -60,7 +60,7 @@ projects['linux_rohm_devel']={
     'treeStableTimer': 30,
     'scheduler_name': 'scheduler-linux_rohm_devel',
     'builderNames': ["linux-rohm-devel"],
-    'workerNames': ["worker1"],
+    'workerNames': ["Linux_Worker"],
     'factory': factory_linux_rohm_devel,
 }
 
@@ -77,6 +77,6 @@ for stable_branch in stable_branches:
     'treeStableTimer': 1100,
     'scheduler_name': 'scheduler-linux_stable_'+stable_branch,
     'builderNames': ['linux_stable_'+stable_branch],
-    'workerNames': ["worker1"],
+    'workerNames': ["Linux_Worker"],
     'factory': factory_linux_stable,
 }

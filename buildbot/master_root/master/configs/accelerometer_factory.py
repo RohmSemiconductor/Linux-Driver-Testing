@@ -18,7 +18,7 @@ def build_dts_accelerometer(product):
              'CC':dir_compiler_arm32+'arm-linux-gnueabihf-',
              'PWD':'./','DTS_FILE':product+'_test.dts',
              'TEST_TARGET':product},
-        workdir=util.Interpolate('../%(prop:linuxdir)s/build/_test-kernel-modules/generic_accel_test'),
+        workdir=util.Interpolate('../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/generic_accel_test'),
         doStepIf=doStepIf_dts_test_preparation_partial,
         hideStepIf=skipped,
         extract_fn=extract_dts_error_partial,
