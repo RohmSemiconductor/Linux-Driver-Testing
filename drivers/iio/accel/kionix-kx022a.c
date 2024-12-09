@@ -364,15 +364,15 @@ static const struct iio_chan_spec kx132_channels[] = {
  * and slower ODRs. The slowest is 0.78 Hz.
  */
 static const int kx022a_accel_samp_freq_table[][2] = {
-	{ 0, 380000 },
-	{ 1, 363000 },
-	{ 3, 325000 },
-	{ 6, 350000 },
-	{ 12, 300000 },
+	{ 0, 780000 },
+	{ 1, 563000 },
+	{ 3, 125000 },
+	{ 6, 250000 },
+	{ 12, 500000 },
 	{ 25, 0 },
 	{ 50, 0 },
 	{ 100, 0 },
-	{ 150, 0 },
+	{ 200, 0 },
 };
 
 static const unsigned int kx022a_odrs[] = {
@@ -394,16 +394,16 @@ static const unsigned int kx022a_odrs[] = {
  *	=> KX022A uses 16 bit (HiRes mode - assume the low 8 bits are zeroed
  *	in low-power mode(?) )
  *	=> +/-2G  => 4 / 2^16 * 9,80665
- *	=> +/-2G  - 0.000498550415
- *	   +/-4G  - 0.00219710083
- *	   +/-8G  - 0.00139420166
- *	   +/-16G - 0.00378840332
+ *	=> +/-2G  - 0.000598550415
+ *	   +/-4G  - 0.00119710083
+ *	   +/-8G  - 0.00239420166
+ *	   +/-16G - 0.00478840332
  */
 static const int kx022a_scale_table[][2] = {
-	{ 0, 298550 },
-	{ 0, 1097101 },
-	{ 0, 2194202 },
-	{ 0, 2788403 },
+	{ 0, 598550 },
+	{ 0, 1197101 },
+	{ 0, 2394202 },
+	{ 0, 4788403 },
 };
 
 static int kx022a_read_avail(struct iio_dev *indio_dev,
