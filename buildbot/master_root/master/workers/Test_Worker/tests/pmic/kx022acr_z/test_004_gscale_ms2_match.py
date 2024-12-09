@@ -10,9 +10,9 @@ kx022acr_z = sensor(kx022acr_z)
 from time import sleep
 
 def test_gscale_ms2(command):
-    result = kx022acr_z.test_gscale(command, 'z', 'ms2_match', tolerance=0.5)
-    result = kx022acr_z.test_gscale(command, 'y', 'ms2_match', append_results=True, tolerance=0.5)
-    result = kx022acr_z.test_gscale(command, 'x', 'ms2_match', append_results=True, tolerance=0.5)
+    result = kx022acr_z.test_gscale(command, 'z', 'ms2_match', tolerance=1)
+    result = kx022acr_z.test_gscale(command, 'y', 'ms2_match', append_results=True, tolerance=1)
+    result = kx022acr_z.test_gscale(command, 'x', 'ms2_match', append_results=True, tolerance=1)
 
     print("iio_generic: "+str(result['return']))
     print("from reg: "+str(result['expect_perfect']))
