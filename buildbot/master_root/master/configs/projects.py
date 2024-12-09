@@ -1,8 +1,7 @@
 import sys
 import os
-sys.path.append(os.path.abspath("./configs"))
 
-from factories import *
+from buildbot.plugins import util
 
 #### 5.15.* <- oldest linux-stable to be tested
 tag_change = lambda ref: ref.startswith('refs/tags/')
@@ -10,6 +9,11 @@ tag_change = lambda ref: ref.startswith('refs/tags/')
 
 
 factory_build_linux_test_linux = util.BuildFactory()
+factory_test_linux = util.BuildFactory()
+factory_linux_next = util.BuildFactory()
+factory_linux_mainline = util.BuildFactory()
+factory_linux_stable = util.BuildFactory()
+factory_linux_rohm_devel = util.BuildFactory()
 ###### PROJECTS
 # To trigger gitpoller on tag changes, use tag_change instead of ['branch_name'] in the 'branches'
 projects = {}
