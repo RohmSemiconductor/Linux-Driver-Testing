@@ -1,4 +1,5 @@
 import sys
+import os
 import subprocess
 from datetime import datetime, timezone
 from time import sleep
@@ -70,12 +71,72 @@ elif sys.argv[1] == 'copy_results':
         stdout = subprocess.run('cp -r temp_results/ test-results/PMIC', shell=True)
         stdout = subprocess.run('mv test-results/PMIC/temp_results '+timestamped_dir+'_'+bb_project, shell=True)
 
+
+
+
+elif sys.argv[1] == 'save_factory_properties':
+    factory = sys.argv[2]
+    try:
+        os.mkdir("/tmp/rohm_linux_driver_tests/")
+    except FileExistsError:
+        print("tmp dir exists, proceeding...\n")
+    except PermissionError:
+        print("Permission denied: Unable to create /tmp/rohm_linux_driver_tests/.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    property_file = open('/tmp/rohm_linux_driver_tests/properties_'+factory+'.txt', 'w+',
+                         encoding='utf-8')
+
+    for x in range(3, len(sys.argv)):
+        print(sys.argv[x])
+        print(sys.argv[x]+'\n', end='', file=property_file)
+
+    property_file.close()
+
+
+
+elif sys.argv[1] == 'read_factory_properties':
+
+    saved_properties = {
+            'single_test_failed'    : '',
+            'single_test_passed'    : '',
+            'single_login_failed'   : '',
+            'single_login_passed'   : '',
+    }
+
+    property_files = ['properties_PMIC', 'properties_sensor']
+
+    for property_file in property_files:
+        try:
+            property_file = open('/tmp/rohm_linux_driver_tests/'+property_file+'.txt',
+                                 'r', encoding='utf-8')
+            for line in property_file:
+                for property in saved_properties.keys():
+                    if ((property+'=True' in line) and (saved_properties[property] =='')):
+                        print(line)
+#                        prop = line.split('=',1)
+#                        prop_key = prop[0]
+#                        prop_val = prop[1]
+#                        prop_val = prop_val.split('\n',1)
+#                        prop_val = prop_val[0]
+#                        saved_properties[property] = str(prop_val)
+#                        print(prop_key+'='+prop_val)
+#
+        except:
+            print("")
+
+
+
 elif sys.argv[1] == 'bisect_result':
-    timestamped_dir = sys.argv[2]
+    timestamp = sys.argv[2]
     bb_project = sys.argv[3]
     final_output = sys.argv[4]
     bisect_state = sys.argv[5]
-    bisect_result(timestamped_dir, bb_project, final_output, bisect_state)
+
+    for x in range(6, len(sys.argv)):
+        branch = sys.argv[x]
+        bisect_result(timestamp, bb_project, final_output, bisect_state, branch)
 
 elif sys.argv[1] == 'publish_results_git':
     timestamp_git_dir = sys.argv[2]

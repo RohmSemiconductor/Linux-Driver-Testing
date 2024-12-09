@@ -253,7 +253,7 @@ def trigger_sensor_factory(project_name):
             set_properties= {
                 'iio_generic_buffer_found':util.Property('iio_generic_buffer_found'),
                 'preparation_step_failed':util.Property('preparation_step_failed'),
-                #'git_bisecting':True,
+                'git_bisecting':util.Property('git_bisecting'),
                # 'git_bisect_state':'running',
                 'commit-description':util.Property('commit-description'),
              #   'timestamped_dir':util.Property('timestamped_dir'),
@@ -397,11 +397,243 @@ def publish_results_git_sensor(project_name, branch_dir):
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["python3", "../report_janitor.py", "publish_results_git",
-                 util.Property('timestamp'), util.Property('linuxdir'),
+                 util.Property('timestamp'), util.Property('buildername'),
                  branch_dir, util.Property('RESULT')],
         name="Publish results to github.com",
         workdir="../../Test_Worker/tests/test-results",
         doStepIf=doStepIf_git_push,
+        ))
+
+#### Git bisect helpers
+def doStepIf_good_commit_write(step):
+    if step.getProperty('git_bisecting') != "True":
+        if step.getProperty('preparation_step_failed') == "True":
+            return False
+        elif (not step.getProperty('single_test_failed') and step.getProperty('single_test_passed')):
+            return True
+        else:
+            return False
+    else:
+        return False
+
+def extract_git_get_current_commit(rc, stdout, stderr):
+    return {'current_git_commit':stdout}
+
+def save_good_commit(project_name):
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+        command=["git", "rev-parse", "HEAD"],
+        workdir="build",
+        name= "Get commit hash for git bisect good",
+        extract_fn=extract_git_get_current_commit,
+        doStepIf=doStepIf_good_commit_write
+        ))
+
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["python3", "bisect_good_commit.py", "write", projects[project_name]['name'], util.Property('branch'), util.Property('current_git_commit')],
+        name="Save commit hash to file",
+        workdir="../../Test_Worker/tests",
+        doStepIf=doStepIf_good_commit_write
+        ))
+
+def doStepIf_git_bisect_start(step):
+    if not step.getProperty('git_bisecting'):
+        if step.getProperty('preparation_step_failed') == "True":
+            return True
+        elif step.getProperty('single_test_failed') == "True":
+            return True
+        elif step.getProperty('single_login_failed') == "True":
+            if step.getProperty('single_login_passed') == "True":
+                return False
+            else:
+                return True
+        else:
+            return False
+    else:
+        return False
+
+def doStepIf_git_bisect_good(step):
+    if step.getProperty('git_bisecting') == "True":
+        if step.getProperty('preparation_step_failed') == "True":
+            return False
+        elif (not step.getProperty('single_test_failed') and (step.getProperty('single_test_passed') == "True")):
+            if step.getProperty('single_login_failed') == "True":
+                return False
+            else:
+                return True
+        else:
+            return False
+    else:
+        return False
+
+def doStepIf_git_bisect_bad(step):
+    if step.getProperty('preparation_step_failed') == "True":
+        return True
+    elif step.getProperty('single_test_failed') == "True":
+        return True
+    elif step.getProperty('single_login_failed') == "True":
+        if step.getProperty('single_login_passed') == "True":
+            return False
+        else:
+            return True
+    else:
+        return False
+
+def doStepIf_git_bisect_trigger(step):
+    if step.getProperty('git_bisect_state') == 'failed':
+        return False
+    elif step.getProperty('git_bisect_state') == 'success':
+        return False
+    elif step.getProperty('git_bisect_state') == 'cannot_start':
+        return False
+    elif step.getProperty('git_bisect_state') == 'running':
+        return True
+    elif step.getProperty('preparation_step_failed') == "True":
+        return True
+    elif step.getProperty('single_test_failed') == "True":
+        return True
+    elif step.getProperty('single_login_failed') == "True":
+        if step.getProperty('single_login_passed') == "True":
+            return False
+        else:
+            return True
+    else:
+        return False
+
+def doStepIf_git_bisect_report(step):
+    if step.getProperty('git_bisect_state') == 'success':
+        return True
+    elif step.getProperty('git_bisect_state') == 'cannot_start':
+        return True
+    elif step.getProperty('git_bisect_state') == 'failed':
+        return True
+    else:
+        return False
+
+def extract_fn_read_good_commit(rc, stdout, stderr):
+    if rc == 0:
+        stdout = stdout.split('\n')
+        return {'good_commit':stdout[0]}
+    elif rc != 0:
+        return {'no_good_commmit':True, 'no_good_commit_reason':stdout}
+
+def extract_git_bisect_output(rc, stdout, stderr):
+    if rc != 0:
+        return {'git_bisecting': False, 'git_bisect_failed':True, 'git_bisect_output':stdout, 'git_bisect_state':'failed'}
+    elif rc == 0:
+        # Git bisect needs atleast 1 good and bad commit for the command to start returning commits to test
+        if (('waiting for both good and bad commits' in stdout) or ('waiting for bad commit' in stdout) or ('waiting for good commit' in stdout)):
+            return {'git_bisecting': False, 'git_bisect_output':stdout, 'git_bisect_state': 'cannot_start'}
+        # '...revisions left to test aftert this....' is a printed when bisect is running and 'git bisect good/bad' is given
+        elif 'revisions left to test after this' in stdout:
+            return {'git_bisecting': "True" , 'git_bisect_output':stdout, 'git_bisect_state': 'running'}
+        elif 'revision left to test after this' in stdout:
+            return {'git_bisecting': "True" , 'git_bisect_output':stdout, 'git_bisect_state': 'running'}
+        elif 'a merge base must be tested' in stdout:
+            return {'git_bisecting': "True" , 'git_bisect_output':stdout, 'git_bisect_state': 'running'}
+        # '...is the first bad commit' is printed after final 'git bisect good/bad'
+        elif 'is the first bad commit' in stdout:
+            return {'git_bisecting': False, 'git_bisect_output':stdout, 'git_bisect_state': 'success'}
+        else:
+            return {'git_bisect_wtf_stdout': stdout, 'git_bisect_wtf_rc':rc,'git_bisect_wtf_stder':stderr, 'git_bisect_output':stdout, 'git_bisect_state':'failed'}
+#### /Git bisect helpers
+
+def git_bisect(project_name):
+    if project_name != 'linux-next' and project_name != 'linux_stable':
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=['git','bisect','start'],
+            workdir="build",
+            name="Git bisect: start",
+            doStepIf=doStepIf_git_bisect_start
+            ))
+
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=["python3", "bisect_good_commit.py", "read", projects[project_name]['name'], util.Property('branch')],
+            name="Get good commit hash from file",
+            workdir="../../Test_Worker/tests",
+            doStepIf=doStepIf_git_bisect_start,
+            extract_fn=extract_fn_read_good_commit
+            ))
+
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=['git','bisect','good', util.Property('good_commit')],
+            workdir="build",
+            name="Git bisect: start good",
+            extract_fn=extract_git_bisect_output,
+            doStepIf=doStepIf_git_bisect_start
+            ))
+
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=['git','bisect','good'],
+            workdir="build",
+            name="Git bisect: good",
+            extract_fn=extract_git_bisect_output,
+            doStepIf=doStepIf_git_bisect_good
+            ))
+
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=['git','bisect','bad'],
+            workdir="build",
+            name="Git bisect: bad",
+            extract_fn=extract_git_bisect_output,
+            doStepIf=doStepIf_git_bisect_bad
+            ))
+
+        projects[project_name]['factory'].addStep(steps.Trigger(
+            schedulerNames=['git_bisect_'+projects[project_name]['scheduler_name']],
+            updateSourceStamp=True,
+            name="Trigger git bisect",
+            set_properties= {
+                'git_bisecting':'True',
+                'git_bisect_state':'running',
+                'commit-description':util.Property('commit-description'),
+                'timestamped_dir':util.Property('timestamped_dir'),
+                'timestamp':util.Property('timestamp'),
+                'RESULT':'FAILED',
+                },
+            doStepIf=doStepIf_git_bisect_trigger
+            ))
+
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["python3", "report_janitor.py", "bisect_result",
+                     util.Property('timestamp'),
+                     projects[project_name]['builderNames'][0],
+                     util.Property("git_bisect_output"),
+                     util.Property("git_bisect_state"),
+                     "Sensor",
+                     ],
+            name="Report git bisect results",
+            workdir="../../Test_Worker/tests",
+            doStepIf=doStepIf_git_bisect_report
+            ))
+
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["git", "bisect", "reset"],
+            name="Git bisect reset",
+            workdir="build",
+            doStepIf=doStepIf_git_bisect_report
+            ))
+
+def extract_get_factory_properties(rc, stdout, stderr):
+    extracted_factory_properties = {}
+    print(stdout)
+    lines = stdout.split('\n')
+    for line in lines:
+        prop = line.split('=',2)
+        prop_key = prop[0]
+        prop_val = prop[-1]
+        prop_val = prop_val.split('\n',1)
+        prop_val = prop_val[0]
+        extracted_factory_properties[str(prop_key)] = str(prop_val)
+#        print(prop_key+' '+prop_val)
+    return extracted_factory_properties
+
+
+
+def get_factory_properties(project_name):
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+        command = ['python3', 'report_janitor.py', 'read_factory_properties'],
+        workdir = '../../Test_Worker/tests',
+        extract_fn = extract_get_factory_properties
         ))
 
 def build_deploy_kernel(project_name):
@@ -420,7 +652,10 @@ def build_deploy_kernel(project_name):
     ### Prepare and trigger
     copy_results_for_factories(project_name)
     trigger_sensor_factory(project_name)
-
+    get_factory_properties(project_name)
+    save_good_commit(project_name)
+    git_bisect(project_name)
     publish_results_git_sensor(project_name, 'Sensor')
 
 build_deploy_kernel('test_linux')
+build_deploy_kernel('linux-next')

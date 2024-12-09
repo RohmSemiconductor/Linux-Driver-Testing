@@ -181,14 +181,14 @@ def doStepIf_kunit_tests(step):
 
 def extract_driver_tests(rc, stdout, stderr, product):
     if 'FAILURES' in stdout:
-        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'single_test_failed': 'True', 'git_bisect_trigger': 'True'}
+        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'single_test_failed': 'True'}
     elif rc != 0:
-        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'single_test_failed': 'True', 'git_bisect_trigger': 'True'}
+        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'single_test_failed': 'True'}
     else:
         return {product+'_skip_dts_tests': 'False', product+'_do_steps' : 'True', 'single_test_passed': 'True'}
 
 def doStepIf_powerdown_beagle(step, product):
-    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+    if step.getProperty('buildername') == 'linux-rohm-devel' or step.getProperty('buildername') == 'Test_Linux' or check_tag(step, product) == True:
         if step.getProperty(product+'_dts_fail') == 'True':
             return False
         elif step.getProperty('preparation_step_failed') == 'True':
@@ -201,7 +201,7 @@ def doStepIf_powerdown_beagle(step, product):
         return False
 
 def doStepIf_generate_driver_tests(step, product, dts):
-    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+    if step.getProperty('buildername') == 'linux-rohm-devel' or step.getProperty('project') == 'test_linux' or check_tag(step, product) == True:
         if step.getProperty(product+'_'+dts+'_dts_make_passed') == 'True':
             if step.getProperty(product+'_do_steps') == 'True':
                 return True
@@ -503,7 +503,7 @@ def copy_temp_results(_factory):
                  util.Property('factory_type')],
         workdir="../tests",
         name="Copy temp_results/ to results/",
-        doStepIf=util.Property('git_bisecting') != True
+        doStepIf=util.Property('git_bisecting') != "True"
         ))
 
 ###### git result functions, doStepIf_'s and extract_ functions
