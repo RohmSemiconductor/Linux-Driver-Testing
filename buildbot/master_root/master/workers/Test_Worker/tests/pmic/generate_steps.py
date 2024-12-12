@@ -9,7 +9,7 @@ product = sys.argv[1]
 test_type = sys.argv[2]
 
 pwd = os.getcwd()
-if test_type == 'regulator':
+if test_type == 'pmic':
     pwd = pwd + '/'+product
 elif test_type == 'accelerometer':
     pwd = pwd + '/'+product
