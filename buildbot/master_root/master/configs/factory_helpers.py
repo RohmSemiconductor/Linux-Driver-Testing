@@ -41,7 +41,8 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
             # create a ShellCommand for each stage and add them to the build
             if self.test_type == "pmic":
                 self.build.addStepsAfterCurrentStep([steps.SetPropertyFromCommand(
-                    command=["pytest","--lg-log","../temp_results_PMIC/","--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
+                    command=["pytest","--lg-log","/tmp/rohm_linux_driver_tests/temp_results_PMIC/",
+                             "--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
                     name=self.product+": "+stage,
                     workdir="../tests/pmic",
                     doStepIf=util.Property(self.product+'_do_steps') == 'True',
@@ -50,7 +51,8 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                 ])
             elif self.test_type == "accelerometer":
                 self.build.addStepsAfterCurrentStep([steps.SetPropertyFromCommand(
-                    command=["pytest","--lg-log","../temp_results_sensor/","--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
+                    command=["pytest","--lg-log","/tmp/rohm_linux_driver_tests/temp_results_sensor/",
+                             "--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
                     name=self.product+": "+stage,
                     workdir="../tests/pmic",
                     doStepIf=util.Property(self.product+'_do_steps') == 'True',
@@ -59,7 +61,10 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                 ])
             elif self.test_type == "dts":
                 self.build.addStepsAfterCurrentStep([steps.SetPropertyFromCommand(
-                    command=["pytest","--lg-log","../temp_results/","--lg-env="+self.test_board+".yaml",self.product+"/dts/"+self.dts+"/"+stage,"--dts="+self.dts],
+                    command=["pytest","--lg-log","/tmp/rohm_linux_driver_tests/temp_results/",
+                             "--lg-env="+self.test_board+".yaml",
+                             self.product+"/dts/"+self.dts+"/"+stage,
+                             "--dts="+self.dts],
                     name=self.product+": "+stage,
                     workdir="../tests/pmic",
                     doStepIf=util.Property(self.product+'_do_steps') == True,
@@ -193,7 +198,7 @@ def collect_dmesg_and_dts(_factory, test_board, product, test_type='pmic', test_
     doStepIf_collect_dts_partial = functools.partial(doStepIf_collect_dts, product=product)
 
     _factory.addStep(steps.SetPropertyFromCommand(
-        command=['pytest','--lg-log', '../temp_results/', '--lg-env='+test_board+'.yaml', 'test_get_dmesg.py', '--product='+product],
+        command=['pytest','--lg-log', '/tmp/rohm_linux_driver_tests/temp_results/', '--lg-env='+test_board+'.yaml', 'test_get_dmesg.py', '--product='+product],
         workdir="../../tests/pmic/",
         doStepIf=doStepIf_collect_dmesg_partial,
         extract_fn=extract_dmesg_collected_partial,
@@ -306,7 +311,7 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
 
         extract_sanitycheck_error_partial = functools.partial(extract_sanitycheck_error, product=product)
         _factory.addStep(steps.SetPropertyFromCommand(command=[
-            'pytest','--lg-log', "../temp_results/", '--lg-env='+test_board+".yaml", product+'/test_000_sanitycheck.py'],
+            'pytest','--lg-log', "/tmp/rohm_linux_driver_tests/temp_results/", '--lg-env='+test_board+".yaml", product+'/test_000_sanitycheck.py'],
             workdir="../tests/pmic/",
             extract_fn=extract_sanitycheck_error_partial,
             doStepIf=doStepIf_generate_driver_tests_partial,
@@ -429,7 +434,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
     if type == 'accelerometer':
         _factory.addStep(steps.SetPropertyFromCommand(
             command=["pytest","-W","ignore::DeprecationWarning",
-                     "--lg-log", "../temp_results/",
+                     "--lg-log", "/tmp/rohm_linux_driver_tests/temp_results/",
                      "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml",
                      "test_000_check_iio_generic_buffer.py",
                      "--beagle="+test_boards[test_type]['power_ports'][power_port][test_board]['name']],
@@ -443,7 +448,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
 
     _factory.addStep(steps.SetPropertyFromCommand(
         command=["pytest","-W","ignore::DeprecationWarning",
-                 "--lg-log", "../temp_results/",
+                 "--lg-log", "/tmp/rohm_linux_driver_tests/temp_results/",
                  "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml",
                  "--result_dir="+result_dir,
                  "test_001_init_overlay.py"],
@@ -455,7 +460,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
 
     _factory.addStep(steps.SetPropertyFromCommand(
         command=["pytest","-W","ignore::DeprecationWarning","-ra",
-                 "--lg-log", "../temp_results/",
+                 "--lg-log", "/tmp/rohm_linux_driver_tests/temp_results/",
                  "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml",
                  "test_002_merge_dt_overlay.py",
                  "--product="+product,
@@ -468,7 +473,10 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
 
     if test_type == 'pmic':
         _factory.addStep(steps.SetPropertyFromCommand(
-            command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml", "test_003_insmod_tests.py","--product="+product],
+            command=["pytest","-W","ignore::DeprecationWarning","-ra",
+                     "--lg-log", "/tmp/rohm_linux_driver_tests/temp_results/",
+                     "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml",
+                     "test_003_insmod_tests.py","--product="+product],
             workdir="../tests/pmic",
             extract_fn=extract_init_driver_test_partial,
             doStepIf=util.Property(product+'_do_steps') == 'True',
@@ -477,7 +485,10 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
 
     elif test_type == 'accelerometer':
         _factory.addStep(steps.SetPropertyFromCommand(
-            command=["pytest","-W","ignore::DeprecationWarning","-ra", "--lg-log", "../temp_results/", "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml", "test_003_insmod_accel_tests.py","--product="+product],
+            command=["pytest","-W","ignore::DeprecationWarning","-ra",
+                     "--lg-log", "/tmp/rohm_linux_driver_tests/temp_results/",
+                     "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml",
+                     "test_003_insmod_accel_tests.py","--product="+product],
             workdir="../tests/pmic",
             extract_fn=extract_init_driver_test_partial,
             doStepIf=util.Property(product+'_do_steps') == 'True',

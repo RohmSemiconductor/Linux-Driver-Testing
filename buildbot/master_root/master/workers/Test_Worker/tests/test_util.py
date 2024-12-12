@@ -22,7 +22,7 @@ def checkStr(stdout,checkString):
         return 0
 
 def initialize_report(bb_project, linux_ver, revision):
-    report_file = open('./temp_results/summary.txt', 'w+', encoding='utf-8')
+    report_file = open('/tmp/rohm_linux_driver_tests/temp_results/summary.txt', 'w+', encoding='utf-8')
 
     print("BuildBot project: "+bb_project+"\n", end='', file=report_file)
     print("Linux version: "+linux_ver+"\n", end='', file=report_file)
@@ -31,7 +31,7 @@ def initialize_report(bb_project, linux_ver, revision):
 
 def initialize_product(type, product):
     for report_file in report_file_names:
-        report_file = open('./temp_results_'+type+'/'+report_file+'.txt', 'a', encoding='utf-8')
+        report_file = open('/tmp/rohm_linux_driver_tests/temp_results_'+type+'/'+report_file+'.txt', 'a', encoding='utf-8')
         report_file.seek(0,2)
         print("Testing: "+product+" "+type+"\n", end='', file=report_file)
         report_file.close()
@@ -42,35 +42,35 @@ def finalize_product(product, do_steps, type):
     else:
         result = "FAILED"
     for report_file in report_file_names:
-        report_file = open('./temp_results_'+type+'/'+report_file+'.txt', 'a', encoding='utf-8')
+        report_file = open('/tmp/rohm_linux_driver_tests/temp_results_'+type+'/'+report_file+'.txt', 'a', encoding='utf-8')
         report_file.seek(0,2)
         print("Test results: "+product+": "+result+"\n\n", end='', file=report_file)
         report_file.close()
 
 def bisect_result(timestamp,bb_project, final_output, bisect_state, branch):
-    report_file = open('./test-results/'+branch+'/'+timestamp+'_'+bb_project+'/summary.txt', 'a', encoding='utf-8')
+    report_file = open('/test-results/'+branch+'/'+timestamp+'_'+bb_project+'/summary.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print("Git bisect state: "+bisect_state+"\n", end='', file=report_file)
     print(final_output+"\n", end='', file=report_file)
     report_file.close()
 
 def kernel_error_report(stderr):
-    report_file = open('./temp_results/summary.txt', 'a', encoding='utf-8')
+    report_file = open('/tmp/rohm_linux_driver_tests/temp_results/summary.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print("Building kernel failed!\nstderr:\n\n", end='', file=report_file)
     print(stderr+'\n', end='', file=report_file)
     report_file.close()
 
 def overlay_merger_error_report(stderr):
-    report_file = open('./temp_results/summary.txt', 'a', encoding='utf-8')
+    report_file = open('/tmp/rohm_linux_driver_tests/temp_results/summary.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print("Building overlay merger failed!\nstderr:\n\n", end='', file=report_file)
     print(stderr+'\n', end='', file=report_file)
     report_file.close()
 
 def dts_error_report(product, dts, stdout):
-    report_file = open('./temp_results/temp_results.txt', 'a', encoding='utf-8')
-    summary = open('./temp_results/summary.txt', 'a', encoding='utf-8')
+    report_file = open('/tmp/rohm_linux_driver_tests/temp_results/temp_results.txt', 'a', encoding='utf-8')
+    summary = open('/tmp/rohm_linux_driver_tests/temp_results/summary.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     summary.seek(0,2)
     print(product+": dts build failed: dts: "+dts+"\n", end='', file=report_file)
@@ -79,7 +79,7 @@ def dts_error_report(product, dts, stdout):
     report_file.close()
 
 def report_dmesg(product, stdout):
-    report_file = open('../temp_results/'+product+'/dmesg.txt', 'w+', encoding='utf-8')
+    report_file = open('/tmp/rohm_linux_driver_tests/temp_results/'+product+'/dmesg.txt', 'w+', encoding='utf-8')
     print(type(stdout))
     print(len(stdout))
     x = 0
@@ -124,8 +124,8 @@ def _assert_generic_kunit_test(result, report_file, summary):
         print( "Kunit test result: "+result['substage']+": PASSED\n\n", end='', file=summary)
 
     else:
-        kunit_file = open('../temp_results/kunit_'+result['substage']+'_result.txt', 'w+', encoding='utf-8')
-        kunit_full_dmesg = open('../temp_results/full_kunit_dmesg.txt', 'w+', encoding='utf-8')
+        kunit_file = open('/tmp/rohm_linux_driver_tests/temp_results/kunit_'+result['substage']+'_result.txt', 'w+', encoding='utf-8')
+        kunit_full_dmesg = open('/tmp/rohm_linux_driver_tests/temp_results/full_kunit_dmesg.txt', 'w+', encoding='utf-8')
 
         print( "Kunit test result: "+result['substage']+" FAILED: Found 'not ok' in the Kunit dmesg prints.\n\n", end='', file=summary)
         print( "Kunit test result: "+result['substage']+" FAILED: Found 'not ok' in the Kunit dmesg prints.\n\n", end='', file=kunit_file)
@@ -196,26 +196,26 @@ def _assert_generic_ip_power(result, report_file, summary):
     _assert_test(result, report_file, summary)
 
 def login_fail(power_port, beagle):
-    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('/tmp/rohm_linux_driver_tests/temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print("Login failed: Power port:"+power_port+" BeagleBone: "+beagle+"\n\n", end='', file=report_file)
     report_file.close()
 
 def init_overlay_fail():
-    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('/tmp/rohm_linux_driver_tests/temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print("Installing overlay merger failed! This step is common to all PMICs.\n\n", end='', file=report_file)
     print("\n", end='', file=report_file)
     report_file.close()
 
 def merge_dt_overlay_fail(product, dt_overlay):
-    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('/tmp/rohm_linux_driver_tests/temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print(product, ": Merge device tree overlay failed: "+dt_overlay+" module missing (lsmod) \n\n", end='', file=report_file)
     report_file.close()
 
 def insmod_fail(product, insmod):
-    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('/tmp/rohm_linux_driver_tests/temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print(product, ": insmod failed: "+insmod+" module missing (lsmod) \n\n", end='', file=report_file)
     report_file.close()
@@ -224,7 +224,7 @@ def sanity_check_fail():
     pass
 
 def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=None, insmod=None):
-    report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
+    report_file = open('/tmp/rohm_linux_driver_tests/temp_results/temp_results.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     if tf == "login":
         print("Login failed: Power port:"+power_port+" BeagleBone: "+beagle+"\n\n", end='', file=report_file)
@@ -459,14 +459,14 @@ def _assert_pmic_validate_config(result, report_file, summary):
 
 def check_result(result):
     if result['result_dir'] == 'PMIC':
-        report_file = open('../temp_results_PMIC/temp_results.txt', 'a', encoding='utf-8')
-        summary = open('../temp_results/summary.txt', 'a', encoding='utf-8')
+        report_file = open('/tmp/rohm_linux_driver_tests/temp_results_PMIC/temp_results.txt', 'a', encoding='utf-8')
+        summary = open('/tmp/rohm_linux_driver_tests/temp_results/summary.txt', 'a', encoding='utf-8')
     elif result['result_dir'] == 'sensor':
-        report_file = open('../temp_results_sensor/temp_results.txt', 'a', encoding='utf-8')
-        summary = open('../temp_results/summary.txt', 'a', encoding='utf-8')
+        report_file = open('/tmp/rohm_linux_driver_tests/temp_results_sensor/temp_results.txt', 'a', encoding='utf-8')
+        summary = open('/tmp/rohm_linux_driver_tests/temp_results/summary.txt', 'a', encoding='utf-8')
     elif result['result_dir'] == 'linux':
-        report_file = open('../temp_results/temp_results.txt', 'a', encoding='utf-8')
-        summary = open('../temp_results/summary.txt', 'a', encoding='utf-8')
+        report_file = open('/tmp/rohm_linux_driver_tests/temp_results/temp_results.txt', 'a', encoding='utf-8')
+        summary = open('/tmp/rohm_linux_driver_tests/temp_results/summary.txt', 'a', encoding='utf-8')
 
     report_file.seek(0,2)
     summary.seek(0,2)

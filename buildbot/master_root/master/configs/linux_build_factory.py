@@ -303,7 +303,7 @@ def sanity_checks(project_name):
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
         command=["pytest","-W","ignore::DeprecationWarning",
                 "test_000_check_iio_generic_buffer.py",
-                "--lg-log", "../temp_results/",
+                "--lg-log", "/tmp/rohm_linux_driver_tests/temp_results/",
                 "--lg-env", test_boards['accelerometer']['power_ports'][power_port][test_board]['name']+".yaml",
                 "--power_port="+power_port,
                 "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
@@ -316,7 +316,7 @@ def sanity_checks(project_name):
 
     ### Kunit test_linear_ranges test
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(command=[
-        'pytest','--lg-log', "../temp_results/",
+        'pytest','--lg-log', "/tmp/rohm_linux_driver_tests/temp_results/",
         '--lg-env='+test_board+".yaml",
         'test_get_kunit.py',
         '--kunit_test=test_linear_ranges'],
@@ -329,7 +329,7 @@ def sanity_checks(project_name):
 
     ### Kunit iio_test_gts
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
-        command=['pytest','--lg-log', "../temp_results/",
+        command=['pytest','--lg-log', "/tmp/rohm_linux_driver_tests/temp_results/",
         '--lg-env='+test_board+".yaml",
         'test_get_kunit.py',
         '--kunit_test=iio_test_gts'],
@@ -341,9 +341,9 @@ def sanity_checks(project_name):
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["python3", "report_janitor.py", "finalize_kunit"],
+        command=["python3", "report_janitor.py", "finalize_sanitychecks"],
         workdir="../../Test_Worker/tests",
-        name="Rename kunit UART log",
+        name="Rename sanity check UART log",
         doStepIf=util.Property('sanitycheck_login_tried') == 'True',
         hideStepIf=skipped
         ))
