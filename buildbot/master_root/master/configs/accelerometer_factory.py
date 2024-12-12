@@ -79,18 +79,6 @@ def run_accelerometer_tests():
 #
                 finalize_product(factory_accelerometer_test, product, "sensor")
 
-def save_properties(_factory, factory_type):
-    _factory.addStep(steps.ShellCommand(
-        command=util.Interpolate("python3 report_janitor.py save_factory_properties "+factory_type+" "
-                                 "single_test_failed=%(prop:single_test_failed)s "
-                                 "single_test_passed=%(prop:single_test_passed)s "
-                                 "single_login_failed=%(prop:single_login_failed)s "
-                                 "single_login_passed=%(prop:single_login_passed)s "
-                                 ),
-        workdir="../tests",
-        name= "Save properties to file"
-
-        ))
 
 run_accelerometer_tests()
 copy_temp_results(factory_accelerometer_test)
