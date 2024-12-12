@@ -244,11 +244,11 @@ def doStepIf_trigger_sensor_factory(step):
     else:
         return False
 
-def trigger_sensor_factory(project_name):
+def trigger_test_factories(project_name):
         projects[project_name]['factory'].addStep(steps.Trigger(
-            schedulerNames=['scheduler-accelerometer_tests'],
+            schedulerNames=['scheduler-accelerometer_tests', 'scheduler-pmic_tests'],
             updateSourceStamp=True,
-            name="Trigger accelerometer tests",
+            name="Trigger test factories",
             waitForFinish = True,
             set_properties= {
                 'iio_generic_buffer_found':util.Property('iio_generic_buffer_found'),
@@ -264,24 +264,6 @@ def trigger_sensor_factory(project_name):
                 },
             #doStepIf = util.Property('preparation_step_failed') != False
             #doStepIf = doStepIf_trigger_sensor_factory
-            ))
-
-def trigger_pmic_factory(project_name):
-        projects[project_name]['factory'].addStep(steps.Trigger(
-            schedulerNames=['scheduler-pmic_tests'],
-            updateSourceStamp=True,
-            name="Trigger PMIC tests",
-            set_properties= {
-                #'git_bisecting':True,
-               # 'git_bisect_state':'running',
-                'commit-description':util.Property('commit-description'),
-             #   'timestamped_dir':util.Property('timestamped_dir'),
-                'factory_type':'PMIC',
-                'timestamp':util.Property('timestamp'),
-                'linuxdir':util.Property('buildername'),
-              #  'RESULT':'FAILED',
-                },
-            #doStepIf = util.Property('preparation_step_failed') != False
             ))
 
 def download_test_boards(project_name):
@@ -651,11 +633,12 @@ def build_deploy_kernel(project_name):
     sanity_checks(project_name)
     ### Prepare and trigger
     copy_results_for_factories(project_name)
-    trigger_sensor_factory(project_name)
+    trigger_test_factories(project_name)
     get_factory_properties(project_name)
     save_good_commit(project_name)
-    git_bisect(project_name)
+#    git_bisect(project_name)
     publish_results_git_sensor(project_name, 'Sensor')
+    publish_results_git_sensor(project_name, 'PMIC')
 
 build_deploy_kernel('test_linux')
 build_deploy_kernel('linux-next')
