@@ -67,9 +67,9 @@ elif sys.argv[1] == 'copy_results':
         stdout = subprocess.run('cp -r temp_results_sensor/ test-results/Sensor/', shell=True)
         stdout = subprocess.run('mv test-results/Sensor/temp_results_sensor/ test-results/Sensor/'+timestamped_dir+'_'+bb_project, shell=True)
 
-    elif (factory_type == 'PMIC'):
-        stdout = subprocess.run('cp -r temp_results/ test-results/PMIC', shell=True)
-        stdout = subprocess.run('mv test-results/PMIC/temp_results '+timestamped_dir+'_'+bb_project, shell=True)
+    elif (factory_type == 'pmic'):
+        stdout = subprocess.run('cp -r temp_results_PMIC/ test-results/PMIC', shell=True)
+        stdout = subprocess.run('mv test-results/PMIC/temp_results_PMIC/ test-results/PMIC/'+timestamped_dir+'_'+bb_project, shell=True)
 
 
 
@@ -105,7 +105,7 @@ elif sys.argv[1] == 'read_factory_properties':
             'single_login_passed'   : '',
     }
 
-    property_files = ['properties_PMIC', 'properties_sensor']
+    property_files = ['properties_pmic', 'properties_sensor']
 
     for property_file in property_files:
         try:
