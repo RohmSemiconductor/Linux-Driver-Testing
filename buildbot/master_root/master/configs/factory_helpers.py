@@ -7,6 +7,7 @@ import functools
 from kernel_modules import *
 from test_boards import *
 from paths import *
+
 ####### Generates steps for tests
 class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
 
@@ -67,11 +68,19 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                              "--dts="+self.dts],
                     name=self.product+": "+stage,
                     workdir="../tests/pmic",
-                    doStepIf=util.Property(self.product+'_do_steps') == True,
+                    doStepIf=util.Property(self.product+'_do_steps') == 'True',
                     extract_fn=self.extract_driver_tests_partial)
                     for stage in self.extract_stages(self.observer.getStdout())
                 ])
         return result
+
+
+def check_dts_tests(product):
+    dts_tests=[]
+    if product in kernel_modules['dts_tests'].keys():
+        for dts in kernel_modules['dts_tests'][product]:
+            dts_tests.append(dts)
+    return dts_tests
 
 ####### GENERIC HELPERS
 def skipped(results, build):
@@ -353,7 +362,7 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
         collect_dmesg_and_dts(_factory, test_board, product, test_dts=dts)
 
     _factory.addStep(steps.ShellCommand(
-        command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_005_powerdown_beagle.py","--power_port="+power_port,"--beagle="+test_boards[test_type]['power_ports'][power_port][test_board]['name']],
+        command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_005_powerdown_beagle.py","--power_port="+power_port,"--beagle="+test_board],
         workdir="../tests/pmic/",
         doStepIf=doStepIf_powerdown_beagle_partial,
         hideStepIf=skipped,
@@ -407,13 +416,13 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
             command=["pytest","-W","ignore::DeprecationWarning", "-ra",
                      "test_000_login.py",
                      "--power_port="+power_port,
-                     "--beagle="+test_boards[test_type]['power_ports'][power_port][test_board]['name'],
+                     "--beagle="+test_board,
                      "--result_dir="+result_dir,],
 
             workdir="../tests/pmic",
             extract_fn=extract_init_driver_test_login_partial,
             doStepIf=doStepIf_login_partial,
-            name=product+": Login to "+test_boards[test_type][test_board]['name']
+            name=product+": Login to "+test_board
             ))
 
     if dev_setup == 'True':
@@ -449,7 +458,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
     _factory.addStep(steps.SetPropertyFromCommand(
         command=["pytest","-W","ignore::DeprecationWarning",
                  "--lg-log", "/tmp/rohm_linux_driver_tests/temp_results/",
-                 "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml",
+                 "--lg-env", test_board+".yaml",
                  "--result_dir="+result_dir,
                  "test_001_init_overlay.py"],
         workdir="../tests/pmic",
@@ -461,7 +470,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
     _factory.addStep(steps.SetPropertyFromCommand(
         command=["pytest","-W","ignore::DeprecationWarning","-ra",
                  "--lg-log", "/tmp/rohm_linux_driver_tests/temp_results/",
-                 "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml",
+                 "--lg-env", test_board+".yaml",
                  "test_002_merge_dt_overlay.py",
                  "--product="+product,
                  "--result_dir="+result_dir],

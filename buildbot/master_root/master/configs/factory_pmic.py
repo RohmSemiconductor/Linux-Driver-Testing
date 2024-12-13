@@ -44,18 +44,24 @@ def run_pmic_tests():
                                       product,
                                       "pmic",
                                       "default")
-#
-#                dts_tests = check_dts_tests(product)
-#                for dts in dts_tests:
-#                    generate_dts(project_name, product, dts)
-#                    copy_generated_dts(project_name, product, dts)
-#                    build_dts(project_name, product, dts)
-#                    dts_report(project_name, product, dts)
-#
-#                    copy_test_kernel_modules_to_nfs(project_name, product, dts)
-#                    initialize_driver_test(project_name, test_board, product, dts)
-#                    generate_driver_tests(project_name, test_boards[test_type][test_board]['name'], product, "dts", dts )
-#
+
+                dts_tests = check_dts_tests(product)
+                for dts in dts_tests:
+                    generate_dts(factory_pmic_test, product, dts)
+                    copy_generated_dts(factory_pmic_test, product, dts)
+                    build_dts(factory_pmic_test, product, dts)
+                    dts_report(factory_pmic_test, product, dts)
+
+                    copy_test_kernel_modules_to_nfs(factory_pmic_test, product, dts)
+                    initialize_driver_test(factory_pmic_test,
+                                           power_port,
+                                           test_board,
+                                           product,
+                                           dts,
+                                           dev_setup='True',
+                                           test_type='pmic')
+                    generate_driver_tests(factory_pmic_test, power_port, test_board, product, "dts", dts )
+
                 finalize_product(factory_pmic_test, product, "PMIC")
 def set_factory_type(_factory, factory_type):
     _factory.addStep(steps.SetProperty(
