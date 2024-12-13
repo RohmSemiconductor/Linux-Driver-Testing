@@ -10,6 +10,7 @@ if sys.argv[1] == 'initialize_report':
     bb_project = sys.argv[2]
     linux_ver = sys.argv[3]
     revision = sys.argv[4]
+    stdout = subprocess.run('mkdir -p /tmp/rohm_linux_driver_tests/', shell=True)
     stdout = subprocess.run('rm -rf /tmp/rohm_linux_driver_tests/temp_results/', shell=True)
     stdout = subprocess.run('mkdir /tmp/rohm_linux_driver_tests/temp_results', shell=True)
     stdout = subprocess.run('rm -rf /tmp/rohm_linux_driver_tests/temp_results_PMIC/', shell=True)
