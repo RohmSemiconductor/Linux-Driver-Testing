@@ -687,7 +687,7 @@ def copy_generated_dts(_factory, product, dts):
     doStepIf_dts_test_preparation_partial = functools.partial(doStepIf_dts_test_preparation, product=product)
 
     _factory.addStep(steps.ShellCommand(
-        command=["cp", "../../../../../Test_Worker/tests/pmic/configs/dts_generated/"+product+"/generated_dts_"+dts+".dts", "./"],
+        command=["cp", "/tmp/rohm_linux_driver_tests/dts_generated/"+product+"/generated_dts_"+dts+".dts", "./"],
 #        workdir="build/_test-kernel-modules",
         workdir=util.Interpolate('../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'+product),
         doStepIf=doStepIf_dts_test_preparation_partial,
