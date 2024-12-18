@@ -254,16 +254,11 @@ def trigger_test_factories(project_name):
                 'iio_generic_buffer_found':util.Property('iio_generic_buffer_found'),
                 'preparation_step_failed':util.Property('preparation_step_failed'),
                 'git_bisecting':util.Property('git_bisecting'),
-               # 'git_bisect_state':'running',
                 'commit-description':util.Property('commit-description'),
-             #   'timestamped_dir':util.Property('timestamped_dir'),
                 'factory_type':'accelerometer',
                 'timestamp':util.Property('timestamp'),
                 'linuxdir':util.Property('buildername'),
-              #  'RESULT':'FAILED',
                 },
-            #doStepIf = util.Property('preparation_step_failed') != False
-            #doStepIf = doStepIf_trigger_sensor_factory
             ))
 
 def download_test_boards(project_name):
@@ -282,18 +277,19 @@ def copy_results_for_factories(project_name):
         ))
 
 def sanity_checks(project_name):
-    power_port = list(test_boards['accelerometer']['power_ports'])[0]
-    test_board = list(test_boards['accelerometer']['power_ports'][power_port])[0]
+    board_type = list(test_boards.keys())[0]
+    power_port = list(test_boards[board_type]['power_ports'])[0]
+    test_board = list(test_boards[board_type]['power_ports'][power_port])[0]
 
 
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
         command=["pytest","-W","ignore::DeprecationWarning", "-ra",
                 "test_000_no_ippower_login.py",
                 "--power_port="+power_port,
-                "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
+                "--beagle="+test_boards[board_type]['power_ports'][power_port][test_board]['name']],
 
         workdir="../../Test_Worker/tests/pmic",
-        name="Login to "+test_boards['accelerometer']['power_ports'][power_port][test_board]['name'],
+        name="Login to "+test_boards[board_type]['power_ports'][power_port][test_board]['name'],
         doStepIf=util.Property('preparation_step_failed') != False,
         hideStepIf=skipped,
         extract_fn=extract_sanitycheck_login
@@ -304,9 +300,9 @@ def sanity_checks(project_name):
         command=["pytest","-W","ignore::DeprecationWarning",
                 "test_000_check_iio_generic_buffer.py",
                 "--lg-log", "/tmp/rohm_linux_driver_tests/temp_results/",
-                "--lg-env", test_boards['accelerometer']['power_ports'][power_port][test_board]['name']+".yaml",
+                "--lg-env", test_boards[board_type]['power_ports'][power_port][test_board]['name']+".yaml",
                 "--power_port="+power_port,
-                "--beagle="+test_boards['accelerometer']['power_ports'][power_port][test_board]['name']],
+                "--beagle="+test_boards[board_type]['power_ports'][power_port][test_board]['name']],
         workdir="../../Test_Worker/tests/pmic",
         name="Check for iio_generic_buffer",
         doStepIf=util.Property('preparation_step_failed') != 'True',
@@ -581,7 +577,8 @@ def git_bisect(project_name):
                      projects[project_name]['builderNames'][0],
                      util.Property("git_bisect_output"),
                      util.Property("git_bisect_state"),
-                     "Sensor",
+                     "PMIC",
+                     "Sensor"
                      ],
             name="Report git bisect results",
             workdir="../../Test_Worker/tests",
@@ -597,7 +594,6 @@ def git_bisect(project_name):
 
 def extract_get_factory_properties(rc, stdout, stderr):
     extracted_factory_properties = {}
-    print(stdout)
     lines = stdout.split('\n')
     for line in lines:
         prop = line.split('=',2)
@@ -606,7 +602,6 @@ def extract_get_factory_properties(rc, stdout, stderr):
         prop_val = prop_val.split('\n',1)
         prop_val = prop_val[0]
         extracted_factory_properties[str(prop_key)] = str(prop_val)
-#        print(prop_key+' '+prop_val)
     return extracted_factory_properties
 
 
@@ -636,9 +631,13 @@ def build_deploy_kernel(project_name):
     trigger_test_factories(project_name)
     get_factory_properties(project_name)
     save_good_commit(project_name)
-#    git_bisect(project_name)
+    git_bisect(project_name)
     publish_results_git_sensor(project_name, 'Sensor')
     publish_results_git_sensor(project_name, 'PMIC')
+
+for stable_branch in stable_branches:
+    stable_branch = stable_branch.replace(".","_")
+    build_deploy_kernel('linux_stable_'+stable_branch)
 
 build_deploy_kernel('test_linux')
 build_deploy_kernel('linux-next')
