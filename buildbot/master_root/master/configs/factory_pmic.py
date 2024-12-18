@@ -36,7 +36,6 @@ def run_pmic_tests():
                                        power_port,
                                        test_board,
                                        product, 'default',
-                                       dev_setup='True',
                                        test_type='pmic')
                 generate_driver_tests(factory_pmic_test,
                                       power_port,
@@ -58,7 +57,6 @@ def run_pmic_tests():
                                            test_board,
                                            product,
                                            dts,
-                                           dev_setup='True',
                                            test_type='pmic')
                     generate_driver_tests(factory_pmic_test, power_port, test_board, product, "dts", dts )
 

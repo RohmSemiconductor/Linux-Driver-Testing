@@ -55,7 +55,6 @@ def run_accelerometer_tests():
                                        power_port,
                                        test_board,
                                        product, 'default',
-                                       dev_setup='True',
                                        test_type='accelerometer',
                                        result_dir='sensor'
                                        )

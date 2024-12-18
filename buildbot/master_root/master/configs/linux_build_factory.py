@@ -284,7 +284,7 @@ def sanity_checks(project_name):
 
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
         command=["pytest","-W","ignore::DeprecationWarning", "-ra",
-                "test_000_no_ippower_login.py",
+                "test_000_login.py",
                 "--power_port="+power_port,
                 "--beagle="+test_boards[board_type]['power_ports'][power_port][test_board]['name']],
 
