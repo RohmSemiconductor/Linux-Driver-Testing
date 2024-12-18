@@ -9,6 +9,7 @@
 #include <linux/container_of.h>
 #include <linux/kfifo.h>
 #include <linux/completion.h>
+#include <linux/version.h>
 
 struct scan {
 	__le16 channels[3];
