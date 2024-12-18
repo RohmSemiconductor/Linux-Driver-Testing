@@ -779,14 +779,20 @@ static void test_cleanup_buffer(void *d)
 	iio_channel_stop_all_cb(g_buf);
 	iio_channel_release_all_cb(g_buf);
 }
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
+static int generic_accel_test_remove(struct platform_device *pdev)
+#else
 static void generic_accel_test_remove(struct platform_device *pdev)
+#endif
 {
 	int ret;
 	struct accel_priv *accel_priv = dev_get_drvdata(&pdev->dev);
 
 	ret = devm_add_action_or_reset(&pdev->dev, &test_cleanup_buffer,
 				       accel_priv->buffer);
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
+	return 0;
+	#endif
 }
 
 static const struct of_device_id generic_accel_test_of_match[] = {
