@@ -48,7 +48,7 @@ def finalize_product(product, do_steps, type):
         report_file.close()
 
 def bisect_result(timestamp,bb_project, final_output, bisect_state, branch):
-    report_file = open('/test-results/'+branch+'/'+timestamp+'_'+bb_project+'/summary.txt', 'a', encoding='utf-8')
+    report_file = open('./test-results/'+branch+'/'+timestamp+'_'+bb_project+'/summary.txt', 'a', encoding='utf-8')
     report_file.seek(0,2)
     print("Git bisect state: "+bisect_state+"\n", end='', file=report_file)
     print(final_output+"\n", end='', file=report_file)
@@ -245,9 +245,10 @@ def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=
 def _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, summary):
     for x in range(len(result['return'])):
         if ((result['return'][x] <= result['expect_low']) or (result['return'][x] >= result['expect_high'])):
-            print( "Sampling rate "+str(result['sampling_frequency'])+" Hz behaved unexpectedly: Time between timestamps:  Received: "+str(result['return'][x])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed range: "+str(result['expect_low'])+"ns - "+str(result['expect_high'])+"ns ("+str(result['tolerance'])+"% tolerance)\nDifference between received and expected: "+str(result['return_diff'][x])+"ns\n", end='', file=report_file)
+            print( "Sampling rate "+str(result['sampling_frequency'])+" Hz behaved unexpectedly: Time between timestamp and expected result:  Received: "+str(result['return'][x])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed range: "+str(result['expect_low'])+"ns - "+str(result['expect_high'])+"ns\n", end='', file=report_file)
 
-            print( "Sampling rate "+str(result['sampling_frequency'])+" Hz behaved unexpectedly: Time between timestamps:  Received: "+str(result['return'][x])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed ("+str(result['tolerance'])+"% tolerance)\n", end='', file=summary)
+            print( "Sampling rate "+str(result['sampling_frequency'])+" Hz behaved unexpectedly: Time between timestamp and expected result:  Received: "+str(result['return'][x])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed range: "+str(result['expect_low'])+"ns - "+str(result['expect_high'])+"ns\n", end='', file=summary)
+
     _assert_test(result, report_file, summary)
 
 def _assert_sensor_test_gscale_ms2_match(result, report_file, summary):

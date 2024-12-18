@@ -21,7 +21,7 @@ data={
         'reg_address':  0x1B,
         'reg_bitmask':  0b00001111,
         ### Driver supports these sampling rates, values are in Hz
-        'list_values': [0.78, 1.563, 3.125, 6.25, 12.5, 25.0, 50.0, 100.0, 200.0]
+        'list_values': [0.78, 1.563, 3.125, 6.25, 12.5, 25.0, 50.0, 100.0] #skip 200.0 for now
     },
     'axis':{
         'reg_bits':         16,

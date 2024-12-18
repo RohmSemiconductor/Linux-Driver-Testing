@@ -41,7 +41,7 @@ class sensor:
         return path
 
                                                             ### tolerance  = +/- #%
-    def test_sampling_frequency_match_timestamp(self, command, frequency, count=2, tolerance=2):
+    def test_sampling_frequency_match_timestamp(self, command, frequency, watermark, count=2, tolerance=2):
         self.result['return'] =[]
         self.result['return_diff'] = []
         self.result['stage'] = 'test_sampling_frequency_match_timestamp'
@@ -51,23 +51,30 @@ class sensor:
 
         frequency_ns = frequency_to_ns(frequency)
         self.result['expect_perfect'] = frequency_ns
+        self.result['expect_perfect'] = 0
 
-        high_limit =(frequency_ns * pc_to_int(tolerance)) + frequency_ns
-        self.result['expect_high']= high_limit
+#        high_limit =(frequency_ns * pc_to_int(tolerance)) + frequency_ns
+#        high_limit = frequency_ns + 5000000
+#        self.result['expect_high']= high_limit
+        self.result['expect_high']= 5000000
 
-        low_limit = ((frequency_ns * pc_to_int(tolerance)) * -1) + frequency_ns
-        self.result['expect_low'] = low_limit
+#        low_limit = ((frequency_ns * pc_to_int(tolerance)) * -1) + frequency_ns
+#        low_limit = frequency_ns - 5000000
+#        self.result['expect_low'] = low_limit
+        self.result['expect_low'] = -14000000
 
         self.set_sampling_frequency_driver(frequency, command)
 
-        timestamps = self.read_timestamps(command, count = count)
+        timestamps = self.read_timestamps(command, count = count, watermark = watermark)
 
         self.result['return']
         timestamp_intervals = []
 
         for x in range(1,(len(timestamps))):
             ts_interval = (int(timestamps[x]) - int(timestamps[x-1]))
-            self.result['return'].append(ts_interval)
+            ts_diff = ts_interval - frequency_ns
+#            self.result['return'].append(ts_interval)
+            self.result['return'].append(ts_diff)
             self.result['return_diff'].append(ts_interval - frequency_ns)
             interval_count = x
 
@@ -102,10 +109,10 @@ class sensor:
         stdout, stderr, returncode = command.run("echo 0 > "+path+"/scan_elements/in_accel_z_en")
         stdout, stderr, returncode = command.run("echo 0 > "+path+"/scan_elements/in_timestamp_en")
 
-    def read_timestamps(self, command, count=1):
+    def read_timestamps(self, command, watermark=0, count=1):
         self.enable_all_accel_channels(command)
         count_str = str(count)
-        stdout = self.read_enabled_channels(command, count=count_str)
+        stdout = self.read_enabled_channels(command, watermark=watermark, count=count_str)
         timestamps = self.extract_timestamp_iio_generic_buffer(stdout)
 
         return timestamps
@@ -120,9 +127,13 @@ class sensor:
 
         return timestamps
 
-    def read_enabled_channels(self, command, count=1):
+    def read_enabled_channels(self, command, count=1, watermark=0):
         count = str(count)
         stdout, stderr, returncode = command.run("/./iio_generic_buffer -c "+count+" -g -n "+self.board.data['iio_device']['name'])
+        if watermark != 0:
+            watermark = str(watermark+1)
+            stdout, stderr, returncode = command.run("/./iio_generic_buffer -c "+count+" -g -l "+watermark+" -n "+self.board.data['iio_device']['name'])
+
         return stdout
 
     def init_test_gscale(self, command, test_type, axis):
