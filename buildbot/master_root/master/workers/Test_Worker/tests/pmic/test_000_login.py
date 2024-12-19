@@ -5,10 +5,11 @@ from pathlib import Path
 sys.path.append('..')
 from test_util import checkStr, check_result, result
 result = result
-def test_login(power_port, beagle):
+def test_login(power_port, beagle, result_dir):
 
     result['type'] = 'generic'
     result['stage'] = 'ip_power'
+    result['result_dir'] = result_dir
 
     ip_power = subprocess.run('/bin/bash .././ip-power-control.sh '+power_port+' 0' ,shell=True, capture_output=True, text=True)
     ip_power = subprocess.run('/bin/bash .././ip-power-control.sh '+power_port+' 1' ,shell=True, capture_output=True, text=True)
