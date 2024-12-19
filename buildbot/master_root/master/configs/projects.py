@@ -67,10 +67,6 @@ projects['linux_rohm_devel']={
     'factory': factory_linux_rohm_devel,
 }
 
-#stable_branches =   ['linux-5.15.y', 'linux-6.1.y', 'linux-6.6.y',  #LTS kernels
-#                    'linux-6.10.y', 'linux-6.11.y']             #Short time stable
-
-
 projects['linux_stable']={
     'name': 'linux_stable',
     'repo_git': 'https://github.com/KalleNiemi/linux_stable_testing.git',
@@ -78,7 +74,7 @@ projects['linux_stable']={
     'factory': factory_linux_stable,
 }
 
-stable_branches =   ['linux-5.15.y',  #LTS kernels
+stable_branches =   ['linux-5.15.y', 'linux-6.1.y','linux-6.6.y']  #LTS kernels
                      'linux-6.12.y']             #Short time stable
 
 for stable_branch in stable_branches:
