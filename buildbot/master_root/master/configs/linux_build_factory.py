@@ -54,8 +54,14 @@ def doStepIf_dtc_boneblack_old_dir(step):
     else:
         return False
 
-def doStepIf_linux_stable_copy_config(step, project_name, branch):
-    if step.getProperty('branch') == branch:
+def doStepIf_linux_stable_copy_config(step):
+    if step.getProperty('project') == "linux_stable":
+        return True
+    else:
+        return False
+
+def doStepIf_linux_not_stable_copy_config(step):
+    if step.getProperty('project') != "linux_stable":
         return True
     else:
         return False
@@ -78,23 +84,23 @@ def build_kernel_arm32(project_name):
 
     initialize_test_report(project_name)
 
-    if project_name == 'linux_stable':
-        for branch in projects[project_name]['branches']:
-            doStepIf_linux_stable_copy_config_partial = functools.partial(doStepIf_linux_stable_copy_config, project_name=project_name, branch=branch)
-            projects[project_name]['factory'].addStep(steps.FileDownload(
-                mastersrc="../../../compilers/kernel_configs/arm32_bbb_"+branch+".config",
-                workerdest=".config",
-                name="Copy "+branch+" config to build directory",
-                doStepIf=doStepIf_linux_stable_copy_config_partial,
-                hideStepIf=skipped
-                ))
+    ### Copy Linux stable config
+    projects[project_name]['factory'].addStep(steps.FileDownload(
+        mastersrc=util.Interpolate("../../../compilers/kernel_configs/arm32_bbb_%(prop:branch)s.config"),
+        workerdest=".config",
+        name=util.Interpolate("Copy %(prop:branch)s config to build directory"),
+        doStepIf=doStepIf_linux_stable_copy_config,
+        hideStepIf=skipped
+        ))
 
-    else:
-        projects[project_name]['factory'].addStep(steps.FileDownload(
-            mastersrc="../../../compilers/kernel_configs/arm32_bbb_linux_mainline.config",
-            workerdest=".config",
-            name="Copy mainline kernel config to build directory"
-            ))
+    ### Copy mainline config if kernel version is different than stable
+    projects[project_name]['factory'].addStep(steps.FileDownload(
+        mastersrc="../../../compilers/kernel_configs/arm32_bbb_linux_mainline.config",
+        workerdest=".config",
+        name="Copy mainline kernel config to build directory",
+        doStepIf=doStepIf_linux_not_stable_copy_config,
+        hideStepIf=skipped
+        ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
         command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "olddefconfig"],
@@ -290,7 +296,7 @@ def sanity_checks(project_name):
 
         workdir="../../Test_Worker/tests/pmic",
         name="Login to "+test_boards[board_type]['power_ports'][power_port][test_board]['name'],
-        doStepIf=util.Property('preparation_step_failed') != False,
+        doStepIf=util.Property('preparation_step_failed') != 'True',
         hideStepIf=skipped,
         extract_fn=extract_sanitycheck_login
         ))
@@ -639,5 +645,7 @@ for stable_branch in stable_branches:
     stable_branch = stable_branch.replace(".","_")
     build_deploy_kernel('linux_stable_'+stable_branch)
 
+build_deploy_kernel('linux_mainline')
 build_deploy_kernel('test_linux')
 build_deploy_kernel('linux-next')
+build_deploy_kernel('linux_rohm_devel')
