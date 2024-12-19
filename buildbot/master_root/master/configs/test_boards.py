@@ -36,8 +36,7 @@ test_boards['pmic'] = {
                 'power_port':'1',
                 'arch':'arm32',
             }
-        }
-
+        },
         '2':{
             'beagle2':{
                 'name':'beagle2',
@@ -45,14 +44,14 @@ test_boards['pmic'] = {
                 'power_port':'2',
                 'arch':'arm32',
             }
-        }
+        },
         '3':{
             'beagle3':{
                 'name':'beagle3',
                 'products':['bd71828'],
                 'power_port':'3',
                 'arch':'arm32',
-            }
+            },
             'beagle4':{
                 'name':'beagle4',
                 'products':['bd96801', 'bd71837'],
