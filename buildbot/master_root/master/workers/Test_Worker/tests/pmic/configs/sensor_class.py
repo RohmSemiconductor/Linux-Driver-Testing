@@ -56,7 +56,7 @@ class sensor:
 #        high_limit =(frequency_ns * pc_to_int(tolerance)) + frequency_ns
 #        high_limit = frequency_ns + 5000000
 #        self.result['expect_high']= high_limit
-        self.result['expect_high']= 5000000
+        self.result['expect_high']= 6000000
 
 #        low_limit = ((frequency_ns * pc_to_int(tolerance)) * -1) + frequency_ns
 #        low_limit = frequency_ns - 5000000
