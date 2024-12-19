@@ -69,7 +69,7 @@ projects['linux_rohm_devel']={
 
 projects['linux_stable']={
     'name': 'linux_stable',
-    'repo_git': 'https://github.com/KalleNiemi/linux_stable_testing.git',
+    'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/',
     'workerNames': ["Linux_Worker"],
     'factory': factory_linux_stable,
 }
@@ -88,10 +88,9 @@ for stable_branch in stable_branches:
     'name': 'linux_stable_'+stable_branch,
 #    'branches': tag_change,
     'branches': [stable_branch],
-#    'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git',
-    'repo_git': 'https://github.com/KalleNiemi/linux_stable_testing.git',
-    'polling': 30,
-    'treeStableTimer': 60,
+    'repo_git': 'https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git',
+    'polling': 480,
+    'treeStableTimer': 1100,
     'scheduler_name': 'scheduler-linux_stable_'+stable_branch,
     'builderNames': ['linux_stable_'+stable_branch],
     'workerNames': ["Linux_Worker"],
