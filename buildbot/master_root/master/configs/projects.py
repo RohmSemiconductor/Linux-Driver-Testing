@@ -74,7 +74,7 @@ projects['linux_stable']={
     'factory': factory_linux_stable,
 }
 
-stable_branches =   ['linux-5.15.y', 'linux-6.1.y','linux-6.6.y']  #LTS kernels
+stable_branches =   ['linux-5.15.y', 'linux-6.1.y','linux-6.6.y',  #LTS kernels
                      'linux-6.12.y']             #Short time stable
 
 for stable_branch in stable_branches:
