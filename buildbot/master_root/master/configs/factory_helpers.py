@@ -257,7 +257,7 @@ def check_kunit_iio_gts_test(step):
 def doStepIf_kunit_iio_gts_test(step):
     if step.getProperty('sanitycheck_login_failed') == 'False':
         if step.getProperty('preparation_step_failed') == 'False':
-            if check_kunit_iio_gts_test(step) == 'True':
+            if check_kunit_iio_gts_test(step) == True:
                 return True
             else:
                 return False
