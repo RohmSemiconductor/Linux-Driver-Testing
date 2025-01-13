@@ -13,6 +13,7 @@ buildbot/worker_root/worker1/Linux_Mainline/
 buildbot/worker_root/worker1/linux-stable/
 buildbot/worker_root/worker1/Test_kernel_modules/
 buildbot/worker_root/worker1/tests/pmic/configs/kernel_modules.py
+buildbot/master_root/master/workers/Test_Worker/tests/pmic/configs/kernel_modules.py
 
 **/driver_tests/configs/dts/
 **/driver_tests/configs/kernel_modules.py
