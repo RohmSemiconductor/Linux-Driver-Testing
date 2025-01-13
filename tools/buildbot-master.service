@@ -1,0 +1,13 @@
+[Unit]
+Description=BuildBot Master Service
+After=network.target
+
+[Service]
+Type=forking
+Restart=on-failure
+User=user01
+Group=user01
+ExecStart=/bin/bash -c 'cd /home/user01/Linux-Driver-Testing/buildbot/master_root/ && source sandbox/bin/activate && buildbot start master/'
+
+[Install]
+WantedBy=multi-user.target
