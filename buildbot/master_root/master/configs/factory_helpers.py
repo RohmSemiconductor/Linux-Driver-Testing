@@ -142,8 +142,8 @@ def check_tag(step,product):
 def save_properties(_factory, factory_type):
     _factory.addStep(steps.ShellCommand(
         command=util.Interpolate("python3 report_janitor.py save_factory_properties "+factory_type+" "
-                                 "single_test_failed=%(prop:single_test_failed)s "
-                                 "single_test_passed=%(prop:single_test_passed)s "
+                                 +factory_type+"_single_test_failed=%(prop:"+factory_type+"_single_test_failed)s "
+                                 +factory_type+"_single_test_passed=%(prop:"+factory_type+"_single_test_passed)s "
                                  "single_login_failed=%(prop:single_login_failed)s "
                                  "single_login_passed=%(prop:single_login_passed)s "
                                  ),
@@ -285,6 +285,22 @@ def extract_driver_tests(rc, stdout, stderr, product):
     else:
         return {product+'_skip_dts_tests': 'False', product+'_do_steps' : 'True', 'single_test_passed': 'True'}
 
+def extract_pmic_driver_tests(rc, stdout, stderr, product):
+    if 'FAILURES' in stdout:
+        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'pmic_single_test_failed': 'True'}
+    elif rc != 0:
+        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'pmic_single_test_failed': 'True'}
+    else:
+        return {product+'_skip_dts_tests': 'False', product+'_do_steps' : 'True', 'pmic_single_test_passed': 'True'}
+
+def extract_sensor_driver_tests(rc, stdout, stderr, product):
+    if 'FAILURES' in stdout:
+        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'sensor_single_test_failed': 'True'}
+    elif rc != 0:
+        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'sensor_single_test_failed': 'True'}
+    else:
+        return {product+'_skip_dts_tests': 'False', product+'_do_steps' : 'True', 'sensor_single_test_passed': 'True'}
+
 def doStepIf_powerdown_beagle(step, product):
     if step.getProperty('buildername') == 'linux-rohm-devel' or step.getProperty('buildername') == 'Test_Linux' or check_tag(step, product) == True:
         if step.getProperty(product+'_dts_fail') == 'True':
@@ -311,7 +327,14 @@ def doStepIf_generate_driver_tests(step, product, dts):
         return False
 
 def generate_driver_tests(_factory, power_port, test_board, product, test_type='pmic', dts=None):
-    extract_driver_tests_partial = functools.partial(extract_driver_tests, product=product)
+    if test_type == 'pmic':
+        extract_driver_tests_partial = functools.partial(extract_pmic_driver_tests, product=product)
+    elif test_type == 'accelerometer':
+        extract_driver_tests_partial = functools.partial(extract_sensor_driver_tests, product=product)
+    elif test_type == 'dts':
+        extract_driver_tests_partial = functools.partial(extract_pmic_driver_tests, product=product)
+
+
     doStepIf_kunit_iio_gts_test_partial = functools.partial(doStepIf_kunit_iio_gts_test, product=product, dts=dts)
     doStepIf_generate_driver_tests_partial = functools.partial(doStepIf_generate_driver_tests, product=product, dts=dts)
     doStepIf_powerdown_beagle_partial = functools.partial(doStepIf_powerdown_beagle, product=product)
@@ -406,7 +429,6 @@ def extract_check_iio_generic_buffer(rc, stdout, stderr):
 
 def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
                            test_type='PMIC', result_dir='PMIC', dev_setup='False', type=None):
-
     extract_init_driver_test_partial= functools.partial(extract_init_driver_test, product=product)
     extract_init_driver_test_login_partial= functools.partial(extract_init_driver_test_login, product=product)
     doStepIf_login_partial = functools.partial(doStepIf_login, product=product)
@@ -622,14 +644,22 @@ def doStepIf_git_push(step):
     else:
         return False
 
-def doStepIf_setProperty_RESULT_FAILED(step):
-    if step.getProperty('RESULT') == None:
+def doStepIf_setProperty_LINUX_RESULT_FAILED(step):
+    if step.getProperty('LINUX_RESULT') == None:
+        if step.getProperty('preparation_step_failed') == 'True':
+            return True
+        else:
+            return False
+    else:
+        return False
 
-        if step.getProperty('iio_generic_buffer_found') == 'False' and step.getProperty('factory_type') == 'accelerometer':
-            return True
-        elif step.getProperty('preparation_step_failed') == 'True':
-            return True
-        elif step.getProperty('single_test_failed') == 'True':
+def doStepIf_setProperty_LINUX_RESULT_PASSED(step):
+    if step.getProperty('LINUX_RESULT') == None:
+        return True
+
+def doStepIf_setProperty_PMIC_RESULT_FAILED(step):
+    if step.getProperty('PMIC_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED":
+        if step.getProperty('pmic_single_test_failed') == 'True':
             return True
         elif step.getProperty('single_login_failed') == 'True':
             if step.getProperty('single_login_passed') == 'True':
@@ -641,8 +671,29 @@ def doStepIf_setProperty_RESULT_FAILED(step):
     else:
         return False
 
-def doStepIf_setProperty_RESULT_PASSED(step):
-    if step.getProperty('RESULT') == None:
+def doStepIf_setProperty_PMIC_RESULT_PASSED(step):
+    if step.getProperty('PMIC_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED":
+        return True
+
+def doStepIf_setProperty_SENSOR_RESULT_FAILED(step):
+    if step.getProperty('SENSOR_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED":
+
+        if step.getProperty('iio_generic_buffer_found') == 'False':
+            return True
+        elif step.getProperty('sensor_single_test_failed') == 'True':
+            return True
+        elif step.getProperty('single_login_failed') == 'True':
+            if step.getProperty('single_login_passed') == 'True':
+                return False
+            else:
+                return True
+        else:
+            return False
+    else:
+        return False
+
+def doStepIf_setProperty_SENSOR_RESULT_PASSED(step):
+    if step.getProperty('SENSOR_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED":
         return True
 
 def publish_results_git(_factory, branch_dir):
@@ -695,8 +746,8 @@ def copy_generated_dts(_factory, product, dts):
         name=product+": Copy generated dts: "+dts
         ))
 
-def build_dts(_factory, product, test_dts):
-    extract_dts_error_partial = functools.partial(extract_dts_error, product=product, test_dts=test_dts)
+def build_dts(_factory, product, test_dts, test_type):
+    extract_dts_error_partial = functools.partial(extract_dts_error, product=product, test_type=test_type, test_dts=test_dts)
     doStepIf_dts_test_preparation_partial = functools.partial(doStepIf_dts_test_preparation, product=product)
     _factory.addStep(steps.SetPropertyFromCommand(
         command=['make'],
@@ -751,14 +802,14 @@ def doStepIf_dts_test_preparation(step, product):
         return False
 
 
-def extract_dts_error(rc, stdout, stderr, product, test_dts='default'):
+def extract_dts_error(rc, stdout, stderr, product, test_type, test_dts='default'):
     if 'Error' in stderr:
         return {
                 product+'_'+test_dts+'_dts_error': stderr,
                 product+'_'+test_dts+'_dts_make_passed': 'False',
                 product+'_do_steps' : 'False',
                 product+'_skip_dts_tests' : 'True',
-                'single_test_failed' : 'True',
+                test_type+'_single_test_failed' : 'True',
                 product+'_dts_fail': 'True'
                 }
     else:

@@ -361,39 +361,83 @@ def sanity_checks(project_name):
         name="Power down beagle"
         ))
 
-def publish_results_git_sensor(project_name, branch_dir):
+def publish_results_git(project_name, branch_dir):
     projects[project_name]['factory'].addStep(steps.SetProperty(
-        name="Tests: FAILED",
-        property="RESULT",
+        name="Kernel build / preparation: FAILED",
+        property="LINUX_RESULT",
         value="FAILED",
-        doStepIf=doStepIf_setProperty_RESULT_FAILED,
+        doStepIf=doStepIf_setProperty_LINUX_RESULT_FAILED,
         hideStepIf=skipped
         ))
 
     projects[project_name]['factory'].addStep(steps.SetProperty(
-        name="Tests: PASSED",
-        property="RESULT",
+        name="Kernel build / preparation: PASSED",
+        property="LINUX_RESULT",
         value="PASSED",
-        doStepIf=doStepIf_setProperty_RESULT_PASSED,
+        doStepIf=doStepIf_setProperty_LINUX_RESULT_PASSED,
         hideStepIf=skipped
         ))
 
+    if branch_dir == "PMIC":
+        projects[project_name]['factory'].addStep(steps.SetProperty(
+            name="PMIC Tests: FAILED",
+            property="PMIC_RESULT",
+            value="FAILED",
+            doStepIf=doStepIf_setProperty_PMIC_RESULT_FAILED,
+            hideStepIf=skipped
+            ))
 
-    projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["python3", "../report_janitor.py", "publish_results_git",
-                 util.Property('timestamp'), util.Property('buildername'),
-                 branch_dir, util.Property('RESULT')],
-        name="Publish results to github.com",
-        workdir="../../Test_Worker/tests/test-results",
-        doStepIf=doStepIf_git_push,
-        ))
+        projects[project_name]['factory'].addStep(steps.SetProperty(
+            name="PMIC Tests: PASSED",
+            property="PMIC_RESULT",
+            value="PASSED",
+            doStepIf=doStepIf_setProperty_PMIC_RESULT_PASSED,
+            hideStepIf=skipped
+            ))
+
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["python3", "../report_janitor.py", "publish_results_git",
+                     util.Property('timestamp'), util.Property('buildername'),
+                     branch_dir, util.Property('LINUX_RESULT'),
+                     util.Property('PMIC_RESULT')],
+            name="Publish results to github.com",
+            workdir="../../Test_Worker/tests/test-results",
+            doStepIf=doStepIf_git_push,
+            ))
+
+    if branch_dir == "Sensor":
+        projects[project_name]['factory'].addStep(steps.SetProperty(
+            name="Sensor Tests: FAILED",
+            property="SENSOR_RESULT",
+            value="FAILED",
+            doStepIf=doStepIf_setProperty_SENSOR_RESULT_FAILED,
+            hideStepIf=skipped
+            ))
+
+        projects[project_name]['factory'].addStep(steps.SetProperty(
+            name="Sensor Tests: PASSED",
+            property="SENSOR_RESULT",
+            value="PASSED",
+            doStepIf=doStepIf_setProperty_SENSOR_RESULT_PASSED,
+            hideStepIf=skipped
+            ))
+
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["python3", "../report_janitor.py", "publish_results_git",
+                     util.Property('timestamp'), util.Property('buildername'),
+                     branch_dir, util.Property('LINUX_RESULT'),
+                     util.Property('SENSOR_RESULT')],
+            name="Publish results to github.com",
+            workdir="../../Test_Worker/tests/test-results",
+            doStepIf=doStepIf_git_push,
+            ))
 
 #### Git bisect helpers
 def doStepIf_good_commit_write(step):
     if step.getProperty('git_bisecting') != "True":
         if step.getProperty('preparation_step_failed') == "True":
             return False
-        elif (not step.getProperty('single_test_failed') and step.getProperty('single_test_passed')):
+        elif ((not step.getProperty('pmic_single_test_failed') and not step.getProperty('sensor_single_test_failed')) and step.getProperty('single_test_passed')):
             return True
         else:
             return False
@@ -638,8 +682,8 @@ def build_deploy_kernel(project_name):
     get_factory_properties(project_name)
     save_good_commit(project_name)
     git_bisect(project_name)
-    publish_results_git_sensor(project_name, 'Sensor')
-    publish_results_git_sensor(project_name, 'PMIC')
+    publish_results_git(project_name, 'Sensor')
+    publish_results_git(project_name, 'PMIC')
 
 for stable_branch in stable_branches:
     stable_branch = stable_branch.replace(".","_")

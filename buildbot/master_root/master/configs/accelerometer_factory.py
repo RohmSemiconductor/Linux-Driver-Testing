@@ -8,8 +8,8 @@ import string
 factory_accelerometer_test = util.BuildFactory()
 
 
-def build_dts_accelerometer(product):
-    extract_dts_error_partial = functools.partial(extract_dts_error, product=product)
+def build_dts_accelerometer(product, test_type):
+    extract_dts_error_partial = functools.partial(extract_dts_error, product=product, test_type=test_type)
     doStepIf_dts_test_preparation_partial = functools.partial(doStepIf_dts_test_preparation, product=product)
 
     factory_accelerometer_test.addStep(steps.SetPropertyFromCommand(
@@ -43,7 +43,7 @@ def run_accelerometer_tests():
                 initialize_accelerometer_report(product)
 ##                generate_dts(project_name, product, 'default')
 ##                copy_generated_dts(project_name, product, 'default')
-                build_dts_accelerometer(product)
+                build_dts_accelerometer(product, test_type='accelerometer')
                 dts_report(factory_accelerometer_test, product, 'default')
 
                 copy_test_kernel_modules_to_nfs(factory_accelerometer_test,
@@ -55,7 +55,7 @@ def run_accelerometer_tests():
                                        power_port,
                                        test_board,
                                        product, 'default',
-                                       test_type='accelerometer',
+                                       test_type='sensor',
                                        result_dir='sensor'
                                        )
                 generate_driver_tests(factory_accelerometer_test,

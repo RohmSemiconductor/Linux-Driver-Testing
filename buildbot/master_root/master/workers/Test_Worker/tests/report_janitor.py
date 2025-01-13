@@ -99,9 +99,16 @@ elif sys.argv[1] == 'save_factory_properties':
 
 elif sys.argv[1] == 'read_factory_properties':
 
-    saved_properties = {
-            'single_test_failed'    : '',
-            'single_test_passed'    : '',
+    saved_properties_pmic = {
+            'pmic_single_test_failed'    : '',
+            'pmic_single_test_passed'    : '',
+            'single_login_failed'   : '',
+            'single_login_passed'   : '',
+    }
+
+    saved_properties_sensor = {
+            'sensor_single_test_failed'    : '',
+            'sensor_single_test_passed'    : '',
             'single_login_failed'   : '',
             'single_login_passed'   : '',
     }
@@ -109,21 +116,19 @@ elif sys.argv[1] == 'read_factory_properties':
     property_files = ['properties_pmic', 'properties_sensor']
 
     for property_file in property_files:
+        opened_file = property_file
         try:
             property_file = open('/tmp/rohm_linux_driver_tests/'+property_file+'.txt',
                                  'r', encoding='utf-8')
             for line in property_file:
-                for property in saved_properties.keys():
-                    if ((property+'=True' in line) and (saved_properties[property] =='')):
-                        print(line)
-#                        prop = line.split('=',1)
-#                        prop_key = prop[0]
-#                        prop_val = prop[1]
-#                        prop_val = prop_val.split('\n',1)
-#                        prop_val = prop_val[0]
-#                        saved_properties[property] = str(prop_val)
-#                        print(prop_key+'='+prop_val)
-#
+                if opened_file == 'properties_pmic':
+                    for property in saved_properties_pmic.keys():
+                        if ((property+'=True' in line) and (saved_properties_pmic[property] =='')):
+                            print(line)
+                elif opened_file == 'properties_sensor':
+                    for property in saved_properties_sensor.keys():
+                        if ((property+'=True' in line) and (saved_properties_sensor[property] =='')):
+                            print(line)
         except:
             print("")
 
@@ -143,7 +148,10 @@ elif sys.argv[1] == 'publish_results_git':
     timestamp_git_dir = sys.argv[2]
     bb_project = sys.argv[3]
     branch = sys.argv[4]
-    result = sys.argv[5]
+    if sys.argv[5] == "FAILED":
+        result = sys.argv[5]
+    else:
+        result = sys.argv[6]
 
     stdout = subprocess.run('mv '+branch+'/'+timestamp_git_dir+'_'+bb_project+'/ '+branch+'/'+timestamp_git_dir+'_'+bb_project+'_'+result+'/', shell=True)
 

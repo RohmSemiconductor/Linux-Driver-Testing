@@ -25,7 +25,7 @@ def run_pmic_tests():
                 initialize_pmic_report(product)
                 generate_dts(factory_pmic_test, product, 'default')
                 copy_generated_dts(factory_pmic_test, product, 'default')
-                build_dts(factory_pmic_test, product, 'default')
+                build_dts(factory_pmic_test, product, 'default', test_type='pmic')
                 dts_report(factory_pmic_test, product, 'default')
 
                 copy_test_kernel_modules_to_nfs(factory_pmic_test,
@@ -48,7 +48,7 @@ def run_pmic_tests():
                 for dts in dts_tests:
                     generate_dts(factory_pmic_test, product, dts)
                     copy_generated_dts(factory_pmic_test, product, dts)
-                    build_dts(factory_pmic_test, product, dts)
+                    build_dts(factory_pmic_test, product, dts, test_type='pmic')
                     dts_report(factory_pmic_test, product, dts)
 
                     copy_test_kernel_modules_to_nfs(factory_pmic_test, product, dts)
