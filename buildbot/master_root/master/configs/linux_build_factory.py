@@ -467,7 +467,7 @@ def doStepIf_git_bisect_start(step):
     if not step.getProperty('git_bisecting'):
         if step.getProperty('preparation_step_failed') == "True":
             return True
-        elif step.getProperty('single_test_failed') == "True":
+        elif step.getProperty('pmic_single_test_failed') == "True" or step.getPropert('sensor_single_test_failed') == "True":
             return True
         elif step.getProperty('single_login_failed') == "True":
             if step.getProperty('single_login_passed') == "True":
@@ -483,7 +483,7 @@ def doStepIf_git_bisect_good(step):
     if step.getProperty('git_bisecting') == "True":
         if step.getProperty('preparation_step_failed') == "True":
             return False
-        elif (not step.getProperty('single_test_failed') and (step.getProperty('single_test_passed') == "True")):
+        elif (not step.getProperty('pmic_single_test_failed') and (step.getProperty('pmic_single_test_passed') == "True")) or (not step.Property('sensor_single_test_failed') and step.getProperty('sensor_single_test_passed') == "True") or step.getProperty('LINUX_RESULT') == "FAILED":
             if step.getProperty('single_login_failed') == "True":
                 return False
             else:
@@ -496,7 +496,7 @@ def doStepIf_git_bisect_good(step):
 def doStepIf_git_bisect_bad(step):
     if step.getProperty('preparation_step_failed') == "True":
         return True
-    elif step.getProperty('single_test_failed') == "True":
+    elif step.getProperty('pmic_single_test_failed') == "True" or step.getProperty('sensor_single_test_failed') == "True":
         return True
     elif step.getProperty('single_login_failed') == "True":
         if step.getProperty('single_login_passed') == "True":
@@ -517,7 +517,7 @@ def doStepIf_git_bisect_trigger(step):
         return True
     elif step.getProperty('preparation_step_failed') == "True":
         return True
-    elif step.getProperty('single_test_failed') == "True":
+    elif step.getProperty('pmic_single_test_failed') == "True" or step.getProperty('sensor_single_test_failed') == "True":
         return True
     elif step.getProperty('single_login_failed') == "True":
         if step.getProperty('single_login_passed') == "True":
