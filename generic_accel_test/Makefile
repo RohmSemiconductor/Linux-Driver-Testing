@@ -1,11 +1,8 @@
 obj-m += generic_accel_test.o
 
-all: generic_accel_test dtb
+all: generic_accel_test
 generic_accel_test: generic_accel_test.c
 	make -C ${KERNEL_DIR} CROSS_COMPILE=${CC} ARCH=arm M=$(PWD) modules
-dtb: ${DTS_FILE}
-	dtc -O dtb -o ${TEST_TARGET}_test.dtbo -b 0 -@ ${DTS_FILE}
-
 clean:
 	rm -rf bd71828_test.dtbo
 install:
