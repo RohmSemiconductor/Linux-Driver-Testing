@@ -5,11 +5,8 @@
 #obj-m += bd71837-regulator.o
 obj-m += bd71837-test.o
 
-all: dtb
+all:
 	make -C ${KERNEL_DIR} CROSS_COMPILE=${CC} ARCH=arm M=$(PWD) modules
-dtb: ${DTS_FILE}
-	dtc -O dtb -o bd71837_test.dtbo -b 0 -@ ${DTS_FILE}
-	dtc -O dtb -o bbb_only_I2C_1.dtbo -b 0 -@  bbb_only_I2C_1.dts
 
 clean:
 	make -C ${KERNEL_DIR} CROSS_COMPILE=${CC} ARCH=arm M=$(PWD) clean

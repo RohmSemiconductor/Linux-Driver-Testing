@@ -1,10 +1,8 @@
 obj-m += bd71847-test.o
 obj-m += bd71847-test2.o
 
-all: dtb
+all:
 	make -C ${KERNEL_DIR} CROSS_COMPILE=${CC} ARCH=arm M=$(PWD) modules
-dtb: ${DTS_FILE}
-	dtc -O dtb -o bd71847_test.dtbo -b 0 -@ ${DTS_FILE}
 
 clean:
 	make -C ${KERNEL_DIR} CROSS_COMPILE=${CC} ARCH=arm M=$(PWD) clean
