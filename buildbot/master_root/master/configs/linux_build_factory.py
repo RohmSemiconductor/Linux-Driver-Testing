@@ -75,7 +75,7 @@ def extract_make_kernel(rc, stdout, stderr):
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(
         repourl=projects[project_name]['repo_git'],
-        mode='incremental',
+        mode='full',
         getDescription={'tags':True},
         name="Update linux source files from git",
         tags=True,
@@ -103,12 +103,12 @@ def build_kernel_arm32(project_name):
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "olddefconfig"],
+        command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-none-eabi-", "LOADADDR=0x80008000", "olddefconfig"],
         name="Update kernel config if needed"
         ))
 
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
-        command=["ccache", "make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000"],
+        command=["ccache", "make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-none-eabi-", "LOADADDR=0x80008000"],
         name="Build kernel binaries",
         extract_fn=extract_make_kernel
         ))
@@ -122,7 +122,7 @@ def build_kernel_arm32(project_name):
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-linux-gnueabihf-", "LOADADDR=0x80008000", "INSTALL_MOD_PATH="+dir_nfs, "modules_install"],
+        command=["make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-none-eabi-", "LOADADDR=0x80008000", "INSTALL_MOD_PATH="+dir_nfs, "modules_install"],
         name="Install kernel modules",
         doStepIf=util.Property('kernel_build_failed') != 'True'
         ))
@@ -205,7 +205,7 @@ def extract_make_overlay_merger(rc, stdout, stderr):
 def build_overlay_merger(project_name):
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
         command=["make"],
-        env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./'},
+        env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-none-eabi-','PWD':'./'},
         workdir="build/_test-kernel-modules/overlay_merger",
         name="Build test kernel module: overlay_merger",
         hideStepIf=skipped,

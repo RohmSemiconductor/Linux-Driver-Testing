@@ -751,7 +751,7 @@ def build_dts(_factory, product, test_dts, test_type):
     doStepIf_dts_test_preparation_partial = functools.partial(doStepIf_dts_test_preparation, product=product)
     _factory.addStep(steps.SetPropertyFromCommand(
         command=['make'],
-        env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-linux-gnueabihf-','PWD':'./','DTS_FILE':'generated_dts_'+test_dts+'.dts'},
+        env={'KERNEL_DIR':'../../','CC':dir_compiler_arm32+'arm-none-eabi-','PWD':'./','DTS_FILE':'generated_dts_'+test_dts+'.dts'},
 #        workdir="build/_test-kernel-modules/"+product,
         workdir=util.Interpolate('../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'+product),
         doStepIf=doStepIf_dts_test_preparation_partial,

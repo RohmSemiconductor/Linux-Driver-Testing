@@ -15,7 +15,7 @@ def build_dts_accelerometer(product, test_type):
     factory_accelerometer_test.addStep(steps.SetPropertyFromCommand(
         command=['make'],
         env={'KERNEL_DIR':'../../',
-             'CC':dir_compiler_arm32+'arm-linux-gnueabihf-',
+             'CC':dir_compiler_arm32+'arm-none-eabi-',
              'PWD':'./','DTS_FILE':product+'_test.dts',
              'TEST_TARGET':product},
         workdir=util.Interpolate('../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/generic_accel_test'),
