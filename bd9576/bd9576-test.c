@@ -33,7 +33,7 @@ static const char *regunames[] =
 };
 
 static struct notifier_block notif[ARRAY_SIZE(regunames)];
-
+/*
 static ssize_t reboot_test_store(struct kobject *ko, struct kobj_attribute *a,
 				 const char *b, size_t c)
 {
@@ -49,7 +49,7 @@ static ssize_t reboot_test_store(struct kobject *ko, struct kobj_attribute *a,
 }
 
 static struct kobj_attribute reboot_test = __ATTR_WO(reboot_test);		\
-
+*/
 #define BUCK_ATTR(_buckno) \
 static ssize_t	buck##_buckno##_en_show (struct kobject *ko, struct kobj_attribute *a, char *b)				\
 {														\
@@ -152,7 +152,7 @@ static struct attribute *test_reguattrs[] = {
 	BA(4),
 	BA(5),
 	BA(6),
-	&reboot_test.attr,
+/*	&reboot_test.attr, */
 	NULL
 };
 #define NUM_TEST_GRPS 1
