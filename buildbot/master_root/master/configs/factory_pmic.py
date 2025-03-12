@@ -25,6 +25,7 @@ def run_pmic_tests():
                 initialize_pmic_report(product)
                 generate_dts(factory_pmic_test, product, 'default')
                 copy_generated_dts(factory_pmic_test, product, 'default')
+                build_dtbo(factory_pmic_test, product, 'default', test_type='pmic')
                 build_dts(factory_pmic_test, product, 'default', test_type='pmic')
                 dts_report(factory_pmic_test, product, 'default')
 

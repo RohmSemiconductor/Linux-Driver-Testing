@@ -154,7 +154,7 @@ def save_properties(_factory, factory_type):
 ####### HELPERS TO ADD STEPS + RELATED doStepIf_ and extract_fn_ functions
 
 def doStepIf_collect_dmesg(step, product):
-    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+    if step.getProperty('project') == "linux_rohm_devel" or check_tag(step, product) == True:
         if step.getProperty('preparation_step_failed') == True:
             return False
         elif step.getProperty('git_bisecting'):
@@ -174,7 +174,7 @@ def doStepIf_collect_dmesg(step, product):
         return False
 
 def doStepIf_collect_dts(step,  product):
-    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+    if step.getProperty('project') == "linux_rohm_devel" or check_tag(step, product) == True:
         if step.getProperty('preparation_step_failed') == True:
             return False
         elif step.getProperty('git_bisecting'):
@@ -238,7 +238,9 @@ def extract_kunit_test_error(rc, stdout, stderr):
         return { 'sanitycheck_test_passed': 'True' }
 
 def check_kunit_iio_gts_test(step):
-    if re.search('^next.*', step.getProperty('commit-description')):    #check for linux next
+    if step.getProperty('project') == "linux_rohm_devel":
+        return True
+    elif re.search('^next.*', step.getProperty('commit-description')):    #check for linux next
         return True
     elif step.getProperty('repository') == 'https://github.com/RohmSemiconductor/Linux-Kernel-PMIC-Drivers.git':
         return True
@@ -302,7 +304,7 @@ def extract_sensor_driver_tests(rc, stdout, stderr, product):
         return {product+'_skip_dts_tests': 'False', product+'_do_steps' : 'True', 'sensor_single_test_passed': 'True'}
 
 def doStepIf_powerdown_beagle(step, product):
-    if step.getProperty('buildername') == 'linux-rohm-devel' or step.getProperty('buildername') == 'Test_Linux' or check_tag(step, product) == True:
+    if step.getProperty('project') == "linux_rohm_devel" or step.getProperty('buildername') == 'Test_Linux' or check_tag(step, product) == True:
         if step.getProperty(product+'_dts_fail') == 'True':
             return False
         elif step.getProperty('preparation_step_failed') == 'True':
@@ -315,7 +317,7 @@ def doStepIf_powerdown_beagle(step, product):
         return False
 
 def doStepIf_generate_driver_tests(step, product, dts):
-    if step.getProperty('buildername') == 'linux-rohm-devel' or step.getProperty('project') == 'test_linux' or check_tag(step, product) == True:
+    if step.getProperty('project') == "linux_rohm_devel" or step.getProperty('project') == 'test_linux' or check_tag(step, product) == True:
         if step.getProperty(product+'_'+dts+'_dts_make_passed') == 'True':
             if step.getProperty(product+'_do_steps') == 'True':
                 return True
@@ -568,7 +570,7 @@ def copy_test_kernel_modules_to_nfs(_factory, product, test_dts, generic_module 
 def doStepIf_dts_report(step, product, test_dts):
     if step.getProperty('preparation_step_failed') == 'True':
         return False
-    elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == 'True':
+    elif step.getProperty('project') == "linux_rohm_devel" or check_tag(step, product) == 'True':
         if step.getProperty(product+'_'+test_dts+'_dts_make_passed') == 'False':
             return True
     else:
@@ -602,7 +604,7 @@ def doStepIf_finalize_product(step, product):
         return False
     elif step.getProperty('git_bisecting') == 'True':
         return False
-    elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+    elif step.getProperty('project') == "linux_rohm_devel" or check_tag(step, product) == True:
         return True
     else:
         return False
@@ -746,6 +748,20 @@ def copy_generated_dts(_factory, product, dts):
         name=product+": Copy generated dts: "+dts
         ))
 
+def build_dtbo(_factory, product, test_dts, test_type):
+    extract_dts_error_partial = functools.partial(extract_dts_error, product=product, test_type=test_type, test_dts=test_dts)
+    doStepIf_dts_test_preparation_partial = functools.partial(doStepIf_dts_test_preparation, product=product)
+    _factory.addStep(steps.SetPropertyFromCommand(
+        command=['./makedtb', '-i', product+'/generated_dts_'+test_dts+'.dts', '-o', 'dtbo', '-n', product+'/'+product+'_test'],
+        env={'KERNEL_DIR':'../',
+             'CC':dir_compiler_arm32+'arm-none-eabi-',},
+        workdir=util.Interpolate('../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'),
+        doStepIf=doStepIf_dts_test_preparation_partial,
+        hideStepIf=skipped,
+        extract_fn=extract_dts_error_partial,
+        name=product+": Build dtbo: "+test_dts
+        ))
+
 def build_dts(_factory, product, test_dts, test_type):
     extract_dts_error_partial = functools.partial(extract_dts_error, product=product, test_type=test_type, test_dts=test_dts)
     doStepIf_dts_test_preparation_partial = functools.partial(doStepIf_dts_test_preparation, product=product)
@@ -771,7 +787,7 @@ def extract_sanitycheck_error(rc, stdout, stderr, product):
         return {product+'_sanitycheck_passed': 'True' , product+'_do_steps' : 'True' }
 
 def doStepIf_initialize_product(step, product):
-    if step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+    if step.getProperty('project') == 'linux_rohm_devel' or check_tag(step, product) == True:
         if step.getProperty('factory_type') == 'accelerometer' and step.getProperty('iio_generic_buffer_found') == 'False':
             return False
         elif step.getProperty('preparation_step_failed') != 'True':
@@ -793,7 +809,7 @@ def doStepIf_dts_test_preparation(step, product):
         return False
     elif step.getProperty(product+'_do_steps') == 'False':
         return False
-    elif step.getProperty('buildername') == 'linux-rohm-devel' or check_tag(step, product) == True:
+    elif step.getProperty('project') == "linux_rohm_devel" or check_tag(step, product) == True:
         if step.getProperty(product+'_skip_dts_tests') != 'True':
             return True
         else:

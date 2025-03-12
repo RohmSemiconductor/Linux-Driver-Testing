@@ -8,7 +8,7 @@ import string
 factory_accelerometer_test = util.BuildFactory()
 
 
-def build_dts_accelerometer(product, test_type):
+def build_test_module_accelerometer(product, test_type):
     extract_dts_error_partial = functools.partial(extract_dts_error, product=product, test_type=test_type)
     doStepIf_dts_test_preparation_partial = functools.partial(doStepIf_dts_test_preparation, product=product)
 
@@ -22,8 +22,25 @@ def build_dts_accelerometer(product, test_type):
         doStepIf=doStepIf_dts_test_preparation_partial,
         hideStepIf=skipped,
         extract_fn=extract_dts_error_partial,
-        name=product+": Build dts: "+product
+        name=product+": Build test module"
         ))
+
+def build_dtbo_accelerometer(product, test_type):
+    extract_dts_error_partial = functools.partial(extract_dts_error, product=product, test_type=test_type)
+    doStepIf_dts_test_preparation_partial = functools.partial(doStepIf_dts_test_preparation, product=product)
+
+    factory_accelerometer_test.addStep(steps.SetPropertyFromCommand(
+        command=['./makedtb', '-i', 'generic_accel_test/'+product+'_test.dts','-o', 'dtbo', '-n', 'generic_accel_test/'+product+'_test'],
+        env={'KERNEL_DIR':'../',
+             'CC':dir_compiler_arm32+'arm-none-eabi-',
+             'TEST_TARGET':product},
+        workdir=util.Interpolate('../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'),
+        doStepIf=doStepIf_dts_test_preparation_partial,
+        hideStepIf=skipped,
+        extract_fn=extract_dts_error_partial,
+        name=product+": Build dtbo"
+        ))
+
 
 
 def initialize_accelerometer_report(product):
@@ -43,7 +60,8 @@ def run_accelerometer_tests():
                 initialize_accelerometer_report(product)
 ##                generate_dts(project_name, product, 'default')
 ##                copy_generated_dts(project_name, product, 'default')
-                build_dts_accelerometer(product, test_type='accelerometer')
+                build_dtbo_accelerometer(product, test_type='accelerometer')
+                build_test_module_accelerometer(product, test_type='accelerometer')
                 dts_report(factory_accelerometer_test, product, 'default')
 
                 copy_test_kernel_modules_to_nfs(factory_accelerometer_test,
