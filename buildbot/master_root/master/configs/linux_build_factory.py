@@ -362,38 +362,7 @@ def sanity_checks(project_name):
         ))
 
 def publish_results_git(project_name, branch_dir):
-    projects[project_name]['factory'].addStep(steps.SetProperty(
-        name="Kernel build / preparation: FAILED",
-        property="LINUX_RESULT",
-        value="FAILED",
-        doStepIf=doStepIf_setProperty_LINUX_RESULT_FAILED,
-        hideStepIf=skipped
-        ))
-
-    projects[project_name]['factory'].addStep(steps.SetProperty(
-        name="Kernel build / preparation: PASSED",
-        property="LINUX_RESULT",
-        value="PASSED",
-        doStepIf=doStepIf_setProperty_LINUX_RESULT_PASSED,
-        hideStepIf=skipped
-        ))
-
     if branch_dir == "PMIC":
-        projects[project_name]['factory'].addStep(steps.SetProperty(
-            name="PMIC Tests: FAILED",
-            property="PMIC_RESULT",
-            value="FAILED",
-            doStepIf=doStepIf_setProperty_PMIC_RESULT_FAILED,
-            hideStepIf=skipped
-            ))
-
-        projects[project_name]['factory'].addStep(steps.SetProperty(
-            name="PMIC Tests: PASSED",
-            property="PMIC_RESULT",
-            value="PASSED",
-            doStepIf=doStepIf_setProperty_PMIC_RESULT_PASSED,
-            hideStepIf=skipped
-            ))
 
         projects[project_name]['factory'].addStep(steps.ShellCommand(
             command=["python3", "../report_janitor.py", "publish_results_git",
@@ -406,22 +375,6 @@ def publish_results_git(project_name, branch_dir):
             ))
 
     if branch_dir == "Sensor":
-        projects[project_name]['factory'].addStep(steps.SetProperty(
-            name="Sensor Tests: FAILED",
-            property="SENSOR_RESULT",
-            value="FAILED",
-            doStepIf=doStepIf_setProperty_SENSOR_RESULT_FAILED,
-            hideStepIf=skipped
-            ))
-
-        projects[project_name]['factory'].addStep(steps.SetProperty(
-            name="Sensor Tests: PASSED",
-            property="SENSOR_RESULT",
-            value="PASSED",
-            doStepIf=doStepIf_setProperty_SENSOR_RESULT_PASSED,
-            hideStepIf=skipped
-            ))
-
         projects[project_name]['factory'].addStep(steps.ShellCommand(
             command=["python3", "../report_janitor.py", "publish_results_git",
                      util.Property('timestamp'), util.Property('buildername'),
@@ -617,6 +570,9 @@ def git_bisect(project_name):
                 'timestamped_dir':util.Property('timestamped_dir'),
                 'timestamp':util.Property('timestamp'),
                 'RESULT':'FAILED',
+                'LINUX_RESULT':util.Property('LINUX_RESULT'),
+                'PMIC_RESULT':util.Property('PMIC_RESULT'),
+                'SENSOR_RESULT':util.Property('SENSOR_RESULT'),
                 },
             doStepIf=doStepIf_git_bisect_trigger
             ))
@@ -663,6 +619,54 @@ def get_factory_properties(project_name):
         extract_fn = extract_get_factory_properties
         ))
 
+def set_factory_result_properties(project_name):
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="Kernel build / preparation: FAILED",
+        property="LINUX_RESULT",
+        value="FAILED",
+        doStepIf=doStepIf_setProperty_LINUX_RESULT_FAILED,
+        hideStepIf=skipped
+        ))
+
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="Kernel build / preparation: PASSED",
+        property="LINUX_RESULT",
+        value="PASSED",
+        doStepIf=doStepIf_setProperty_LINUX_RESULT_PASSED,
+        hideStepIf=skipped
+        ))
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="Sensor Tests: FAILED",
+        property="SENSOR_RESULT",
+        value="FAILED",
+        doStepIf=doStepIf_setProperty_SENSOR_RESULT_FAILED,
+        hideStepIf=skipped
+        ))
+
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="Sensor Tests: PASSED",
+        property="SENSOR_RESULT",
+        value="PASSED",
+        doStepIf=doStepIf_setProperty_SENSOR_RESULT_PASSED,
+        hideStepIf=skipped
+        ))
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="PMIC Tests: FAILED",
+        property="PMIC_RESULT",
+        value="FAILED",
+        doStepIf=doStepIf_setProperty_PMIC_RESULT_FAILED,
+        hideStepIf=skipped
+        ))
+
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="PMIC Tests: PASSED",
+        property="PMIC_RESULT",
+        value="PASSED",
+        doStepIf=doStepIf_setProperty_PMIC_RESULT_PASSED,
+        hideStepIf=skipped
+        ))
+
+
 def build_deploy_kernel(project_name):
 
     ### Build and deploy
@@ -680,6 +684,7 @@ def build_deploy_kernel(project_name):
     copy_results_for_factories(project_name)
     trigger_test_factories(project_name)
     get_factory_properties(project_name)
+    set_factory_result_properties(project_name)
     save_good_commit(project_name)
     git_bisect(project_name)
     publish_results_git(project_name, 'Sensor')

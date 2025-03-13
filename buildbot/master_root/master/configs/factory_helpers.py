@@ -656,11 +656,11 @@ def doStepIf_setProperty_LINUX_RESULT_FAILED(step):
         return False
 
 def doStepIf_setProperty_LINUX_RESULT_PASSED(step):
-    if step.getProperty('LINUX_RESULT') == None:
+    if (not step.getProperty('git_bisecting') and step.getProperty('LINUX_RESULT') == None):
         return True
 
 def doStepIf_setProperty_PMIC_RESULT_FAILED(step):
-    if step.getProperty('PMIC_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED":
+    if (not step.getProperty('git_bisecting') and (step.getProperty('PMIC_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED")):
         if step.getProperty('pmic_single_test_failed') == 'True':
             return True
         elif step.getProperty('single_login_failed') == 'True':
@@ -674,11 +674,11 @@ def doStepIf_setProperty_PMIC_RESULT_FAILED(step):
         return False
 
 def doStepIf_setProperty_PMIC_RESULT_PASSED(step):
-    if step.getProperty('PMIC_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED":
+    if (not step.getProperty('git_bisecting') and (step.getProperty('PMIC_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED")):
         return True
 
 def doStepIf_setProperty_SENSOR_RESULT_FAILED(step):
-    if step.getProperty('SENSOR_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED":
+    if (not step.getProperty('git_bisecting') and (step.getProperty('SENSOR_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED")):
 
         if step.getProperty('iio_generic_buffer_found') == 'False':
             return True
@@ -695,7 +695,7 @@ def doStepIf_setProperty_SENSOR_RESULT_FAILED(step):
         return False
 
 def doStepIf_setProperty_SENSOR_RESULT_PASSED(step):
-    if step.getProperty('SENSOR_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED":
+    if (not step.getProperty('git_bisecting') and (step.getProperty('SENSOR_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED")):
         return True
 
 def publish_results_git(_factory, branch_dir):
