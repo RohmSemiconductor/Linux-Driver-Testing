@@ -436,7 +436,7 @@ def doStepIf_git_bisect_good(step):
     if step.getProperty('git_bisecting') == "True":
         if step.getProperty('preparation_step_failed') == "True":
             return False
-        elif (not step.getProperty('pmic_single_test_failed') and (step.getProperty('pmic_single_test_passed') == "True")) or (not step.Property('sensor_single_test_failed') and step.getProperty('sensor_single_test_passed') == "True") or step.getProperty('LINUX_RESULT') == "FAILED":
+        elif (not step.getProperty('pmic_single_test_failed') and (step.getProperty('pmic_single_test_passed') == "True")) or (not step.getProperty('sensor_single_test_failed') and step.getProperty('sensor_single_test_passed') == "True") or step.getProperty('LINUX_RESULT') == "FAILED":
             if step.getProperty('single_login_failed') == "True":
                 return False
             else:
@@ -456,6 +456,36 @@ def doStepIf_git_bisect_bad(step):
             return False
         else:
             return True
+    else:
+        return False
+
+def doStepIf_git_bisect_good_next(step):
+    if (step.getProperty('git_bisecting') == "True" and step.getProperty('linux_next_bisect_started') == "True"):
+        if step.getProperty('preparation_step_failed') == "True":
+            return False
+        elif (not step.getProperty('pmic_single_test_failed') and (step.getProperty('pmic_single_test_passed') == "True")) or (not step.getProperty('sensor_single_test_failed') and step.getProperty('sensor_single_test_passed') == "True") or step.getProperty('LINUX_RESULT') == "FAILED":
+            if step.getProperty('single_login_failed') == "True":
+                return False
+            else:
+                return True
+        else:
+            return False
+    else:
+        return False
+
+def doStepIf_git_bisect_bad_next(step):
+    if step.getProperty('linux_next_bisect_started') == "True":
+        if step.getProperty('preparation_step_failed') == "True":
+            return True
+        elif step.getProperty('pmic_single_test_failed') == "True" or step.getProperty('sensor_single_test_failed') == "True":
+            return True
+        elif step.getProperty('single_login_failed') == "True":
+            if step.getProperty('single_login_passed') == "True":
+                return False
+            else:
+                return True
+        else:
+            return False
     else:
         return False
 
@@ -480,6 +510,30 @@ def doStepIf_git_bisect_trigger(step):
     else:
         return False
 
+def doStepIf_git_bisect_trigger_next(step):
+    if step.getProperty('git_bisect_state') == 'failed':
+        return False
+    elif step.getProperty('git_bisect_state') == 'success':
+        return False
+    elif step.getProperty('linux_next_bisect_started') == 'True':
+        if step.getProperty('git_bisect_state') == 'cannot_start':
+            return False
+        else:
+            return True
+    elif step.getProperty('git_bisect_state') == 'running':
+        return True
+    elif step.getProperty('preparation_step_failed') == "True":
+        return True
+    elif step.getProperty('pmic_single_test_failed') == "True" or step.getProperty('sensor_single_test_failed') == "True":
+        return True
+    elif step.getProperty('single_login_failed') == "True":
+        if step.getProperty('single_login_passed') == "True":
+            return False
+        else:
+            return True
+    else:
+        return False
+
 def doStepIf_git_bisect_report(step):
     if step.getProperty('git_bisect_state') == 'success':
         return True
@@ -487,6 +541,19 @@ def doStepIf_git_bisect_report(step):
         return True
     elif step.getProperty('git_bisect_state') == 'failed':
         return True
+    else:
+        return False
+
+def doStepIf_git_bisect_report_next(step):
+    if step.getProperty('linux_next_bisect_started') == 'True':
+        if step.getProperty('git_bisect_state') == 'success':
+            return True
+        elif step.getProperty('git_bisect_state') == 'cannot_start':
+            return True
+        elif step.getProperty('git_bisect_state') == 'failed':
+            return True
+        else:
+            return False
     else:
         return False
 
@@ -499,11 +566,11 @@ def extract_fn_read_good_commit(rc, stdout, stderr):
 
 def extract_git_bisect_output(rc, stdout, stderr):
     if rc != 0:
-        return {'git_bisecting': False, 'git_bisect_failed':True, 'git_bisect_output':stdout, 'git_bisect_state':'failed'}
+        return {'git_bisecting': "False", 'git_bisect_failed':True, 'git_bisect_output':stdout, 'git_bisect_state':'failed'}
     elif rc == 0:
         # Git bisect needs atleast 1 good and bad commit for the command to start returning commits to test
         if (('waiting for both good and bad commits' in stdout) or ('waiting for bad commit' in stdout) or ('waiting for good commit' in stdout)):
-            return {'git_bisecting': False, 'git_bisect_output':stdout, 'git_bisect_state': 'cannot_start'}
+            return {'git_bisecting': "False", 'git_bisect_output':stdout, 'git_bisect_state': 'cannot_start'}
         # '...revisions left to test aftert this....' is a printed when bisect is running and 'git bisect good/bad' is given
         elif 'revisions left to test after this' in stdout:
             return {'git_bisecting': "True" , 'git_bisect_output':stdout, 'git_bisect_state': 'running'}
@@ -513,13 +580,99 @@ def extract_git_bisect_output(rc, stdout, stderr):
             return {'git_bisecting': "True" , 'git_bisect_output':stdout, 'git_bisect_state': 'running'}
         # '...is the first bad commit' is printed after final 'git bisect good/bad'
         elif 'is the first bad commit' in stdout:
-            return {'git_bisecting': False, 'git_bisect_output':stdout, 'git_bisect_state': 'success'}
+            return {'git_bisecting': "False", 'git_bisect_output':stdout, 'git_bisect_state': 'success'}
         else:
             return {'git_bisect_wtf_stdout': stdout, 'git_bisect_wtf_rc':rc,'git_bisect_wtf_stder':stderr, 'git_bisect_output':stdout, 'git_bisect_state':'failed'}
 #### /Git bisect helpers
 
 def git_bisect(project_name):
-    if project_name != 'linux-next' and project_name != 'linux_stable':
+    if project_name == 'linux-next':
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=['git','bisect','start'],
+            workdir="build",
+            name="Git bisect: start",
+            doStepIf=doStepIf_git_bisect_start
+            ))
+
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=['git','bisect','bad'],
+            workdir="build",
+            name="Git bisect start: bad",
+            doStepIf=doStepIf_git_bisect_start
+            ))
+
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["git", "checkout", "stable"],
+            workdir="build",
+            name= "Checkout next/stable branch",
+            doStepIf=doStepIf_git_bisect_start,
+            ))
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=['git','bisect','good'],
+            workdir="build",
+            name="Git bisect: good",
+            extract_fn=extract_git_bisect_output,
+            doStepIf=doStepIf_git_bisect_good_next
+            ))
+
+        projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+            command=['git','bisect','bad'],
+            workdir="build",
+            name="Git bisect: bad",
+            extract_fn=extract_git_bisect_output,
+            doStepIf=doStepIf_git_bisect_bad_next
+            ))
+
+        projects[project_name]['factory'].addStep(steps.SetProperty(
+            name="Start git bisecting",
+            property="git_bisecting",
+            value="True",
+            doStepIf=doStepIf_git_bisect_start,
+            hideStepIf=skipped
+            ))
+
+        projects[project_name]['factory'].addStep(steps.Trigger(
+            schedulerNames=['git_bisect_'+projects[project_name]['scheduler_name']],
+            updateSourceStamp=True,
+            name="Trigger building next/stable",
+            set_properties= {
+                'linux_next_bisect_started':'True',
+                'git_bisecting':'True',
+                'git_bisect_state':'running',
+                'commit-description':util.Property('commit-description'),
+                'timestamped_dir':util.Property('timestamped_dir'),
+                'timestamp':util.Property('timestamp'),
+                'RESULT':'FAILED',
+                'LINUX_RESULT':util.Property('LINUX_RESULT'),
+                'PMIC_RESULT':util.Property('PMIC_RESULT'),
+                'SENSOR_RESULT':util.Property('SENSOR_RESULT'),
+                },
+            doStepIf=doStepIf_git_bisect_trigger_next
+            ))
+
+
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["python3", "report_janitor.py", "bisect_result",
+                     util.Property('timestamp'),
+                     projects[project_name]['builderNames'][0],
+                     util.Property("git_bisect_output"),
+                     util.Property("git_bisect_state"),
+                     "PMIC",
+                     "Sensor"
+                     ],
+            name="Report git bisect results",
+            workdir="../../Test_Worker/tests",
+            doStepIf=doStepIf_git_bisect_report_next
+            ))
+
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["git", "bisect", "reset"],
+            name="Git bisect reset",
+            workdir="build",
+            doStepIf=doStepIf_git_bisect_report_next
+            ))
+
+    elif project_name != 'linux-next' and project_name != 'linux_stable':
         projects[project_name]['factory'].addStep(steps.ShellCommand(
             command=['git','bisect','start'],
             workdir="build",

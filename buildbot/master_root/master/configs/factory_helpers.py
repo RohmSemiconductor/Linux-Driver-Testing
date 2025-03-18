@@ -643,6 +643,8 @@ def copy_temp_results(_factory):
 def doStepIf_git_push(step):
     if not step.getProperty('git_bisecting'):
         return True
+    elif step.getProperty('git_bisecting') == "False":
+        return True
     else:
         return False
 
