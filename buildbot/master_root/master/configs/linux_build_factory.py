@@ -56,7 +56,10 @@ def doStepIf_dtc_boneblack_old_dir(step):
 
 def doStepIf_linux_stable_copy_config(step):
     if step.getProperty('project') == "linux_stable":
-        return True
+        if step.getProperty('branch') != "linux-rolling-stable":
+            return True
+        else:
+            return False
     else:
         return False
 
@@ -64,7 +67,10 @@ def doStepIf_linux_not_stable_copy_config(step):
     if step.getProperty('project') != "linux_stable":
         return True
     else:
-        return False
+        if step.getProperty('branch') == "linux-rolling-stable":
+            return True
+        else:
+            return False
 
 def extract_make_kernel(rc, stdout, stderr):
     if rc != 0:
@@ -591,14 +597,16 @@ def git_bisect(project_name):
             command=['git','bisect','start'],
             workdir="build",
             name="Git bisect: start",
-            doStepIf=doStepIf_git_bisect_start
+            doStepIf=doStepIf_git_bisect_start,
+            hideStepIf=skipped
             ))
 
         projects[project_name]['factory'].addStep(steps.ShellCommand(
             command=['git','bisect','bad'],
             workdir="build",
             name="Git bisect start: bad",
-            doStepIf=doStepIf_git_bisect_start
+            doStepIf=doStepIf_git_bisect_start,
+            hideStepIf=skipped
             ))
 
         projects[project_name]['factory'].addStep(steps.ShellCommand(
@@ -606,13 +614,16 @@ def git_bisect(project_name):
             workdir="build",
             name= "Checkout next/stable branch",
             doStepIf=doStepIf_git_bisect_start,
+            hideStepIf=skipped
             ))
+
         projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
             command=['git','bisect','good'],
             workdir="build",
             name="Git bisect: good",
             extract_fn=extract_git_bisect_output,
-            doStepIf=doStepIf_git_bisect_good_next
+            doStepIf=doStepIf_git_bisect_good_next,
+            hideStepIf=skipped
             ))
 
         projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
@@ -620,7 +631,8 @@ def git_bisect(project_name):
             workdir="build",
             name="Git bisect: bad",
             extract_fn=extract_git_bisect_output,
-            doStepIf=doStepIf_git_bisect_bad_next
+            doStepIf=doStepIf_git_bisect_bad_next,
+            hideStepIf=skipped
             ))
 
         projects[project_name]['factory'].addStep(steps.SetProperty(
@@ -647,7 +659,8 @@ def git_bisect(project_name):
                 'PMIC_RESULT':util.Property('PMIC_RESULT'),
                 'SENSOR_RESULT':util.Property('SENSOR_RESULT'),
                 },
-            doStepIf=doStepIf_git_bisect_trigger_next
+            doStepIf=doStepIf_git_bisect_trigger_next,
+            hideStepIf=skipped
             ))
 
 
@@ -662,14 +675,16 @@ def git_bisect(project_name):
                      ],
             name="Report git bisect results",
             workdir="../../Test_Worker/tests",
-            doStepIf=doStepIf_git_bisect_report_next
+            doStepIf=doStepIf_git_bisect_report_next,
+            hideStepIf=skipped
             ))
 
         projects[project_name]['factory'].addStep(steps.ShellCommand(
             command=["git", "bisect", "reset"],
             name="Git bisect reset",
             workdir="build",
-            doStepIf=doStepIf_git_bisect_report_next
+            doStepIf=doStepIf_git_bisect_report_next,
+            hideStepIf=skipped
             ))
 
     elif project_name != 'linux-next' and project_name != 'linux_stable':
@@ -677,7 +692,8 @@ def git_bisect(project_name):
             command=['git','bisect','start'],
             workdir="build",
             name="Git bisect: start",
-            doStepIf=doStepIf_git_bisect_start
+            doStepIf=doStepIf_git_bisect_start,
+            hideStepIf=skipped
             ))
 
         projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
@@ -685,6 +701,7 @@ def git_bisect(project_name):
             name="Get good commit hash from file",
             workdir="../../Test_Worker/tests",
             doStepIf=doStepIf_git_bisect_start,
+            hideStepIf=skipped,
             extract_fn=extract_fn_read_good_commit
             ))
 
@@ -693,7 +710,8 @@ def git_bisect(project_name):
             workdir="build",
             name="Git bisect: start good",
             extract_fn=extract_git_bisect_output,
-            doStepIf=doStepIf_git_bisect_start
+            doStepIf=doStepIf_git_bisect_start,
+            hideStepIf=skipped
             ))
 
         projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
@@ -701,7 +719,8 @@ def git_bisect(project_name):
             workdir="build",
             name="Git bisect: good",
             extract_fn=extract_git_bisect_output,
-            doStepIf=doStepIf_git_bisect_good
+            doStepIf=doStepIf_git_bisect_good,
+            hideStepIf=skipped
             ))
 
         projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
@@ -709,7 +728,8 @@ def git_bisect(project_name):
             workdir="build",
             name="Git bisect: bad",
             extract_fn=extract_git_bisect_output,
-            doStepIf=doStepIf_git_bisect_bad
+            doStepIf=doStepIf_git_bisect_bad,
+            hideStepIf=skipped
             ))
 
         projects[project_name]['factory'].addStep(steps.Trigger(
@@ -727,7 +747,8 @@ def git_bisect(project_name):
                 'PMIC_RESULT':util.Property('PMIC_RESULT'),
                 'SENSOR_RESULT':util.Property('SENSOR_RESULT'),
                 },
-            doStepIf=doStepIf_git_bisect_trigger
+            doStepIf=doStepIf_git_bisect_trigger,
+            hideStepIf=skipped
             ))
 
         projects[project_name]['factory'].addStep(steps.ShellCommand(
@@ -741,14 +762,16 @@ def git_bisect(project_name):
                      ],
             name="Report git bisect results",
             workdir="../../Test_Worker/tests",
-            doStepIf=doStepIf_git_bisect_report
+            doStepIf=doStepIf_git_bisect_report,
+            hideStepIf=skipped
             ))
 
         projects[project_name]['factory'].addStep(steps.ShellCommand(
             command=["git", "bisect", "reset"],
             name="Git bisect reset",
             workdir="build",
-            doStepIf=doStepIf_git_bisect_report
+            doStepIf=doStepIf_git_bisect_report,
+            hideStepIf=skipped
             ))
 
 def extract_get_factory_properties(rc, stdout, stderr):
