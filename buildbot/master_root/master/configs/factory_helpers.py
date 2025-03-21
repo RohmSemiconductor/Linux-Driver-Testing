@@ -45,7 +45,7 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                     command=["pytest","--lg-log","/tmp/rohm_linux_driver_tests/temp_results_PMIC/",
                              "--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
                     name=self.product+": "+stage,
-                    workdir="../tests/pmic",
+                    workdir="../tests/driver_tests",
                     doStepIf=util.Property(self.product+'_do_steps') == 'True',
                     extract_fn=self.extract_driver_tests_partial)
                     for stage in self.extract_stages(self.observer.getStdout())
@@ -55,7 +55,7 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                     command=["pytest","--lg-log","/tmp/rohm_linux_driver_tests/temp_results_sensor/",
                              "--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
                     name=self.product+": "+stage,
-                    workdir="../tests/pmic",
+                    workdir="../tests/driver_tests",
                     doStepIf=util.Property(self.product+'_do_steps') == 'True',
                     extract_fn=self.extract_driver_tests_partial)
                     for stage in self.extract_stages(self.observer.getStdout())
@@ -67,7 +67,7 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                              self.product+"/dts/"+self.dts+"/"+stage,
                              "--dts="+self.dts],
                     name=self.product+": "+stage,
-                    workdir="../tests/pmic",
+                    workdir="../tests/driver_tests",
                     doStepIf=util.Property(self.product+'_do_steps') == 'True',
                     extract_fn=self.extract_driver_tests_partial)
                     for stage in self.extract_stages(self.observer.getStdout())
@@ -208,7 +208,7 @@ def collect_dmesg_and_dts(_factory, test_board, product, test_type='pmic', test_
 
     _factory.addStep(steps.SetPropertyFromCommand(
         command=['pytest','--lg-log', '/tmp/rohm_linux_driver_tests/temp_results/', '--lg-env='+test_board+'.yaml', 'test_get_dmesg.py', '--product='+product],
-        workdir="../../tests/pmic/",
+        workdir="../../tests/driver_tests/",
         doStepIf=doStepIf_collect_dmesg_partial,
         extract_fn=extract_dmesg_collected_partial,
         hideStepIf=skipped,
@@ -218,7 +218,6 @@ def collect_dmesg_and_dts(_factory, test_board, product, test_type='pmic', test_
     _factory.addStep(steps.SetPropertyFromCommand(
 #        command=['cp','../../'+projects[project_name]['builderNames'][0]+'/build/_test-kernel-modules/'+product+'/generated_dts_'+test_dts+'.dts', '../temp_results/'+product+'/'],
         command=util.Interpolate('cp ../../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'+product+'/generated_dts_'+test_dts+'.dts '+dir_nfs),
-#        workdir="../tests/pmic/",
         doStepIf=doStepIf_collect_dts_partial,
         hideStepIf=skipped,
         extract_fn=extract_dts_collected_partial,
@@ -346,7 +345,7 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
         extract_sanitycheck_error_partial = functools.partial(extract_sanitycheck_error, product=product)
         _factory.addStep(steps.SetPropertyFromCommand(command=[
             'pytest','--lg-log', "/tmp/rohm_linux_driver_tests/temp_results/", '--lg-env='+test_board+".yaml", product+'/test_000_sanitycheck.py'],
-            workdir="../tests/pmic/",
+            workdir="../tests/driver_tests/",
             extract_fn=extract_sanitycheck_error_partial,
             doStepIf=doStepIf_generate_driver_tests_partial,
             hideStepIf=skipped,
@@ -356,7 +355,7 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
         _factory.addStep(GenerateStagesCommand(
             test_board, product, test_type, dts, extract_driver_tests_partial,
             name=product+": Generate "+test_type+" test stages",
-            command=["python3", "generate_steps.py", product, test_type], workdir="../tests/pmic",
+            command=["python3", "generate_steps.py", product, test_type], workdir="../tests/driver_tests",
             haltOnFailure=True,
             doStepIf=doStepIf_generate_driver_tests_partial
             ))
@@ -369,7 +368,7 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
             test_board, product, test_type, dts, extract_driver_tests_partial,
             name=product+": Generate "+test_type+" test stages",
             command=["python3", "generate_steps.py", product, test_type],
-            workdir="../tests/pmic",
+            workdir="../tests/driver_tests",
             haltOnFailure=True,
             doStepIf=doStepIf_generate_driver_tests_partial
             ))
@@ -379,7 +378,7 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
             test_board, product, test_type, dts, extract_driver_tests_partial,
             name=product+": Generate "+test_type+" test stages",
             command=["python3", "generate_steps.py", product, test_type, dts],
-            workdir="../tests/pmic",
+            workdir="../tests/driver_tests",
             haltOnFailure=True,
             doStepIf=doStepIf_generate_driver_tests_partial
             ))
@@ -388,7 +387,7 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
 
     _factory.addStep(steps.ShellCommand(
         command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_005_powerdown_beagle.py","--power_port="+power_port,"--beagle="+test_board],
-        workdir="../tests/pmic/",
+        workdir="../tests/driver_tests/",
         doStepIf=doStepIf_powerdown_beagle_partial,
         hideStepIf=skipped,
         name=product+": power down beagle"
@@ -443,7 +442,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
                      "--beagle="+test_board,
                      "--result_dir="+result_dir,],
 
-            workdir="../tests/pmic",
+            workdir="../tests/driver_tests",
             extract_fn=extract_init_driver_test_login_partial,
             doStepIf=doStepIf_login_partial,
             name=product+": Login to "+test_board
@@ -458,7 +457,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
                      "--result_dir="+result_dir,
                      ],
 
-            workdir="../tests/pmic",
+            workdir="../tests/driver_tests",
             extract_fn=extract_init_driver_test_login_partial,
             doStepIf=doStepIf_login_partial,
             name=product+": Login to "+test_boards[test_type]['power_ports'][power_port][test_board]['name']
@@ -472,7 +471,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
                      "test_000_check_iio_generic_buffer.py",
                      "--beagle="+test_boards[test_type]['power_ports'][power_port][test_board]['name']],
 
-            workdir="../tests/pmic",
+            workdir="../tests/driver_tests",
             extract_fn=extract_check_iio_generic_buffer,
             doStepIf=doStepIf_login_partial,
             name="Check for iio_generic_buffer",
@@ -485,7 +484,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
                  "--lg-env", test_board+".yaml",
                  "--result_dir="+result_dir,
                  "test_001_init_overlay.py"],
-        workdir="../tests/pmic",
+        workdir="../tests/driver_tests",
         extract_fn=extract_init_driver_test_partial,
         doStepIf=util.Property(product+'_do_steps') == 'True',
         hideStepIf=skipped, name=product+": Install overlay merger"
@@ -498,7 +497,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
                  "test_002_merge_dt_overlay.py",
                  "--product="+product,
                  "--result_dir="+result_dir],
-        workdir="../tests/pmic",
+        workdir="../tests/driver_tests",
         extract_fn=extract_init_driver_test_partial,
         doStepIf=util.Property(product+'_do_steps') == 'True',
         hideStepIf=skipped, name=product+": Merge device tree overlays"
@@ -510,7 +509,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
                      "--lg-log", "/tmp/rohm_linux_driver_tests/temp_results/",
                      "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml",
                      "test_003_insmod_tests.py","--product="+product],
-            workdir="../tests/pmic",
+            workdir="../tests/driver_tests",
             extract_fn=extract_init_driver_test_partial,
             doStepIf=util.Property(product+'_do_steps') == 'True',
             hideStepIf=skipped,
@@ -522,7 +521,7 @@ def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
                      "--lg-log", "/tmp/rohm_linux_driver_tests/temp_results/",
                      "--lg-env", test_boards[test_type]['power_ports'][power_port][test_board]['name']+".yaml",
                      "test_003_insmod_accel_tests.py","--product="+product],
-            workdir="../tests/pmic",
+            workdir="../tests/driver_tests",
             extract_fn=extract_init_driver_test_partial,
             doStepIf=util.Property(product+'_do_steps') == 'True',
             hideStepIf=skipped,
@@ -732,7 +731,7 @@ def generate_dts(_factory, product, dts):
 
     _factory.addStep(steps.ShellCommand(
         command=["python3", "generate_dts.py", product, dts],
-        workdir="../tests/pmic",
+        workdir="../tests/driver_tests",
         doStepIf=doStepIf_dts_test_preparation_partial,
         hideStepIf=skipped,
         name=product+": Generate dts: "+dts
@@ -743,7 +742,6 @@ def copy_generated_dts(_factory, product, dts):
 
     _factory.addStep(steps.ShellCommand(
         command=["cp", "/tmp/rohm_linux_driver_tests/dts_generated/"+product+"/generated_dts_"+dts+".dts", "./"],
-#        workdir="build/_test-kernel-modules",
         workdir=util.Interpolate('../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'+product),
         doStepIf=doStepIf_dts_test_preparation_partial,
         hideStepIf=skipped,

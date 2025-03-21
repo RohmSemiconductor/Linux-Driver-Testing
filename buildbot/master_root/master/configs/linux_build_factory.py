@@ -276,7 +276,7 @@ def trigger_test_factories(project_name):
 def download_test_boards(project_name):
     projects[project_name]['factory'].addStep(steps.FileDownload(
         mastersrc="configs/kernel_modules.py",
-        workerdest="../../../Test_Worker/tests/pmic/configs/kernel_modules.py",
+        workerdest="../../../Test_Worker/tests/driver_tests/configs/kernel_modules.py",
         name="Download kernel_modules.py",
         doStepIf=util.Property('preparation_step_failed') != 'True'
         ))
@@ -300,7 +300,7 @@ def sanity_checks(project_name):
                 "--power_port="+power_port,
                 "--beagle="+test_boards[board_type]['power_ports'][power_port][test_board]['name']],
 
-        workdir="../../Test_Worker/tests/pmic",
+        workdir="../../Test_Worker/tests/driver_tests",
         name="Login to "+test_boards[board_type]['power_ports'][power_port][test_board]['name'],
         doStepIf=util.Property('preparation_step_failed') != 'True',
         hideStepIf=skipped,
@@ -315,7 +315,7 @@ def sanity_checks(project_name):
                 "--lg-env", test_boards[board_type]['power_ports'][power_port][test_board]['name']+".yaml",
                 "--power_port="+power_port,
                 "--beagle="+test_boards[board_type]['power_ports'][power_port][test_board]['name']],
-        workdir="../../Test_Worker/tests/pmic",
+        workdir="../../Test_Worker/tests/driver_tests",
         name="Check for iio_generic_buffer",
         doStepIf=util.Property('preparation_step_failed') != 'True',
         hideStepIf=skipped,
@@ -328,7 +328,7 @@ def sanity_checks(project_name):
         '--lg-env='+test_board+".yaml",
         'test_get_kunit.py',
         '--kunit_test=test_linear_ranges'],
-        workdir="../../Test_Worker/tests/pmic/",
+        workdir="../../Test_Worker/tests/driver_tests/",
         extract_fn=extract_kunit_test_error,
         doStepIf=doStepIf_kunit_tests,
         hideStepIf=skipped,
@@ -341,7 +341,7 @@ def sanity_checks(project_name):
         '--lg-env='+test_board+".yaml",
         'test_get_kunit.py',
         '--kunit_test=iio_test_gts'],
-        workdir="../../Test_Worker/tests/pmic/",
+        workdir="../../Test_Worker/tests/driver_tests/",
         extract_fn=extract_kunit_test_error,
         doStepIf=doStepIf_kunit_iio_gts_test,
         hideStepIf=skipped,
@@ -361,7 +361,7 @@ def sanity_checks(project_name):
                  "test_005_powerdown_beagle.py",
                  "--power_port="+power_port,
                  "--beagle="+test_board],
-        workdir="../../Test_Worker/tests/pmic/",
+        workdir="../../Test_Worker/tests/driver_tests/",
         doStepIf=util.Property('kunit_login_tried') == 'True',
         hideStepIf=skipped,
         name="Power down beagle"
