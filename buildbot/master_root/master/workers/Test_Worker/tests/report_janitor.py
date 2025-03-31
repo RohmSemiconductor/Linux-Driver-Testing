@@ -160,12 +160,30 @@ elif sys.argv[1] == 'publish_results_git':
         'rm -f '+timestamp_git_dir+'_'+bb_project+'_'+result+'/temp_results.txt',
         'git fetch origin',
         'git checkout '+branch,
-        'git add '+timestamp_git_dir+'_'+bb_project+'_'+result+'/',
+        'git add .',
         'git commit -m "Test results for: '+timestamp_git_dir+'_'+bb_project+'"',
         'git push origin '+branch
     )
 
     subprocess.run(" && ".join(commands), shell=True)
+
+elif sys.argv[1] == 'rm_old_results':
+    branch = sys.argv[2]
+    days = sys.argv[3]
+    old_results = []
+
+    commands = (
+        'cd '+branch+'/',
+        'find ./ -maxdepth 1 -type d -ctime +'+days #mtime now, change to ctime
+    )
+
+    results_stdout = subprocess.run(" && ".join(commands), shell=True, encoding='UTF-8', stdout=subprocess.PIPE).stdout.splitlines()
+    to_be_removed = " ".join(str(i) for i in results_stdout)
+
+    if len(to_be_removed) > 0:
+        stdout = subprocess.run("cd "+branch+"/ && rm -rf "+to_be_removed, shell=True)
+    else:
+        print("No older results than "+days+" days to remove")
 
 elif sys.argv[1] == 'get_timestamp':
     date = datetime.now()

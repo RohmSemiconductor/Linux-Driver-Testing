@@ -367,6 +367,15 @@ def sanity_checks(project_name):
         name="Power down beagle"
         ))
 
+def clean_local_results(project_name, branch_dir, days):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["python3", "../report_janitor.py", "rm_old_results",
+                branch_dir, days],
+        name="Clean local "+branch_dir+" results",
+        workdir="../../Test_Worker/tests/test-results",
+        doStepIf=doStepIf_git_push,
+        ))
+
 def publish_results_git(project_name, branch_dir):
     if branch_dir == "PMIC":
 
@@ -863,6 +872,8 @@ def build_deploy_kernel(project_name):
     set_factory_result_properties(project_name)
     save_good_commit(project_name)
     git_bisect(project_name)
+    clean_local_results(project_name, 'Sensor', 30)
+    clean_local_results(project_name, 'PMIC', 30)
     publish_results_git(project_name, 'Sensor')
     publish_results_git(project_name, 'PMIC')
 
