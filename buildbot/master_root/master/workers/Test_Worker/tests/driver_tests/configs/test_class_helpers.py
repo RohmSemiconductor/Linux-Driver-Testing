@@ -27,3 +27,21 @@ def twos_complement(value, bits):
         mask = pow(2,bits) -1
         value = ((~value & mask) + 1) * -1
     return value
+
+def bits_maxval(bits):
+    ret = (2^bits)-1
+
+    return ret
+
+def find_iio_device_files(command, iio_name):
+    stdout, stderr, returncode = command.run("grep -rH "+iio_name+" /sys/bus/iio/devices/*/name | sed 's![^/]*$!!'")
+    x = 0
+    for line in stdout:
+        if "iio:" in line:
+            correct_path_line = x
+        x = x+1
+
+    path = stdout[correct_path_line]
+    path = escape_path(path)
+
+    return path
