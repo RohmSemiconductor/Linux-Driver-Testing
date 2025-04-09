@@ -30,7 +30,7 @@ class addac:
         'adc_mult':     None,
     })
 
-    def test_init(self, command):
+    def get_sysfs_information(self, command):
         self.info['dac_path'] = find_iio_device_files(command, self.board.data['iio_device']['name'])
         self.info['adc_path'] = find_iio_device_files(command, self.board.data['iio_device']['adc'])
         self.info['dac_mult'] = self.get_iio_device_mult(command, 'out')
@@ -70,9 +70,15 @@ class addac:
         self.result['expect'].append(value*self.info['dac_mult'])
         stdout, stderr, rc = self._write_value(command, channel, value)
 
-        retval = self._read_value(command, channel, value)
-        retval = float(retval[0])
-        returnvolt = retval * self.info['adc_mult']
+        smooth_retval=0
+        for i in range(0,10):
+            retval = self._read_value(command, channel, value)
+            retval = float(retval[0])
+
+            smooth_retval = smooth_retval + retval
+        smooth_retval = smooth_retval /10
+
+        returnvolt = smooth_retval * self.info['adc_mult']
         self.result['return'].append(returnvolt)
 
         self.result['diff'].append(self.result['expect'][value] - self.result['return'][value])
@@ -87,8 +93,18 @@ class addac:
 
         return stdout, stderr, returncode
 
+    def _read_adc10x(self, command, channel):
+        stdout, stderr, returncode = command. run("/./read_adc10x.sh "+self.info['adc_path']+" "
+                                                  +str(self.board.data['info']['channels'][channel]))
+
+        smooth_retval = 0
+        for i in range(0,len(stdout)):
+            smooth_retval = smooth_retval + int(stdout[i])
+        smooth_retval = smooth_retval / 10
+        return stdout, smooth_retval
+
     def _read_value(self, command, channel, value):
         stdout, stderr, returncode = command.run("cat "+self.info['adc_path']+"/"
-                                                "in_voltage"+str(channel)+"_raw")
+                                                "in_voltage"+str(self.board.data['info']['channels'][channel])+"_raw")
 
         return stdout
