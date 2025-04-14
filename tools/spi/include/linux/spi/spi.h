@@ -1,0 +1,1 @@
+/home/kale/gits/linux/tools/spi/../../include/uapi/linux/spi/spi.h
