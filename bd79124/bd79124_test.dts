@@ -104,8 +104,8 @@
 			dummyreg: dummyreg {
 				compatible = "regulator-fixed";
 				regulator-name = "dummyreg";
-				regulator-min-microvolt = <3300000>;
-				regulator-max-microvolt = <3300000>;
+				regulator-min-microvolt = <3400000>;
+				regulator-max-microvolt = <3400000>;
 				regulator-boot-on;
 				regulator-always-on;
 			};
