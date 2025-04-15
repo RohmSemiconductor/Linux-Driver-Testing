@@ -459,12 +459,32 @@ def _assert_pmic_validate_config(result, report_file, summary):
     assert result['i2c_address_type'] == int
     assert result['return'] == result['expect']
 
+def _assert_addac_test_write_read(result, report_file, summary):
+    if ((result['return'] <= result['expect_low']) or (result['return'] >= result['expect_high'])):
+        print("Failure: DAC: "+result['dac']+"  =>  ADC: "+result['adc']+"\n"
+              , end='', file=summary)
+
+        print("Failure: DAC: "+result['dac']+"  =>  ADC: "+result['adc']+"\n"
+              "Components DAC: "+result['product']+" ADC: "+result['adc']+"\n"
+              "DAC Channel: "+str(result['dac_channel'])+", Value: "+str(result['value'])+", "
+              "Multiplier: "+str(result['dac_mult'])+" mV: "+str(result['dac_volt'])+"\n"
+              "ADC Channel: "+str(result['adc_channel'])+", Value: "+str(result['adc_value'])+", "
+              "Multiplier: "+str(result['adc_mult'])+" mV: "+str(result['adc_volt'])+"\n"
+              "Difference between set and read voltage: "+str(abs(result['return']))+"mV\n"
+              "Allowed difference is +/- "+str(result['tolerance'])+ "mV\n"
+              , end='', file=report_file)
+
+    _assert_test(result, report_file, summary)
+
 def check_result(result):
     if result['result_dir'] == 'PMIC':
         report_file = open('/tmp/rohm_linux_driver_tests/temp_results_PMIC/temp_results.txt', 'a', encoding='utf-8')
         summary = open('/tmp/rohm_linux_driver_tests/temp_results/summary.txt', 'a', encoding='utf-8')
     elif result['result_dir'] == 'sensor':
         report_file = open('/tmp/rohm_linux_driver_tests/temp_results_sensor/temp_results.txt', 'a', encoding='utf-8')
+        summary = open('/tmp/rohm_linux_driver_tests/temp_results/summary.txt', 'a', encoding='utf-8')
+    elif result['result_dir'] == 'ADDAC':
+        report_file = open('/tmp/rohm_linux_driver_tests/temp_results_ADDAC/temp_results.txt', 'a', encoding='utf-8')
         summary = open('/tmp/rohm_linux_driver_tests/temp_results/summary.txt', 'a', encoding='utf-8')
     elif result['result_dir'] == 'linux':
         report_file = open('/tmp/rohm_linux_driver_tests/temp_results/temp_results.txt', 'a', encoding='utf-8')
@@ -531,3 +551,6 @@ def check_result(result):
             _assert_sensor_test_gscale_ms2_match(result, report_file, summary)
         elif result['stage'] == 'test_sampling_frequency_match_timestamp':
             _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, summary)
+    elif result['type'] == 'ADDAC':
+        if result['stage'] == 'write_read':
+            _assert_addac_test_write_read(result, report_file, summary)
