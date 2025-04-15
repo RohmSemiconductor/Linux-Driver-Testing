@@ -75,3 +75,16 @@ test_boards['accelerometer'] = {
         }
     }
 }
+
+test_boards['addac'] = {
+    'power_ports':{
+        '6':{
+            'beagle6':{
+                'name':'beagle6',
+                'power_port':'6',
+                'products':['bd79703'],
+                'arch':'arm32',
+            }
+        }
+    }
+}
