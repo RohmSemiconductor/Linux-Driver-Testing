@@ -13,6 +13,8 @@ if test_type == 'pmic':
     pwd = pwd + '/'+product
 elif test_type == 'accelerometer':
     pwd = pwd + '/'+product
+elif test_type == 'addac':
+    pwd = pwd + '/'+product
 elif test_type == 'dts':
     dts = sys.argv[3]
     pwd = pwd + '/'+product+'/dts/'+dts

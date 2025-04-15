@@ -12,10 +12,19 @@ kernel_modules['linux_ver']={
 'kx022acr_z':['6.6'],
 'kx132acr_lbz':['6.12'],
 #'bd99954':['5.'],
+'bd79703':['6.12']
+}
+
+kernel_modules['adc_pair']={
+'bd79703':{
+    'adc':'bd79124',
+    'dtbo':'bd79124_test.dtbo',
+    }
 }
 
 kernel_modules['build']={
 'overlay_merger':['mva_overlay.ko'],
+### PMICs
 'bd71815':['bd71815_test.dtbo','bd71815-test.ko','bd71815-gpio-test.ko','bd71815-clktest.ko'],
 'bd71828':['bd71828_test.dtbo','bd71828-test.ko','bd71828-gpio-test.ko','bd71828-clktest.ko'],
 #'bd71837':['bd71837_test.dtbo','bd71837-test.ko','bbb_only_I2C_1.dtbo'],
@@ -24,9 +33,13 @@ kernel_modules['build']={
 'bd9576':['bd9576_test.dtbo','bd9576-test.ko'],
 'bd96801':['bd96801_test.dtbo','bd96801-test.ko'],
 'bd99954':['bd99954_test.dtbo'],
+### Sensors
 'kx022acr_z':['kx022acr_z_test.dtbo', 'generic_accel_test.ko'],
 'kx132acr_lbz':['kx132acr_lbz_test.dtbo', 'generic_accel_test.ko'],
+### ADDAC
+'bd79703':['bd79703_test.dtbo']
 }
+
 kernel_modules['dts_tests']={
         'bd71847':['ramprate2'],
         'bd9576':['ovd_uvd_disable'],
@@ -60,7 +73,8 @@ kernel_modules['dt_overlays']={
 'bd9576':['bd9576_test.dtbo'],
 'bd96801':['bd96801_test.dtbo'],
 'kx022acr_z':['kx022acr_z_test.dtbo'],
-'kx132acr_lbz':['kx132acr_lbz_test.dtbo']
+'kx132acr_lbz':['kx132acr_lbz_test.dtbo'],
+'bd79703':['bd79703_test.dtbo', kernel_modules['adc_pair']['bd79703']['dtbo']],
 }
 
 kernel_modules['test']={
@@ -85,6 +99,7 @@ kernel_modules['merged_dt_overlay']={
 'bd96801':['bd96801_wdt', 'bd96801_regulator', 'rohm_bd96801'],
 'kx022acr_z':['kionix_kx022a_spi', 'kionix_kx022a_i2c', 'kionix_kx022a'],
 'kx132acr_lbz':['kionix_kx022a_spi', 'kionix_kx022a_i2c', 'kionix_kx022a'],
+'bd79703':['industrialio', 'rohm_bd79703'],
 }
 
 #Used for assert: test_insmod_tests.py, output of lsmod
@@ -107,3 +122,4 @@ kernel_modules['init_regulator_test']={ #useless
 'bd71847':['bd718x7_regulator','gpio_keys','rohm_regulator','clk_bd718x7','rohm_bd718x7'],
 'bd9576':['bd9576_test.dtbo','bd9576-test.ko'],
 }
+
