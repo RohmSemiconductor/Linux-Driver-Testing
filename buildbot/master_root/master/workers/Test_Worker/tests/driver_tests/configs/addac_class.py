@@ -14,13 +14,17 @@ sys.path.append(os.path.abspath("."))
 class addac:
     board: dict
     result: dict = field(default_factory=lambda: {
-    'type':         'addac',
-    'result_dir':   'AD-DA_converters',
-    'stage':        None,
-    'product':      None,
-    'return':       [],
-    'expect':       [],
-    'diff':         [],
+    'type':             'ADDAC',
+    'result_dir':       'ADDAC',
+    'stage':            None,
+    'product':          None,
+    'return':           [],
+    'expect':           [],
+    'expect_perfect':   [],
+    'expect_low':       [],
+    'expect_high':      [],
+    'diff':             [],
+    'adc_value':        [],
     })
 
     info: dict = field(default_factory=lambda: {
@@ -36,10 +40,10 @@ class addac:
         self.info['dac_mult'] = self.get_iio_device_mult(command, 'out')
         self.info['adc_mult'] = self.get_iio_device_mult(command, 'in')
 
-        print(self.info['adc_path'])
-        print(self.info['dac_path'])
-        print(self.info['dac_mult'])
-        print(self.info['adc_mult'])
+        self.result['dac'] = self.board.data['iio_device']['name']
+        self.result['adc'] = self.board.data['iio_device']['adc']
+        self.result['product'] = self.board.data['name']
+        self.result['adc_product'] = self.board.data['adc']
 
     def get_iio_device_mult(self, command, direction):
         if direction == 'in':
@@ -67,25 +71,31 @@ class addac:
         return bits
 
     def write_and_read_value(self, command, channel, value):
-        self.result['expect'].append(value*self.info['dac_mult'])
+        self.result['value'] = value
+        self.result['expect'] = 'range'
+        self.result['stage'] = 'write_read'
+        self.result['dac_channel'] = str(channel)
+        self.result['adc_channel'] = str(self.board.data['info']['channels'][channel])
+        self.result['dac_volt'] = value*self.info['dac_mult']
+        self.result['dac_mult'] = self.info['dac_mult']
+        self.result['adc_mult'] = self.info['adc_mult']
+#        self.result['tolerance'] = self.info['dac_mult'] + self.info['adc_mult']
+
+        ### ['tolerance'] tolerance in millivolts
+        self.result['tolerance'] = 20
+        self.result['expect_low'] = self.result['tolerance'] * -1
+        self.result['expect_high'] = self.result['tolerance']
+
         stdout, stderr, rc = self._write_value(command, channel, value)
 
-        smooth_retval=0
-        for i in range(0,10):
-            retval = self._read_value(command, channel, value)
-            retval = float(retval[0])
+        self.result['adc_value'] = self.read_adc10x(command, channel)
+        self.result['adc_volt'] = self.result['adc_value'] * self.info['adc_mult']
 
-            smooth_retval = smooth_retval + retval
-        smooth_retval = smooth_retval /10
+        self.result['return'] = self.result['dac_volt'] - self.result['adc_volt']
 
-        returnvolt = smooth_retval * self.info['adc_mult']
-        self.result['return'].append(returnvolt)
-
-        self.result['diff'].append(self.result['expect'][value] - self.result['return'][value])
         return self.result
 
     def _write_value(self, command, channel, value):
-#        path = find_iio_device_files(command, self.board.data['iio_device']['name'])
         stdout, stderr, returncode = command.run("echo "+str(value)+ " > "+self.info['dac_path']+"/"
                                                 "out_voltage"+str(channel)+"_raw")
         if returncode != 0:
@@ -93,7 +103,7 @@ class addac:
 
         return stdout, stderr, returncode
 
-    def _read_adc10x(self, command, channel):
+    def read_adc10x(self, command, channel):
         stdout, stderr, returncode = command. run("/./read_adc10x.sh "+self.info['adc_path']+" "
                                                   +str(self.board.data['info']['channels'][channel]))
 
@@ -101,7 +111,8 @@ class addac:
         for i in range(0,len(stdout)):
             smooth_retval = smooth_retval + int(stdout[i])
         smooth_retval = smooth_retval / 10
-        return stdout, smooth_retval
+
+        return smooth_retval
 
     def _read_value(self, command, channel, value):
         stdout, stderr, returncode = command.run("cat "+self.info['adc_path']+"/"

@@ -3,7 +3,7 @@ targets:
     resources:
       USBSerialPort:
         match:
-          ID_SERIAL_SHORT: "FT88PL86"
+          ID_SERIAL_SHORT: "FTUJ9L3E"
           ID_USB_INTERFACE_NUM: '00'
     drivers:
       ManualPowerDriver:
