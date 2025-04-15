@@ -60,6 +60,16 @@ class GenerateStagesCommand(buildstep.ShellMixin, steps.BuildStep):
                     extract_fn=self.extract_driver_tests_partial)
                     for stage in self.extract_stages(self.observer.getStdout())
                 ])
+            elif self.test_type == "addac":
+                self.build.addStepsAfterCurrentStep([steps.SetPropertyFromCommand(
+                    command=["pytest","--lg-log","/tmp/rohm_linux_driver_tests/temp_results_ADDAC/",
+                             "--lg-env="+self.test_board+".yaml",self.product+"/"+stage],
+                    name=self.product+": "+stage,
+                    workdir="../tests/driver_tests",
+                    doStepIf=util.Property(self.product+'_do_steps') == 'True',
+                    extract_fn=self.extract_driver_tests_partial)
+                    for stage in self.extract_stages(self.observer.getStdout())
+                ])
             elif self.test_type == "dts":
                 self.build.addStepsAfterCurrentStep([steps.SetPropertyFromCommand(
                     command=["pytest","--lg-log","/tmp/rohm_linux_driver_tests/temp_results/",
@@ -302,6 +312,14 @@ def extract_sensor_driver_tests(rc, stdout, stderr, product):
     else:
         return {product+'_skip_dts_tests': 'False', product+'_do_steps' : 'True', 'sensor_single_test_passed': 'True'}
 
+def extract_addac_driver_tests(rc, stdout, stderr, product):
+    if 'FAILURES' in stdout:
+        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'addac_single_test_failed': 'True'}
+    elif rc != 0:
+        return {product+'_skip_dts_tests': 'True', product+'_do_steps': 'False', product+'_dts_collected': 'False', product+'_dmesg_collected': 'False', 'addac_single_test_failed': 'True'}
+    else:
+        return {product+'_skip_dts_tests': 'False', product+'_do_steps' : 'True', 'addac_single_test_passed': 'True'}
+
 def doStepIf_powerdown_beagle(step, product):
     if step.getProperty('project') == "linux_rohm_devel" or step.getProperty('buildername') == 'Test_Linux' or check_tag(step, product) == True:
         if step.getProperty(product+'_dts_fail') == 'True':
@@ -332,6 +350,8 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
         extract_driver_tests_partial = functools.partial(extract_pmic_driver_tests, product=product)
     elif test_type == 'accelerometer':
         extract_driver_tests_partial = functools.partial(extract_sensor_driver_tests, product=product)
+    elif test_type == 'addac':
+        extract_driver_tests_partial = functools.partial(extract_addac_driver_tests, product=product)
     elif test_type == 'dts':
         extract_driver_tests_partial = functools.partial(extract_pmic_driver_tests, product=product)
 
@@ -363,6 +383,16 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
         collect_dmesg_and_dts(_factory, test_board, product, test_dts=dts)
 
     elif test_type =="accelerometer":
+
+        _factory.addStep(GenerateStagesCommand(
+            test_board, product, test_type, dts, extract_driver_tests_partial,
+            name=product+": Generate "+test_type+" test stages",
+            command=["python3", "generate_steps.py", product, test_type],
+            workdir="../tests/driver_tests",
+            haltOnFailure=True,
+            doStepIf=doStepIf_generate_driver_tests_partial
+            ))
+    elif test_type =="addac":
 
         _factory.addStep(GenerateStagesCommand(
             test_board, product, test_type, dts, extract_driver_tests_partial,
@@ -542,34 +572,39 @@ def doStepIf_copy_test_kernel_modules_to_nfs(step, product, test_dts):
         return False
 
 
-def copy_test_kernel_modules_to_nfs(_factory, product, test_dts, generic_module = None):
+def copy_test_kernel_modules_to_nfs(_factory, product, test_dts, generic_module = None, adc = None):
     doStepIf_copy_test_kernel_modules_to_nfs_partial = functools.partial(doStepIf_copy_test_kernel_modules_to_nfs, product=product, test_dts=test_dts)
 
     copy_commands =[]
-    for value in kernel_modules['build'][product]:
-        if generic_module == None:
-            copy_commands.append(util.ShellArg(
-                command=util.Interpolate('cp ../../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'+product+"/"+value+' '+dir_nfs),
-#                command=["cp", "_test-kernel-modules/"+product+"/"+value, dir_nfs],
-                logname="Copy "+value+" to nfs"))
-        else:
-            copy_commands.append(util.ShellArg(
-                command=util.Interpolate('cp ../../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'
-                                         +generic_module+'/'+value+' '+dir_nfs),
-                logname="Copy "+value+" to nfs"))
+    if adc == None:
+        for value in kernel_modules['build'][product]:
+            if generic_module == None:
+                copy_commands.append(util.ShellArg(
+                    command=util.Interpolate('cp ../../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'+product+"/"+value+' '+dir_nfs),
+#                    command=["cp", "_test-kernel-modules/"+product+"/"+value, dir_nfs],
+                    logname="Copy "+value+" to nfs"))
+            else:
+                copy_commands.append(util.ShellArg(
+                    command=util.Interpolate('cp ../../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'
+                                             +generic_module+'/'+value+' '+dir_nfs),
+                    logname="Copy "+value+" to nfs"))
+    else:
+        copy_commands.append(util.ShellArg(
+            command=util.Interpolate('cp ../../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'+adc+'/'+kernel_modules['adc_pair'][product]['dtbo']+' '+dir_nfs),
+            logname="Copy "+kernel_modules['adc_pair'][product]['dtbo']+" to nfs"))
 
     _factory.addStep(steps.ShellSequence(
             commands=copy_commands,
             doStepIf=doStepIf_copy_test_kernel_modules_to_nfs_partial,
             hideStepIf=skipped,
-            name=product+": Copy test kernel modules to nfs"
+            name=product+": Copy test kernel modules / DT to nfs"
             ))
 
 
 def doStepIf_dts_report(step, product, test_dts):
     if step.getProperty('preparation_step_failed') == 'True':
         return False
-    elif step.getProperty('project') == "linux_rohm_devel" or check_tag(step, product) == 'True':
+    elif step.getProperty('project') == "linux_rohm_devel" or step.getProperty('project') == "test_linux" or check_tag(step, product) == 'True':
         if step.getProperty(product+'_'+test_dts+'_dts_make_passed') == 'False':
             return True
     else:
@@ -603,7 +638,7 @@ def doStepIf_finalize_product(step, product):
         return False
     elif step.getProperty('git_bisecting') == 'True':
         return False
-    elif step.getProperty('project') == "linux_rohm_devel" or check_tag(step, product) == True:
+    elif step.getProperty('project') == "linux_rohm_devel" or step.getProperty('project') == "test_linux" or check_tag(step, product) == True:
         return True
     else:
         return False
@@ -787,7 +822,7 @@ def extract_sanitycheck_error(rc, stdout, stderr, product):
         return {product+'_sanitycheck_passed': 'True' , product+'_do_steps' : 'True' }
 
 def doStepIf_initialize_product(step, product):
-    if step.getProperty('project') == 'linux_rohm_devel' or check_tag(step, product) == True:
+    if step.getProperty('project') == 'linux_rohm_devel' or step.getProperty('project') == 'test_linux' or check_tag(step, product) == True:
         if step.getProperty('factory_type') == 'accelerometer' and step.getProperty('iio_generic_buffer_found') == 'False':
             return False
         elif step.getProperty('preparation_step_failed') != 'True':
@@ -809,7 +844,7 @@ def doStepIf_dts_test_preparation(step, product):
         return False
     elif step.getProperty(product+'_do_steps') == 'False':
         return False
-    elif step.getProperty('project') == "linux_rohm_devel" or check_tag(step, product) == True:
+    elif step.getProperty('project') == "linux_rohm_devel" or step.getProperty('project') == "test_linux" or check_tag(step, product) == True:
         if step.getProperty(product+'_skip_dts_tests') != 'True':
             return True
         else:
