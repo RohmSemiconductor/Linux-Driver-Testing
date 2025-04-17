@@ -34,16 +34,22 @@ class addac:
         'adc_mult':     None,
     })
 
-    def get_sysfs_information(self, command):
-        self.info['dac_path'] = find_iio_device_files(command, self.board.data['iio_device']['name'])
+    def __post_init__(self):
+        self.result['test_config'] = self.board.data
+
+
+    def get_sysfs_information(self, command, adc_only=False):
+        if self.board.data['type'] == "DAC":
+            self.info['dac_path'] = find_iio_device_files(command, self.board.data['iio_device']['name'])
+            self.info['dac_mult'] = self.get_iio_device_mult(command, 'out')
+            self.result['dac'] = self.board.data['iio_device']['name']
+            self.result['adc_product'] = self.board.data['adc']
+
         self.info['adc_path'] = find_iio_device_files(command, self.board.data['iio_device']['adc'])
-        self.info['dac_mult'] = self.get_iio_device_mult(command, 'out')
         self.info['adc_mult'] = self.get_iio_device_mult(command, 'in')
 
-        self.result['dac'] = self.board.data['iio_device']['name']
         self.result['adc'] = self.board.data['iio_device']['adc']
         self.result['product'] = self.board.data['name']
-        self.result['adc_product'] = self.board.data['adc']
 
     def get_iio_device_mult(self, command, direction):
         if direction == 'in':
