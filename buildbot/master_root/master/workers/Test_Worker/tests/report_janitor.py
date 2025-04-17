@@ -11,17 +11,24 @@ if sys.argv[1] == 'initialize_report':
     linux_ver = sys.argv[3]
     revision = sys.argv[4]
     stdout = subprocess.run('mkdir -p /tmp/rohm_linux_driver_tests/', shell=True)
+
     stdout = subprocess.run('rm -rf /tmp/rohm_linux_driver_tests/temp_results/', shell=True)
     stdout = subprocess.run('mkdir /tmp/rohm_linux_driver_tests/temp_results', shell=True)
+
     stdout = subprocess.run('rm -rf /tmp/rohm_linux_driver_tests/temp_results_PMIC/', shell=True)
     stdout = subprocess.run('mkdir /tmp/rohm_linux_driver_tests/temp_results_PMIC', shell=True)
+
     stdout = subprocess.run('rm -rf /tmp/rohm_linux_driver_tests/temp_results_sensor/', shell=True)
     stdout = subprocess.run('mkdir /tmp/rohm_linux_driver_tests/temp_results_sensor', shell=True)
+
+    stdout = subprocess.run('rm -rf /tmp/rohm_linux_driver_tests/temp_results_ADDAC/', shell=True)
+    stdout = subprocess.run('mkdir /tmp/rohm_linux_driver_tests/temp_results_ADDAC', shell=True)
     initialize_report(bb_project, linux_ver, revision)
 
 elif sys.argv[1] == 'initialize_factories':
     stdout = subprocess.run('cp -r /tmp/rohm_linux_driver_tests/temp_results/* /tmp/rohm_linux_driver_tests/temp_results_PMIC/', shell=True)
     stdout = subprocess.run('cp -r /tmp/rohm_linux_driver_tests/temp_results/* /tmp/rohm_linux_driver_tests/temp_results_sensor/', shell=True)
+    stdout = subprocess.run('cp -r /tmp/rohm_linux_driver_tests/temp_results/* /tmp/rohm_linux_driver_tests/temp_results_ADDAC/', shell=True)
 
 elif sys.argv[1] == 'initialize_product':
     type = sys.argv[2]
@@ -113,7 +120,14 @@ elif sys.argv[1] == 'read_factory_properties':
             'single_login_passed'   : '',
     }
 
-    property_files = ['properties_pmic', 'properties_sensor']
+    saved_properties_addac = {
+            'addac_single_test_failed'    : '',
+            'addac_single_test_passed'    : '',
+            'single_login_failed'   : '',
+            'single_login_passed'   : '',
+    }
+
+    property_files = ['properties_pmic', 'properties_sensor', 'properties_addac']
 
     for property_file in property_files:
         opened_file = property_file
@@ -128,6 +142,10 @@ elif sys.argv[1] == 'read_factory_properties':
                 elif opened_file == 'properties_sensor':
                     for property in saved_properties_sensor.keys():
                         if ((property+'=True' in line) and (saved_properties_sensor[property] =='')):
+                            print(line)
+                elif opened_file == 'properties_addac':
+                    for property in saved_properties_addac.keys():
+                        if ((property+'=True' in line) and (saved_properties_addac[property] =='')):
                             print(line)
         except:
             print("")
