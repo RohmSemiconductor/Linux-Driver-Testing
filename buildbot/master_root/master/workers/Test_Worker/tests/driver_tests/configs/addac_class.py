@@ -124,8 +124,27 @@ class addac:
 
         return smooth_retval
 
+    def read_adc_channel(self, command, channel):
+        adc_value = self.read_adc10x(command, channel)
+        adc_volt = adc_value * self.info['adc_mult']
+
+        return adc_value, adc_volt
+
     def _read_value(self, command, channel, value):
         stdout, stderr, returncode = command.run("cat "+self.info['adc_path']+"/"
                                                 "in_voltage"+str(self.board.data['info']['channels'][channel])+"_raw")
 
         return stdout
+
+    def check_stable_voltage(self, command, channel, tolerance):
+        self.get_sysfs_information(command, adc_only=True)
+        self.result['stage'] = 'stable_voltage'
+
+        adc_value, adc_volt = self.read_adc_channel(command, self.board.data['info']['stable_voltage_channel'])
+        self.result['return'] = adc_volt
+        self.result['expect'] = 'range'
+        self.result['expect_perfect'] = self.board.data['info']['stable_voltage_mv']
+        self.result['expect_high'] = self.board.data['info']['stable_voltage_mv'] + tolerance
+        self.result['expect_low'] = self.board.data['info']['stable_voltage_mv'] - tolerance
+
+        return self.result
