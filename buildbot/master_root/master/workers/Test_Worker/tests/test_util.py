@@ -476,6 +476,20 @@ def _assert_addac_test_write_read(result, report_file, summary):
 
     _assert_test(result, report_file, summary)
 
+def _assert_addac_test_stable_voltage(result, report_file, summary):
+    if ((result['return'] <= result['expect_low']) or (result['return'] >= result['expect_high'])):
+        print("Failure with stable voltage reading with ADC "+result['adc']+": "
+              "Expected: "+str(result['expect_perfect'])+ ", ADC reading: "+str(result['return'])+"\n"
+              , end='', file=summary)
+
+        print("Failure with stable voltage reading with ADC "+result['adc']+": "
+              "Expected: "+str(result['expect_perfect'])+ ", ADC reading: "+str(result['return'])+"\n"
+              "Driver file: "+result['test_config']['driver']+"\n\n"
+              , end='', file=report_file)
+
+    _assert_test(result, report_file, summary)
+
+
 def check_result(result):
     if result['result_dir'] == 'PMIC':
         report_file = open('/tmp/rohm_linux_driver_tests/temp_results_PMIC/temp_results.txt', 'a', encoding='utf-8')
@@ -554,3 +568,5 @@ def check_result(result):
     elif result['type'] == 'ADDAC':
         if result['stage'] == 'write_read':
             _assert_addac_test_write_read(result, report_file, summary)
+        elif result['stage'] == 'stable_voltage':
+            _assert_addac_test_stable_voltage(result, report_file, summary)
