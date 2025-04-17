@@ -55,7 +55,7 @@ def doStepIf_dtc_boneblack_old_dir(step):
         return False
 
 def doStepIf_linux_stable_copy_config(step):
-    if step.getProperty('project') == "linux_stable":
+    if step.getProperty('project') == "linux_stable" or step.getProperty('project') == "test_linux":
         if step.getProperty('branch') != "linux-rolling-stable":
             return True
         else:
@@ -64,7 +64,9 @@ def doStepIf_linux_stable_copy_config(step):
         return False
 
 def doStepIf_linux_not_stable_copy_config(step):
-    if step.getProperty('project') != "linux_stable":
+    if step.getProperty('project') == "test_linux":
+        return False
+    elif step.getProperty('project') != "linux_stable":
         return True
     else:
         if step.getProperty('branch') == "linux-rolling-stable":
@@ -435,7 +437,7 @@ def doStepIf_git_bisect_start(step):
     if not step.getProperty('git_bisecting'):
         if step.getProperty('preparation_step_failed') == "True":
             return True
-        elif step.getProperty('pmic_single_test_failed') == "True" or step.getProperty('sensor_single_test_failed') == "True":
+        elif step.getProperty('pmic_single_test_failed') == "True" or step.getProperty('sensor_single_test_failed') == "True" or step.getProperty('addac_single_test_failed') == "True":
             return True
         elif step.getProperty('single_login_failed') == "True":
             if step.getProperty('single_login_passed') == "True":
@@ -464,7 +466,7 @@ def doStepIf_git_bisect_good(step):
 def doStepIf_git_bisect_bad(step):
     if step.getProperty('preparation_step_failed') == "True":
         return True
-    elif step.getProperty('pmic_single_test_failed') == "True" or step.getProperty('sensor_single_test_failed') == "True":
+    elif step.getProperty('pmic_single_test_failed') == "True" or step.getProperty('sensor_single_test_failed') == "True" or step.getProperty('addac_single_test_failed') == "True":
         return True
     elif step.getProperty('single_login_failed') == "True":
         if step.getProperty('single_login_passed') == "True":
@@ -848,6 +850,21 @@ def set_factory_result_properties(project_name):
         property="PMIC_RESULT",
         value="PASSED",
         doStepIf=doStepIf_setProperty_PMIC_RESULT_PASSED,
+        hideStepIf=skipped
+        ))
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="ADDAC Tests: FAILED",
+        property="ADDAC_RESULT",
+        value="FAILED",
+        doStepIf=doStepIf_setProperty_ADDAC_RESULT_FAILED,
+        hideStepIf=skipped
+        ))
+
+    projects[project_name]['factory'].addStep(steps.SetProperty(
+        name="ADDAC Tests: PASSED",
+        property="ADDAC_RESULT",
+        value="PASSED",
+        doStepIf=doStepIf_setProperty_ADDAC_RESULT_PASSED,
         hideStepIf=skipped
         ))
 
