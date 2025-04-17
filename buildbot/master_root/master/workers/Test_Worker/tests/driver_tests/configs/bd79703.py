@@ -1,7 +1,8 @@
 data={
-'name':'bd79703',
-'adc': 'BeagleBone Black DAC',
-'driver': 'rohm-bd79703.c',
+'name':     'bd79703',
+'type':     'DAC',
+'adc':      'BeagleBone Black DAC',
+'driver':   'rohm-bd79703.c',
 
 'iio_device':{
     'name':     'bd79703',
@@ -14,10 +15,15 @@ data={
 
     ### Channels are mapped in this manner
     ### DAC channel : ADC channel
+    ###
+    ### This Dictionary is used to write,
+    ### and then read corresponding ADC
+    ### channel
+
     'channels':{
         0:0,
         1:1,
         2:2,
-    }
+        }
     }
 }
