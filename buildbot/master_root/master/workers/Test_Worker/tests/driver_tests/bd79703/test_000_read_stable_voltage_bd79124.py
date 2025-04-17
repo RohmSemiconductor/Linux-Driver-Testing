@@ -8,7 +8,6 @@ from addac_class import addac
 bd79124 = addac(bd79124)
 
 def test_read_stable_voltage(command):
-    result = bd79124.check_stable_voltage(command, bd79124.board.data['info']['stable_voltage_channel'], 2)
+    result = bd79124.check_stable_voltage(command, bd79124.board.data['info']['stable_voltage_channel'], 10)
 
     check_result(result)
-    assert 1 == 0
