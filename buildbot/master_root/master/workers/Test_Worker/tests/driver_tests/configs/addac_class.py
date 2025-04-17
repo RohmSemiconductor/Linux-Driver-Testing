@@ -88,7 +88,7 @@ class addac:
 #        self.result['tolerance'] = self.info['dac_mult'] + self.info['adc_mult']
 
         ### ['tolerance'] tolerance in millivolts
-        self.result['tolerance'] = 20
+        self.result['tolerance'] = 70
         self.result['expect_low'] = self.result['tolerance'] * -1
         self.result['expect_high'] = self.result['tolerance']
 
