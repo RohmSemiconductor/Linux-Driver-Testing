@@ -713,6 +713,24 @@ def doStepIf_setProperty_PMIC_RESULT_PASSED(step):
     if (not step.getProperty('git_bisecting') and (step.getProperty('PMIC_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED")):
         return True
 
+def doStepIf_setProperty_ADDAC_RESULT_FAILED(step):
+    if (not step.getProperty('git_bisecting') and (step.getProperty('ADDAC_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED")):
+        if step.getProperty('addac_single_test_failed') == 'True':
+            return True
+        elif step.getProperty('single_login_failed') == 'True':
+            if step.getProperty('single_login_passed') == 'True':
+                return False
+            else:
+                return True
+        else:
+            return False
+    else:
+        return False
+
+def doStepIf_setProperty_ADDAC_RESULT_PASSED(step):
+    if (not step.getProperty('git_bisecting') and (step.getProperty('ADDAC_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED")):
+        return True
+
 def doStepIf_setProperty_SENSOR_RESULT_FAILED(step):
     if (not step.getProperty('git_bisecting') and (step.getProperty('SENSOR_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED")):
 
