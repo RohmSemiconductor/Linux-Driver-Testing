@@ -99,7 +99,8 @@ kernel_modules['merged_dt_overlay']={
 'bd96801':['bd96801_wdt', 'bd96801_regulator', 'rohm_bd96801'],
 'kx022acr_z':['kionix_kx022a_spi', 'kionix_kx022a_i2c', 'kionix_kx022a'],
 'kx132acr_lbz':['kionix_kx022a_spi', 'kionix_kx022a_i2c', 'kionix_kx022a'],
-'bd79703':['industrialio', 'rohm_bd79703'],
+'bd79703':['industrialio', 'rohm_bd79703', 'rohm_bd79124', 'industrialio_adc'],
+'bd79124':['rohm_bd79124', 'industrialio_adc'],
 }
 
 #Used for assert: test_insmod_tests.py, output of lsmod
