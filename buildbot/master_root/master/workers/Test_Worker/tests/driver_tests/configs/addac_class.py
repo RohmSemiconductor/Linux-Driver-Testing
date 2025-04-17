@@ -110,8 +110,12 @@ class addac:
         return stdout, stderr, returncode
 
     def read_adc10x(self, command, channel):
-        stdout, stderr, returncode = command. run("/./read_adc10x.sh "+self.info['adc_path']+" "
-                                                  +str(self.board.data['info']['channels'][channel]))
+        if self.board.data['type'] == 'DAC':
+            stdout, stderr, returncode = command. run("/./read_adc10x.sh "+self.info['adc_path']+" "
+                                                      +str(self.board.data['info']['channels'][channel]))
+        elif self.board.data['type'] == 'ADC':
+            stdout, stderr, returncode = command. run("/./read_adc10x.sh "+self.info['adc_path']+" "
+                                                      +str(channel))
 
         smooth_retval = 0
         for i in range(0,len(stdout)):
