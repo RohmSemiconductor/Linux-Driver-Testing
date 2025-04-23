@@ -121,14 +121,20 @@ class addac:
         self.result['expect_low'] = self.result['tolerance'] * -1
         self.result['expect_high'] = self.result['tolerance']
 
-        stdout, stderr, rc = self._write_value(command, channel, value)
+        try:
+            stdout, stderr, rc = self._write_value(command, channel, value)
 
-        self.result['adc_value'] = self.read_adc10x(command, channel)
-        self.result['adc_volt'] = self.result['adc_value'] * self.info['adc_mult']
+            self.result['adc_value'] = self.read_adc10x(command, channel)
+            self.result['adc_volt'] = self.result['adc_value'] * self.info['adc_mult']
 
-        self.result['return'] = self.result['dac_volt'] - self.result['adc_volt']
+            self.result['return'] = self.result['dac_volt'] - self.result['adc_volt']
 
-        return self.result
+        except:
+            self.result['return'] = self.read_adc10x(command, channel)
+
+        finally:
+
+            return self.result
 
     def _write_value(self, command, channel, value):
         stdout, stderr, returncode = command.run("echo "+str(value)+ " > "+self.info['dac_path']+"/"
