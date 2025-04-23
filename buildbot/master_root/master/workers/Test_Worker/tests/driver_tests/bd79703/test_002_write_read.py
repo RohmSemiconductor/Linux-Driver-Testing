@@ -8,9 +8,9 @@ from addac_class import addac
 bd79703 = addac(bd79703)
 
 def test_write_read(command):
-    bd79703.get_sysfs_information(command)
+    sysfs_retval = bd79703.get_sysfs_information(command)
     maxval = bd79703.bits_maxval()
-
+    print(sysfs_retval)
     for channel in bd79703.board.data['info']['channels'].keys():
         for x in range(0, maxval+1):
 #        for x in range(0, 1):

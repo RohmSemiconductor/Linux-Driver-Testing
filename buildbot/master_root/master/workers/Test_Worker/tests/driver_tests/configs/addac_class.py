@@ -37,6 +37,24 @@ class addac:
     def __post_init__(self):
         self.result['test_config'] = self.board.data
 
+    def check_sysfs_information(self, command,addac):
+        self.result['stage'] = 'check_sysfs'
+        self.result['sub_stage'] = addac
+        self.result['expect'] = 0
+
+        if addac == 'dac':
+            path = find_iio_device_files(command, self.board.data['iio_device']['name'])
+
+        elif addac == 'adc':
+            path = find_iio_device_files(command, self.board.data['iio_device']['adc'])
+
+        if path in 'not_found':
+            self.result['return'] = -2
+        else:
+            self.result['return'] = 0
+
+        return self.result
+
 
     def get_sysfs_information(self, command, adc_only=False):
         if self.board.data['type'] == "DAC":
