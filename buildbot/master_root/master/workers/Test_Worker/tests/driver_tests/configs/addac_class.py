@@ -139,25 +139,35 @@ class addac:
         return stdout, stderr, returncode
 
     def read_adc10x(self, command, channel):
-        if self.board.data['type'] == 'DAC':
-            stdout, stderr, returncode = command. run("/./read_adc10x.sh "+self.info['adc_path']+" "
-                                                      +str(self.board.data['info']['channels'][channel]))
-        elif self.board.data['type'] == 'ADC':
-            stdout, stderr, returncode = command. run("/./read_adc10x.sh "+self.info['adc_path']+" "
-                                                      +str(channel))
+        try:
+            if self.board.data['type'] == 'DAC':
+                stdout, stderr, returncode = command. run("/./read_adc10x.sh "+self.info['adc_path']+" "
+                                                          +str(self.board.data['info']['channels'][channel]))
+            elif self.board.data['type'] == 'ADC':
+                stdout, stderr, returncode = command. run("/./read_adc10x.sh "+self.info['adc_path']+" "
+                                                          +str(channel))
 
-        smooth_retval = 0
-        for i in range(0,len(stdout)):
-            smooth_retval = smooth_retval + int(stdout[i])
-        smooth_retval = smooth_retval / 10
+            smooth_retval = 0
+            for i in range(0,len(stdout)):
+                smooth_retval = smooth_retval + int(stdout[i])
+            smooth_retval = smooth_retval / 10
 
-        return smooth_retval
+        except:
+            smooth_retval = stdout[0]
+
+        finally:
+            return smooth_retval
 
     def read_adc_channel(self, command, channel):
-        adc_value = self.read_adc10x(command, channel)
-        adc_volt = adc_value * self.info['adc_mult']
+        try:
+            adc_value = self.read_adc10x(command, channel)
+            adc_volt = adc_value * self.info['adc_mult']
 
-        return adc_value, adc_volt
+        except:
+            adc_volt = adc_value
+
+        finally:
+            return adc_value, adc_volt
 
     def _read_value(self, command, channel, value):
         stdout, stderr, returncode = command.run("cat "+self.info['adc_path']+"/"
