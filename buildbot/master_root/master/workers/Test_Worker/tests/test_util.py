@@ -104,19 +104,23 @@ def _print_lsmod(result, report_file):
 def _assert_test(result, report_file, summary):
     report_file.close()
     summary.close()
-    if result['expect'] == 'range':
-        if type(result['return']) is list:
-            x=0
-            for return_value in result['return']:
-                if type(result['expect_high']) is list:
-                    assert return_value <= result['expect_high'][x] and return_value >= result['expect_low'][x]
-                else:
-                    assert return_value <= result['expect_high'] and return_value >= result['expect_low']
-                x=x+1
+
+    try:
+        if result['expect'] == 'range':
+            if type(result['return']) is list:
+                x=0
+                for return_value in result['return']:
+                    if type(result['expect_high']) is list:
+                        assert return_value <= result['expect_high'][x] and return_value >= result['expect_low'][x]
+                    else:
+                        assert return_value <= result['expect_high'] and return_value >= result['expect_low']
+                    x=x+1
+            else:
+                assert result['return'] <= result['expect_high'] and result['return'] >= result['expect_low']
         else:
-            assert result['return'] <= result['expect_high'] and result['return'] >= result['expect_low']
-    else:
-        assert result['expect'] == result['return']
+            assert result['expect'] == result['return']
+    except:
+        assert 1 == 0
 
 #### Generic steps
 def _assert_generic_kunit_test(result, report_file, summary):
