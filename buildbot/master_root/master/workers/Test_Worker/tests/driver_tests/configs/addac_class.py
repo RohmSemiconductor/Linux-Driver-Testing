@@ -57,17 +57,28 @@ class addac:
 
 
     def get_sysfs_information(self, command, adc_only=False):
-        if self.board.data['type'] == "DAC":
-            self.info['dac_path'] = find_iio_device_files(command, self.board.data['iio_device']['name'])
-            self.info['dac_mult'] = self.get_iio_device_mult(command, 'out')
-            self.result['dac'] = self.board.data['iio_device']['name']
-            self.result['adc_product'] = self.board.data['adc']
 
-        self.info['adc_path'] = find_iio_device_files(command, self.board.data['iio_device']['adc'])
-        self.info['adc_mult'] = self.get_iio_device_mult(command, 'in')
+        try:
+            if self.board.data['type'] == "DAC":
+                self.info['dac_path'] = find_iio_device_files(command, self.board.data['iio_device']['name'])
+                print(self.info['dac_path'])
+                self.info['dac_mult'] = self.get_iio_device_mult(command, 'out')
+                self.result['dac'] = self.board.data['iio_device']['name']
+                self.result['adc_product'] = self.board.data['adc']
 
-        self.result['adc'] = self.board.data['iio_device']['adc']
-        self.result['product'] = self.board.data['name']
+            self.info['adc_path'] = find_iio_device_files(command, self.board.data['iio_device']['adc'])
+            print(self.info['adc_path'])
+            self.info['adc_mult'] = self.get_iio_device_mult(command, 'in')
+
+            self.result['adc'] = self.board.data['iio_device']['adc']
+            self.result['product'] = self.board.data['name']
+
+            retval = 0
+
+        except Exception:
+            retval = -1
+
+        return retval
 
     def get_iio_device_mult(self, command, direction):
         if direction == 'in':
