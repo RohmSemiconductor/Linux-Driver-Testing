@@ -463,22 +463,45 @@ def _assert_pmic_validate_config(result, report_file, summary):
     assert result['i2c_address_type'] == int
     assert result['return'] == result['expect']
 
+def _assert_addac_check_sysfs(result, report_file, summary):
+    try:
+        if result['return'] != result['expect']:
+            if result['sub_stage'] == 'dac':
+                print("Could not find sysfs file for DAC: "+result['test_config']['name']+"\n"
+                      , end='', file=summary)
+            elif result['sub_stage'] == 'adc':
+                print("Could not find sysfs file for ADC: "+result['test_config']['iio_device']['adc']+"\n"
+                      , end='', file=summary)
+    except TypeError:
+        print("TypeError in sysfs file check, result['return']: "+str(result['return']+"\n"), end='', file=summary)
+        print("TypeError in sysfs file check, result['return']: "+str(result['return']+"\n"), end='', file=report_file)
+
+    finally:
+
+        _assert_test(result, report_file, summary)
+
 def _assert_addac_test_write_read(result, report_file, summary):
-    if ((result['return'] <= result['expect_low']) or (result['return'] >= result['expect_high'])):
-        print("Failure: DAC: "+result['dac']+"  =>  ADC: "+result['adc']+"\n"
-              , end='', file=summary)
+    try:
+        if ((result['return'] <= result['expect_low']) or (result['return'] >= result['expect_high'])):
+            print("Failure: DAC: "+result['dac']+"  =>  ADC: "+result['adc']+"\n"
+                  , end='', file=summary)
 
-        print("Failure: DAC: "+result['dac']+"  =>  ADC: "+result['adc']+"\n"
-              "Components DAC: "+result['product']+" ADC: "+result['adc']+"\n"
-              "DAC Channel: "+str(result['dac_channel'])+", Value: "+str(result['value'])+", "
-              "Multiplier: "+str(result['dac_mult'])+" mV: "+str(result['dac_volt'])+"\n"
-              "ADC Channel: "+str(result['adc_channel'])+", Value: "+str(result['adc_value'])+", "
-              "Multiplier: "+str(result['adc_mult'])+" mV: "+str(result['adc_volt'])+"\n"
-              "Difference between set and read voltage: "+str(abs(result['return']))+"mV\n"
-              "Allowed difference is +/- "+str(result['tolerance'])+ "mV\n"
-              , end='', file=report_file)
+            print("Failure: DAC: "+result['dac']+"  =>  ADC: "+result['adc']+"\n"
+                  "Components DAC: "+result['product']+" ADC: "+result['adc']+"\n"
+                  "DAC Channel: "+str(result['dac_channel'])+", Value: "+str(result['value'])+", "
+                  "Multiplier: "+str(result['dac_mult'])+" mV: "+str(result['dac_volt'])+"\n"
+                  "ADC Channel: "+str(result['adc_channel'])+", Value: "+str(result['adc_value'])+", "
+                  "Multiplier: "+str(result['adc_mult'])+" mV: "+str(result['adc_volt'])+"\n"
+                  "Difference between set and read voltage: "+str(abs(result['return']))+"mV\n"
+                  "Allowed difference is +/- "+str(result['tolerance'])+ "mV\n"
+                  , end='', file=report_file)
 
-    _assert_test(result, report_file, summary)
+    except TypeError:
+        print("TypeError, result['return']: "+str(result['return']+"\n"), end='', file=summary)
+        print("TypeError, result['return']: "+str(result['return']+"\n"), end='', file=report_file)
+
+    finally:
+        _assert_test(result, report_file, summary)
 
 def _assert_addac_test_stable_voltage(result, report_file, summary):
     if ((result['return'] <= result['expect_low']) or (result['return'] >= result['expect_high'])):
@@ -570,7 +593,9 @@ def check_result(result):
         elif result['stage'] == 'test_sampling_frequency_match_timestamp':
             _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, summary)
     elif result['type'] == 'ADDAC':
-        if result['stage'] == 'write_read':
+        if result['stage'] == 'check_sysfs':
+            _assert_addac_check_sysfs(result, report_file, summary)
+        elif result['stage'] == 'write_read':
             _assert_addac_test_write_read(result, report_file, summary)
         elif result['stage'] == 'stable_voltage':
             _assert_addac_test_stable_voltage(result, report_file, summary)
