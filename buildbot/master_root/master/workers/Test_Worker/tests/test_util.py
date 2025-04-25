@@ -289,6 +289,50 @@ def _assert_sensor_test_gsel(result, report_file, summary):
     _assert_test(result, report_file, summary)
 
 ### Assert functions for PMICs
+def _assert_pmic_set_rtc_from_bbb_sys_time(result, report_file, summary):
+    if ((result['return'] < result['expect_low']) or (result['return'] > result['expect_high'])):
+        if result['rc'] == -1:
+            print( "Setting RTC from BBB system time failed: "+result['rtc']+": "+result['return']+ ": "+result['sysfs_path']+", "+result['dev_file'] +"\n", end='', file=report_file)
+            print( "Setting RTC from BBB system time failed: "+result['rtc']+": "+result['return']+ ": "+result['sysfs_path']+", "+result['dev_file'] +"\n", end='', file=summary)
+        else:
+            print( "Setting RTC from BBB system time failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=report_file)
+            print( "Setting RTC from BBB system time failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=summary)
+
+    _assert_test(result, report_file, summary)
+
+def _assert_pmic_set_bbb_from_rtc_time(result, report_file, summary):
+    if ((result['return'] < result['expect_low']) or (result['return'] > result['expect_high'])):
+        if result['rc'] == -1:
+            print( "Setting BBB system time from RTC failed: "+result['rtc']+": "+result['return']+ ": "+result['sysfs_path']+", "+result['dev_file'] +"\n", end='', file=report_file)
+            print( "Setting BBB system time from RTC failed: "+result['rtc']+": "+result['return']+ ": "+result['sysfs_path']+", "+result['dev_file'] +"\n", end='', file=summary)
+        else:
+            print( "Setting BBB system time from RTC failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=report_file)
+            print( "Setting BBB system time from RTC failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=summary)
+
+    _assert_test(result, report_file, summary)
+
+
+def _assert_pmic_set_rtc_from_srv_time(result, report_file, summary):
+    if ((result['return'] < result['expect_low']) or (result['return'] > result['expect_high'])):
+        if result['rc'] == -1:
+            print( "Setting RTC time from test server time failed: "+result['rtc']+": "+result['return']+ ": "+result['sysfs_path']+", "+result['dev_file'] +"\n", end='', file=report_file)
+            print( "Setting RTC time from test server time failed: "+result['rtc']+": "+result['return']+ ": "+result['sysfs_path']+", "+result['dev_file'] +"\n", end='', file=summary)
+        else:
+            print( "Setting RTC time from test server time failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=report_file)
+            print( "Setting RTC time from test server time failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=summary)
+
+    _assert_test(result, report_file, summary)
+
+def _assert_pmic_rtc_date(result, report_file, summary):
+    if result['expect'] != result['return']:
+        if result['rc'] == -1:
+            print( "Setting RTC date failed: "+result['rtc']+": "+result['return']+ ": "+result['sysfs_path']+", "+result['dev_file'] +"\n", end='', file=report_file)
+            print( "Setting RTC date failed: "+result['rtc']+": "+result['return']+ ": "+result['sysfs_path']+", "+result['dev_file'] +"\n", end='', file=summary)
+        else:
+            print( "Setting RTC date failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=report_file)
+            print( "Setting RTC date failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=summary)
+
+    _assert_test(result, report_file, summary)
 
 def _assert_pmic_read_dt_setting(result, report_file, summary):
     if result['expect'] != result['return']:
@@ -580,6 +624,16 @@ def check_result(result):
             _assert_pmic_out_of_range_voltages(result, report_file, summary)
         elif result['stage'] == 'read_dt_setting':
             _assert_pmic_read_dt_setting(result, report_file, summary)
+
+        #PMIC RTC:
+        elif result['stage'] == 'reset_and_check_date':
+            _assert_pmic_rtc_date(result, report_file, summary)
+        elif result['stage'] == 'set_rtc_from_srv_time':
+            _assert_pmic_set_rtc_from_srv_time(result, report_file, summary)
+        elif result['stage'] == 'set_bbb_from_rtc_time':
+            _assert_pmic_set_bbb_from_rtc_time(result, report_file, summary)
+        elif result['stage'] == 'set_rtc_from_bbb_sys_time':
+            _assert_pmic_set_rtc_from_bbb_sys_time(result, report_file, summary)
 
     elif result['type'] == 'Sensor':
         if result['stage'] == 'test_gsel':
