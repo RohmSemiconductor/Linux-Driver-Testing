@@ -4,10 +4,12 @@ sys.path.append('..')
 sys.path.append('./configs')
 import bd71815
 from test_util import check_result
-from pmic_class import pmic
-bd71815 = pmic(bd71815)
+from rtc_class import rtc
+bd71815 = rtc(bd71815)
 
 def test_005_rtc_test(command):
+    bd71815.result['result_dir'] = 'PMIC'
+
     ## Set Component rtc to known date and check that it was set succesfully
     result = bd71815.reset_and_check_date(command, bd71815.board.data['rtc']['component_rtc'],
                                       bd71815.board.data['rtc']['rtc_reset'])
