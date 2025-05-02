@@ -721,7 +721,7 @@ def doStepIf_setProperty_PMIC_RESULT_PASSED(step):
 
 def doStepIf_setProperty_ADDAC_RESULT_FAILED(step):
     if (not step.getProperty('git_bisecting') and (step.getProperty('ADDAC_RESULT') == None and step.getProperty('LINUX_RESULT') == "PASSED")):
-        if step.getProperty('addac_single_test_failed') == 'True':
+        if step.getProperty('addac_single_test_failed') == 'True' or step.getProperty('chipselect_spi0_dtbo_build_failed') == 'True':
             return True
         elif step.getProperty('single_login_failed') == 'True':
             if step.getProperty('single_login_passed') == 'True':
