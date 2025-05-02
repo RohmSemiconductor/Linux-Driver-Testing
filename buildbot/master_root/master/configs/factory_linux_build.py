@@ -222,7 +222,7 @@ def build_overlay_merger(project_name):
         ))
 
     projects[project_name]['factory'].addStep(steps.ShellCommand(
-        command=["python3", "report_janitor.py", "overlay_merger_error", util.Property('overlay_merger_error_stderr')],
+        command=["python3", "report_janitor.py", "overlay_merger_error", util.Property('overlay_merger_stderr')],
         workdir="../../Test_Worker/tests",
         name="Write overlay merger make stderr to log",
         doStepIf=util.Property('overlay_merger_build_failed') == 'True',
