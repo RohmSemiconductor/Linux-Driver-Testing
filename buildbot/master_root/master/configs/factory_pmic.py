@@ -58,16 +58,11 @@ def run_pmic_tests():
                                            test_board,
                                            product,
                                            dts,
+                                           dev_setup='True',
                                            test_type='pmic')
                     generate_driver_tests(factory_pmic_test, power_port, test_board, product, "dts", dts )
 
                 finalize_product(factory_pmic_test, product, "PMIC")
-def set_factory_type(_factory, factory_type):
-    _factory.addStep(steps.SetProperty(
-        name="Set factory type: "+factory_type,
-        property="factory_type",
-        value=factory_type,
-        ))
 
 set_factory_type(factory_pmic_test, 'pmic')
 run_pmic_tests()

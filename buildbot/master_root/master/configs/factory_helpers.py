@@ -889,3 +889,10 @@ def extract_dts_error(rc, stdout, stderr, product, test_type, test_dts='default'
                 product+'_skip_dts_tests' : 'False',
                 product+'_dts_fail': 'False'
                 }
+
+def set_factory_type(_factory, factory_type):
+    _factory.addStep(steps.SetProperty(
+        name="Set factory type: "+factory_type,
+        property="factory_type",
+        value=factory_type,
+        ))
