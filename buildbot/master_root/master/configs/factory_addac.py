@@ -105,7 +105,7 @@ def run_addac_tests():
 
                 finalize_product(factory_addac_test, product, "ADDAC")
 
-
+set_factory_type(factory_addac_test, "addac")
 run_addac_tests()
 copy_temp_results(factory_addac_test)
 save_properties(factory_addac_test, "addac")

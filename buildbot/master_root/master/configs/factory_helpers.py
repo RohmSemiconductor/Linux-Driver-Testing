@@ -328,6 +328,8 @@ def doStepIf_powerdown_beagle(step, product):
             return False
         elif step.getProperty('iio_generic_buffer_found') == 'False' and step.getProperty('factory_type') == 'accelerometer':
             return False
+        elif step.getProperty('factory_type') == 'addac' and step.getProperty('chipselect_spi0_dtbo_build_failed')== 'True':
+            return False
         else:
             return True
     else:
@@ -445,6 +447,8 @@ def doStepIf_login(step, product):
     if step.getProperty('factory_type') == 'accelerometer':
         if step.getProperty('iio_generic_buffer_found') == 'False':
             return False
+    elif step.getProperty('factory_type') == 'addac' and step.getProperty('chipselect_spi0_dtbo_build_failed')== 'True':
+        return False
     if step.getProperty(product+'_init_driver_test_passed') == 'False':
         return False
     elif step.getProperty(product+'_do_steps') == 'True':
@@ -635,6 +639,8 @@ def doStepIf_finalize_product(step, product):
     if step.getProperty('preparation_step_failed') == 'True':
         return False
     elif step.getProperty('iio_generic_buffer_found') == 'False' and step.getProperty('factory_type') == 'accelerometer':
+        return False
+    elif step.getProperty('factory_type') == 'addac' and step.getProperty('chipselect_spi0_dtbo_build_failed')== 'True':
         return False
     elif step.getProperty('git_bisecting') == 'True':
         return False
@@ -843,6 +849,8 @@ def doStepIf_initialize_product(step, product):
     if step.getProperty('project') == 'linux_rohm_devel' or step.getProperty('project') == 'test_linux' or check_tag(step, product) == True:
         if step.getProperty('factory_type') == 'accelerometer' and step.getProperty('iio_generic_buffer_found') == 'False':
             return False
+        elif step.getProperty('factory_type') == 'addac' and step.getProperty('chipselect_spi0_dtbo_build_failed')== 'True':
+            return False
         elif step.getProperty('preparation_step_failed') != 'True':
             return True
         else:
@@ -859,6 +867,8 @@ def doStepIf_dts_test_preparation(step, product):
     elif step.getProperty('overlay_merger_build_failed') == 'True':
         return False
     elif step.getProperty('factory_type') == 'accelerometer' and step.getProperty('iio_generic_buffer_found')== 'False':
+        return False
+    elif step.getProperty('factory_type') == 'addac' and step.getProperty('chipselect_spi0_dtbo_build_failed')== 'True':
         return False
     elif step.getProperty(product+'_do_steps') == 'False':
         return False

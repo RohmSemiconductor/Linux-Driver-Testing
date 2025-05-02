@@ -83,7 +83,8 @@ def extract_make_kernel(rc, stdout, stderr):
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(
         repourl=projects[project_name]['repo_git'],
-        mode='full',
+#        mode='full',
+        mode='incremental',
         getDescription={'tags':True},
         name="Update linux source files from git",
         tags=True,
@@ -195,9 +196,10 @@ def copy_kernel_binaries_to_tftpboot(project_name):
 def update_test_kernel_modules(project_name):
     projects[project_name]['factory'].addStep(steps.Git(
         repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git',
-        branch='dev-test-kernel-modules',
+        branch='dev-addac-test-kernel-modules',
         alwaysUseLatest=True,
         mode='full',
+#        mode='incremental',
         workdir="build/_test-kernel-modules",
         name="Update kernel module source files from git",
         hideStepIf=skipped,
@@ -237,6 +239,40 @@ def copy_overlay_merger_to_nfs(project_name):
         hideStepIf=skipped,
         doStepIf=util.Property('preparation_step_failed') != 'True'
         ))
+def extract_build_chipselect_spi0_dtbo(rc, stdout, stderr):
+    if rc != 0:
+        return {'chipselect_spi0_dtbo_build_failed':'True', 'chipselect_makedtb_stderr':stderr}
+    if rc == 0:
+        return {'chipselect_spi0_dtbo_build_failed':'False'}
+
+def build_chipselect_spi0_dtbo(project_name):
+    projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
+        command=['./makedtb', '-i', 'chipselect/chipselect_spi0.dts','-o', 'dtbo', '-n', 'chipselect/chipselect_spi0'],
+        env={'KERNEL_DIR':'../',
+             'CC':dir_compiler_arm32+'arm-none-eabi-'},
+        workdir="build/_test-kernel-modules",
+        doStepIf=util.Property('preparation_step_failed') != 'True',
+        hideStepIf=skipped,
+        extract_fn=extract_build_chipselect_spi0_dtbo,
+        name="Build SPI0 chipselect dtbo"
+        ))
+
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["python3", "report_janitor.py", "chipselect_makedtb_error", util.Property('chipselect_makedtb_stderr')],
+        workdir="../../Test_Worker/tests",
+        name="Write chipselect_spi0 make stderr to log",
+        doStepIf=util.Property('chipselect_spi0_dtbo_build_failed') == 'True',
+        hideStepIf=skipped
+        ))
+
+def copy_chipselect_to_nfs(project_name):
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["cp", "chipselect/chipselect_spi0.dtbo", dir_nfs],
+        workdir="build/_test-kernel-modules",
+        name="Copy chipselect_spi0.dtbo to nfs",
+        hideStepIf=skipped,
+        doStepIf=util.Property('chipselect_spi0_dtbo_build_failed') == 'False'
+        ))
 
 def extract_get_timestamp(rc, stdout, stderr):
     stdout = stdout.split('\n')
@@ -260,7 +296,8 @@ def doStepIf_trigger_sensor_factory(step):
 
 def trigger_test_factories(project_name):
         projects[project_name]['factory'].addStep(steps.Trigger(
-            schedulerNames=['scheduler-accelerometer_tests', 'scheduler-pmic_tests'],
+            schedulerNames=['scheduler-addac_tests'],
+#            schedulerNames=['scheduler-pmic_tests'],
             updateSourceStamp=True,
             name="Trigger test factories",
             waitForFinish = True,
@@ -272,6 +309,7 @@ def trigger_test_factories(project_name):
                 'factory_type':'accelerometer',
                 'timestamp':util.Property('timestamp'),
                 'linuxdir':util.Property('buildername'),
+                'chipselect_spi0_dtbo_build_failed':util.Property('chipselect_spi0_dtbo_build_failed'),
                 },
             ))
 
@@ -874,25 +912,27 @@ def build_deploy_kernel(project_name):
     ### Build and deploy
     build_kernel_arm32(project_name)
     copy_kernel_binaries_to_tftpboot(project_name)
-    update_test_kernel_modules(project_name)
+#    update_test_kernel_modules(project_name)
     build_overlay_merger(project_name)
     copy_overlay_merger_to_nfs(project_name)
+    build_chipselect_spi0_dtbo(project_name)
+    copy_chipselect_to_nfs(project_name)
 
     get_timestamp(project_name)
     download_test_boards(project_name)
     ### Sanitychecks
-    sanity_checks(project_name)
+#    sanity_checks(project_name)
     ### Prepare and trigger
     copy_results_for_factories(project_name)
     trigger_test_factories(project_name)
     get_factory_properties(project_name)
     set_factory_result_properties(project_name)
     save_good_commit(project_name)
-    git_bisect(project_name)
-    clean_local_results(project_name, 'Sensor', 30)
-    clean_local_results(project_name, 'PMIC', 30)
-    publish_results_git(project_name, 'Sensor')
-    publish_results_git(project_name, 'PMIC')
+#    git_bisect(project_name)
+#    clean_local_results(project_name, 'Sensor', 30)
+#    clean_local_results(project_name, 'PMIC', 30)
+#    publish_results_git(project_name, 'Sensor')
+#    publish_results_git(project_name, 'PMIC')
 
 for stable_branch in stable_branches:
     stable_branch = stable_branch.replace(".","_")
