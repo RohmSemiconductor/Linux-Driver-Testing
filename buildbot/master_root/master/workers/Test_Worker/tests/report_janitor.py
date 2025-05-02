@@ -4,7 +4,7 @@ import subprocess
 from datetime import datetime, timezone
 from time import sleep
 sys.path.append('.')
-from test_util import initialize_report, initialize_product, finalize_product, dts_error_report, kernel_error_report, bisect_result
+from test_util import initialize_report, initialize_product, finalize_product, dts_error_report, kernel_error_report, bisect_result, overlay_merger_error_report, chipselect_makedtb_error_report
 
 if sys.argv[1] == 'initialize_report':
     bb_project = sys.argv[2]
@@ -60,6 +60,10 @@ elif sys.argv[1] == 'kernel_error':
 elif sys.argv[1] == 'overlay_merger_error':
     stderr = sys.argv[2]
     overlay_merger_error_report(stderr)
+
+elif sys.argv[1] == 'chipselect_makedtb_error':
+    stderr = sys.argv[2]
+    chipselect_makedtb_error_report(stderr)
 
 elif sys.argv[1] == 'dts_error':
     product= sys.argv[2]
