@@ -19,6 +19,10 @@ kernel_modules['adc_pair']={
 'bd79703':{
     'adc':'bd79124',
     'dtbo':'bd79124_test.dtbo',
+    },
+'bd79701':{
+    'adc':'bd79104',
+    'dtbo':'bd79104_test.dtbo',
     }
 }
 
@@ -37,7 +41,8 @@ kernel_modules['build']={
 'kx022acr_z':['kx022acr_z_test.dtbo', 'generic_accel_test.ko'],
 'kx132acr_lbz':['kx132acr_lbz_test.dtbo', 'generic_accel_test.ko'],
 ### ADDAC
-'bd79703':['bd79703_test.dtbo']
+'bd79703':['bd79703_test.dtbo'],
+'bd79701':['bd79701_test.dtbo'],
 }
 
 kernel_modules['dts_tests']={
@@ -74,7 +79,8 @@ kernel_modules['dt_overlays']={
 'bd96801':['bd96801_test.dtbo'],
 'kx022acr_z':['kx022acr_z_test.dtbo'],
 'kx132acr_lbz':['kx132acr_lbz_test.dtbo'],
-'bd79703':['bd79703_test.dtbo', kernel_modules['adc_pair']['bd79703']['dtbo']],
+'bd79703':['chipselect_spi0.dtbo','bd79703_test.dtbo', kernel_modules['adc_pair']['bd79703']['dtbo']],
+'bd79701':['chipselect_spi0.dtbo','bd79701_test.dtbo', kernel_modules['adc_pair']['bd79701']['dtbo']],
 }
 
 kernel_modules['test']={
@@ -100,6 +106,7 @@ kernel_modules['merged_dt_overlay']={
 'kx022acr_z':['kionix_kx022a_spi', 'kionix_kx022a_i2c', 'kionix_kx022a'],
 'kx132acr_lbz':['kionix_kx022a_spi', 'kionix_kx022a_i2c', 'kionix_kx022a'],
 'bd79703':['industrialio', 'rohm_bd79703', 'rohm_bd79124', 'industrialio_adc'],
+'bd79701':['industrialio', 'rohm_bd79703'],
 'bd79124':['rohm_bd79124', 'industrialio_adc'],
 }
 
