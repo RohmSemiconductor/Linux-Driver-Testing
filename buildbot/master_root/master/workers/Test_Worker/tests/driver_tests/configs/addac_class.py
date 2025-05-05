@@ -105,7 +105,7 @@ class addac:
 
         return bits
 
-    def write_and_read_value(self, command, channel, value):
+    def write_and_read_value(self, command, channel, value, tolerance= 70):
         self.result['value'] = value
         self.result['expect'] = 'range'
         self.result['stage'] = 'write_read'
@@ -117,7 +117,7 @@ class addac:
 #        self.result['tolerance'] = self.info['dac_mult'] + self.info['adc_mult']
 
         ### ['tolerance'] tolerance in millivolts
-        self.result['tolerance'] = 70
+        self.result['tolerance'] = tolerance
         self.result['expect_low'] = self.result['tolerance'] * -1
         self.result['expect_high'] = self.result['tolerance']
 
