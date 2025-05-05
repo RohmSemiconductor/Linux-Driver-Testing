@@ -45,7 +45,7 @@
 			status = "okay";
 			pinctrl-names = "default";
 			pinctrl-0 = <&spi0_pins_s0>;
-			cs-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>, <&gpio1 28 GPIO_ACTIVE_LOW>, <&gpio0 31 GPIO_ACTIVE_LOW>, <&gpio1 18 GPIO_ACTIVE_LOW>;  /* CS0=P9 pin17, CS2=P9 pin 12, CS3=P9 pin 13, CS4=P9 pin 14 */
+			cs-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>, <&gpio1 28 GPIO_ACTIVE_LOW>, <&gpio0 31 GPIO_ACTIVE_LOW>, <&gpio1 18 GPIO_ACTIVE_LOW>;  /* CS0=P9 pin17, CS1=P9 pin 12, CS2=P9 pin 13, CS3=P9 pin 14 */
 			spi-cpha;
 			spi-cpol;
 			spi-max-frequency = <4000000>;
