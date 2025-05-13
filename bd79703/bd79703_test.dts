@@ -20,8 +20,8 @@
 		test_supply0: test_reg0 {
 			compatible = "regulator-fixed";
 			regulator-name = "test-reg0";
-			regulator-min-microvolt = <1800000>;
-			regulator-max-microvolt = <1800000>;
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
 		};
         };
 
