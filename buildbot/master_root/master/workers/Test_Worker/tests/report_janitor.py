@@ -83,6 +83,9 @@ elif sys.argv[1] == 'copy_results':
         stdout = subprocess.run('cp -r /tmp/rohm_linux_driver_tests/temp_results_PMIC/ test-results/PMIC', shell=True)
         stdout = subprocess.run('mv test-results/PMIC/temp_results_PMIC/ test-results/PMIC/'+timestamped_dir+'_'+bb_project, shell=True)
 
+    elif (factory_type == 'addac'):
+        stdout = subprocess.run('cp -r /tmp/rohm_linux_driver_tests/temp_results_ADDAC/ test-results/ADDAC', shell=True)
+        stdout = subprocess.run('mv test-results/ADDAC/temp_results_ADDAC/ test-results/ADDAC/'+timestamped_dir+'_'+bb_project, shell=True)
 
 
 

@@ -295,9 +295,26 @@ def doStepIf_trigger_sensor_factory(step):
         return False
 
 def trigger_test_factories(project_name):
+    ### First set of factories
+        projects[project_name]['factory'].addStep(steps.Trigger(
+            schedulerNames=['scheduler-pmic_tests'],
+            updateSourceStamp=True,
+            name="Trigger test factories",
+            waitForFinish = True,
+            set_properties= {
+                'iio_generic_buffer_found':util.Property('iio_generic_buffer_found'),
+                'preparation_step_failed':util.Property('preparation_step_failed'),
+                'git_bisecting':util.Property('git_bisecting'),
+                'commit-description':util.Property('commit-description'),
+                'factory_type':'accelerometer',
+                'timestamp':util.Property('timestamp'),
+                'linuxdir':util.Property('buildername'),
+                'chipselect_spi0_dtbo_build_failed':util.Property('chipselect_spi0_dtbo_build_failed'),
+                },
+            ))
+    ### Second set of factories
         projects[project_name]['factory'].addStep(steps.Trigger(
             schedulerNames=['scheduler-addac_tests'],
-#            schedulerNames=['scheduler-pmic_tests'],
             updateSourceStamp=True,
             name="Trigger test factories",
             waitForFinish = True,
@@ -912,7 +929,7 @@ def build_deploy_kernel(project_name):
     ### Build and deploy
     build_kernel_arm32(project_name)
     copy_kernel_binaries_to_tftpboot(project_name)
-#    update_test_kernel_modules(project_name)
+    update_test_kernel_modules(project_name)
     build_overlay_merger(project_name)
     copy_overlay_merger_to_nfs(project_name)
     build_chipselect_spi0_dtbo(project_name)
@@ -921,7 +938,7 @@ def build_deploy_kernel(project_name):
     get_timestamp(project_name)
     download_test_boards(project_name)
     ### Sanitychecks
-#    sanity_checks(project_name)
+    sanity_checks(project_name)
     ### Prepare and trigger
     copy_results_for_factories(project_name)
     trigger_test_factories(project_name)

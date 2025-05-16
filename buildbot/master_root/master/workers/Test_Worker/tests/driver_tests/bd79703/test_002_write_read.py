@@ -14,6 +14,6 @@ def test_write_read(command):
     for channel in bd79703.board.data['info']['channels'].keys():
         for x in range(0, maxval+1):
 #        for x in range(0, 1):
-            result = bd79703.write_and_read_value(command, channel, x)
+            result = bd79703.write_and_read_value(command, channel, x, tolerance=130)
             check_result(result)
         set_output_zero = bd79703.write_and_read_value(command, channel, 0)

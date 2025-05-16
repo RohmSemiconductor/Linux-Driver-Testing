@@ -9,10 +9,14 @@ kernel_modules['linux_ver']={
 'bd71847':['4.20'],
 'bd9576':['5.13'],
 'bd96801':['6.11'],
+'bd96802':['6.11'],
+'bd96805':['6.14'],
+'bd96806':['6.14'],
 'kx022acr_z':['6.6'],
 'kx132acr_lbz':['6.12'],
 #'bd99954':['5.'],
-'bd79703':['6.12']
+'bd79703':['6.12'],
+'bd79701':['6.12']
 }
 
 kernel_modules['adc_pair']={
@@ -36,6 +40,9 @@ kernel_modules['build']={
 'bd71847':['bd71847_test.dtbo','bd71847-test.ko','bd71847-test2.ko'],
 'bd9576':['bd9576_test.dtbo','bd9576-test.ko'],
 'bd96801':['bd96801_test.dtbo','bd96801-test.ko'],
+'bd96802':['bd96802_test.dtbo','bd96802-test.ko'],
+'bd96805':['bd96805_test.dtbo','bd96805-test.ko'],
+'bd96806':['bd96806_test.dtbo','bd96806-test.ko'],
 'bd99954':['bd99954_test.dtbo'],
 ### Sensors
 'kx022acr_z':['kx022acr_z_test.dtbo', 'generic_accel_test.ko'],
@@ -73,10 +80,14 @@ kernel_modules['dts_files']={
 kernel_modules['dt_overlays']={
 'bd71815':['bd71815_test.dtbo'],
 'bd71828':['bd71828_test.dtbo'],#not yet installed
-'bd71837':['bd71837_test.dtbo','bbb_only_I2C_1.dtbo'],
+#'bd71837':['bd71837_test.dtbo','bbb_only_I2C_1.dtbo'],
+'bd71837':['bd71837_test.dtbo'],
 'bd71847':['bd71847_test.dtbo'],
 'bd9576':['bd9576_test.dtbo'],
 'bd96801':['bd96801_test.dtbo'],
+'bd96802':['bd96802_test.dtbo'],
+'bd96805':['bd96805_test.dtbo'],
+'bd96806':['bd96806_test.dtbo'],
 'kx022acr_z':['kx022acr_z_test.dtbo'],
 'kx132acr_lbz':['kx132acr_lbz_test.dtbo'],
 'bd79703':['chipselect_spi0.dtbo','bd79703_test.dtbo', kernel_modules['adc_pair']['bd79703']['dtbo']],
@@ -90,6 +101,9 @@ kernel_modules['test']={
 'bd71847':['bd71847-test.ko','bd71847-test2.ko'],
 'bd9576':['bd9576-test.ko'],
 'bd96801':['bd96801-test.ko'],
+'bd96802':['bd96802-test.ko'],
+'bd96805':['bd96805-test.ko'],
+'bd96806':['bd96806-test.ko'],
 'kx022acr_z':['generic_accel_test.ko'],
 'kx132acr_lbz':['generic_accel_test.ko'],
 }
@@ -103,6 +117,9 @@ kernel_modules['merged_dt_overlay']={
 'bd71847':['bd718x7_regulator','rohm_regulator','clk_bd718x7','rohm_bd718x7'],
 'bd9576':['bd9576_wdt','bd9576_regulator','rohm_bd9576'],
 'bd96801':['bd96801_wdt', 'bd96801_regulator', 'rohm_bd96801'],
+'bd96802':['bd96801_wdt', 'bd96801_regulator', 'rohm_bd96801'],
+'bd96805':['bd96801_wdt', 'bd96801_regulator', 'rohm_bd96801'],
+'bd96806':['bd96801_regulator', 'rohm_bd96801'],
 'kx022acr_z':['kionix_kx022a_spi', 'kionix_kx022a_i2c', 'kionix_kx022a'],
 'kx132acr_lbz':['kionix_kx022a_spi', 'kionix_kx022a_i2c', 'kionix_kx022a'],
 'bd79703':['industrialio', 'rohm_bd79703', 'rohm_bd79124', 'industrialio_adc'],
@@ -118,6 +135,9 @@ kernel_modules['insmod_tests']={
 'bd71847':['bd71847_test','bd71847_test2'],
 'bd9576':['bd9576_test'],
 'bd96801':['bd96801_test'],
+'bd96802':['bd96802_test'],
+'bd96805':['bd96805_test'],
+'bd96806':['bd96806_test'],
 'kx022acr_z':['generic_accel_test'],
 'kx132acr_lbz':['generic_accel_test'],
 }
