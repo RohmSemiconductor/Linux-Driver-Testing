@@ -3,7 +3,10 @@ targets:
     resources:
       USBSerialPort:
         match:
-          ID_SERIAL_SHORT: "A800HGAQ"
+          ID_SERIAL_SHORT: "FT9NYY5Z"
+#          ID_SERIAL_SHORT: "FT9NU7J1" # 2nd RS232
+
+          ID_USB_INTERFACE_NUM: '00'
     drivers:
       ManualPowerDriver:
         name: "example"
