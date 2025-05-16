@@ -10,7 +10,7 @@ def test_005_powerdown_beagle(power_port, beagle):
 #    result['type'] = 'generic'
 #    result['stage'] = 'ip_power'
 
-    ip_power = subprocess.run('/bin/bash .././ip-power-control.sh '+power_port+' 0' ,shell=True, capture_output=True, text=True)
+    ip_power = subprocess.run('python3 ../usbrelay_control.py /dev/ttyACM0 '+power_port+' off' ,shell=True, capture_output=True, text=True)
     stdout=''
     stdout = ip_power.stdout.strip()
 
