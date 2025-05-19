@@ -297,7 +297,7 @@ def doStepIf_trigger_sensor_factory(step):
 def trigger_test_factories(project_name):
     ### First set of factories
         projects[project_name]['factory'].addStep(steps.Trigger(
-            schedulerNames=['scheduler-pmic_tests'],
+            schedulerNames=['scheduler-pmic_tests', 'scheduler-accelerometer_tests'],
             updateSourceStamp=True,
             name="Trigger test factories",
             waitForFinish = True,
