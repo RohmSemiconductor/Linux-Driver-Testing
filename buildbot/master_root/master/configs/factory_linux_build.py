@@ -956,11 +956,13 @@ def build_deploy_kernel(project_name):
     get_factory_properties(project_name)
     set_factory_result_properties(project_name)
     save_good_commit(project_name)
-#    git_bisect(project_name)
-#    clean_local_results(project_name, 'Sensor', 30)
-#    clean_local_results(project_name, 'PMIC', 30)
-#    publish_results_git(project_name, 'Sensor')
-#    publish_results_git(project_name, 'PMIC')
+    git_bisect(project_name)
+    clean_local_results(project_name, 'Sensor', 30)
+    clean_local_results(project_name, 'PMIC', 30)
+    clean_local_results(project_name, 'ADDAC', 30)
+    publish_results_git(project_name, 'Sensor')
+    publish_results_git(project_name, 'PMIC')
+    publish_results_git(project_name, 'ADDAC')
 
 for stable_branch in stable_branches:
     stable_branch = stable_branch.replace(".","_")
