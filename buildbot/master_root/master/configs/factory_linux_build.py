@@ -419,7 +419,7 @@ def sanity_checks(project_name):
                  "--power_port="+power_port,
                  "--beagle="+test_board],
         workdir="../../Test_Worker/tests/driver_tests/",
-        doStepIf=util.Property('kunit_login_tried') == 'True',
+        doStepIf=util.Property('sanitycheck_login_tried') == 'True',
         hideStepIf=skipped,
         name="Power down beagle"
         ))
