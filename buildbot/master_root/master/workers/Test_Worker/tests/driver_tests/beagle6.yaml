@@ -4,7 +4,7 @@ targets:
       USBSerialPort:
         match:
           ID_SERIAL_SHORT: "FT9NU7J1"
-          ID_USB_INTERFACE_NUM: '03'
+          ID_USB_INTERFACE_NUM: '01'
     drivers:
       ManualPowerDriver:
         name: "example"

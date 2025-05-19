@@ -3,7 +3,8 @@ targets:
     resources:
       USBSerialPort:
         match:
-          ID_SERIAL_SHORT: "FTA3SM6L"
+          ID_SERIAL_SHORT: "FT9NU7J1"
+          ID_USB_INTERFACE_NUM: '00'
     drivers:
       ManualPowerDriver:
         name: "example"
