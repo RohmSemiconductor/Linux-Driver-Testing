@@ -29,7 +29,7 @@ test_boards ={}
 #}
 test_boards['pmic'] = {
     'power_ports':{
-        '1':{
+        '0':{
             'beagle1':{
                 'name':'beagle1',
                 'products':['bd9576', 'bd71847'],
@@ -37,7 +37,7 @@ test_boards['pmic'] = {
                 'arch':'arm32',
             }
         },
-        '2':{
+        '1':{
             'beagle2':{
                 'name':'beagle2',
                 'products':['bd71815'],
@@ -45,23 +45,27 @@ test_boards['pmic'] = {
                 'arch':'arm32',
             }
         },
-       '3':{
+       '2':{
             'beagle3':{
                 'name':'beagle3',
                 'products':['bd71828'],
                 'power_port':'3',
                 'arch':'arm32',
             },
+        },
+        '4':{
             'beagle5':{
                 'name':'beagle5',
                 'products':['bd96801', 'bd71837', 'bd96802'],
-                'power_port':'5',
+                'power_port':'4',
                 'arch':'arm32',
             },
+        },
+        '5':{
             'beagle6':{
                 'name':'beagle6',
                 'products':['bd96805','bd96806'],
-                'power_port':'6',
+                'power_port':'5',
                 'arch':'arm32',
             }
         }
@@ -71,10 +75,10 @@ test_boards['pmic'] = {
 
 test_boards['accelerometer'] = {
     'power_ports':{
-        '4':{
+        '3':{
             'beagle4':{
                 'name':'beagle4',
-                'power_port':'4',
+                'power_port':'3',
                 'products':['kx022acr_z', 'kx132acr_lbz'],
                 'arch':'arm32',
             }
@@ -84,10 +88,10 @@ test_boards['accelerometer'] = {
 
 test_boards['addac'] = {
     'power_ports':{
-        '6':{
+        '5':{
             'beagle6':{
                 'name':'beagle6',
-                'power_port':'6',
+                'power_port':'5',
                 'products':['bd79703','bd79701'],
                 'arch':'arm32',
             }
