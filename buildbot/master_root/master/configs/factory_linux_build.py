@@ -457,6 +457,17 @@ def publish_results_git(project_name, branch_dir):
             doStepIf=doStepIf_git_push,
             ))
 
+    if branch_dir == "ADDAC":
+        projects[project_name]['factory'].addStep(steps.ShellCommand(
+            command=["python3", "../report_janitor.py", "publish_results_git",
+                     util.Property('timestamp'), util.Property('buildername'),
+                     branch_dir, util.Property('LINUX_RESULT'),
+                     util.Property('ADDAC_RESULT')],
+            name="Publish results to github.com",
+            workdir="../../Test_Worker/tests/test-results",
+            doStepIf=doStepIf_git_push,
+            ))
+
 #### Git bisect helpers
 def doStepIf_good_commit_write(step):
     if step.getProperty('git_bisecting') != "True":
