@@ -94,7 +94,6 @@ def run_addac_tests():
                                        product, 'default',
                                        test_type='addac',
                                        result_dir='ADDAC',
-                                       dev_setup='True',
                                        )
                 generate_driver_tests(factory_addac_test,
                                       power_port,
