@@ -26,12 +26,23 @@
 
 static DEFINE_MUTEX(overlay_id_mtx);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
 static ssize_t overlay_del_store(struct file *filp, struct kobject *kobj, struct bin_attribute *attr, char *buffer,
 			loff_t pos, size_t size);
 static ssize_t overlay_add_store(struct file *filp, struct kobject *kobj, struct bin_attribute *attr, char *buffer,
 			loff_t pos, size_t size);
 
+#else
+static ssize_t overlay_del_store(struct file *filp, struct kobject *kobj, const struct bin_attribute *attr, char *buffer,
+			loff_t pos, size_t size);
+static ssize_t overlay_add_store(struct file *filp, struct kobject *kobj, const struct bin_attribute *attr, char *buffer,
+			loff_t pos, size_t size);
+#endif
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
 static struct bin_attribute overlay_add = {
+#else
+static const struct bin_attribute overlay_add = {
+#endif
 	.attr = {
 		.name = "overlay_add",
 		.mode =  S_IWUSR,
@@ -41,7 +52,11 @@ static struct bin_attribute overlay_add = {
 	.write = &overlay_add_store,
 };
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
 static struct bin_attribute overlay_del = {
+#else
+static const struct bin_attribute overlay_del = {
+#endif
 	.attr = {
 		.name = "overlay_del",
 		.mode =  S_IWUSR,
@@ -206,8 +221,13 @@ out_err:
 #define MAX_OVERLAY_PAGES 10
 static char buf[MAX_OVERLAY_PAGES*PAGE_SIZE];
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
 static ssize_t overlay_modify_store(struct file *filp, struct kobject *kobj, struct bin_attribute *attr, char *buffer,
 			loff_t pos, size_t size,int create)
+#else
+static ssize_t overlay_modify_store(struct file *filp, struct kobject *kobj, const struct bin_attribute *attr, char *buffer,
+			loff_t pos, size_t size,int create)
+#endif
 {
 	int rv;
 	static int index = 0;
@@ -248,13 +268,24 @@ static ssize_t overlay_modify_store(struct file *filp, struct kobject *kobj, str
 
 	return rv;
 }
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
 static ssize_t overlay_add_store(struct file *filp, struct kobject *kobj, struct bin_attribute *attr, char *buffer,
 			loff_t pos, size_t size)
+#else
+static ssize_t overlay_add_store(struct file *filp, struct kobject *kobj, const struct bin_attribute *attr, char *buffer,
+			loff_t pos, size_t size)
+#endif
 {
 	return overlay_modify_store(filp,kobj,attr,buffer,pos,size,1);
 }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
 static ssize_t overlay_del_store(struct file *filp, struct kobject *kobj, struct bin_attribute *attr, char *buffer,
 			loff_t pos, size_t size)
+#else
+static ssize_t overlay_del_store(struct file *filp, struct kobject *kobj, const struct bin_attribute *attr, char *buffer,
+			loff_t pos, size_t size)
+#endif
 {
 	/* Calculate csum and search for the matching overlay key */
 	/* If found, call of_overlay_remove(int *ovcs_id) */
