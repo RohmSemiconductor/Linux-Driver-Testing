@@ -64,7 +64,7 @@ def doStepIf_linux_stable_copy_config(step):
         return False
 
 def doStepIf_linux_not_stable_copy_config(step):
-    if step.getProperty('project') == "test_linux":
+    if step.getProperty('project') == "test_linux" or step.getProperty('project') == "linux-next":
         return False
     elif step.getProperty('project') != "linux_stable":
         return True
@@ -73,6 +73,12 @@ def doStepIf_linux_not_stable_copy_config(step):
             return True
         else:
             return False
+
+def doStepIf_linux_next_copy_config(step):
+    if step.getProperty('project') == "linux-next":
+        return True
+    else:
+        return False
 
 def extract_make_kernel(rc, stdout, stderr):
     if rc != 0:
@@ -108,6 +114,15 @@ def build_kernel_arm32(project_name):
         workerdest=".config",
         name="Copy mainline kernel config to build directory",
         doStepIf=doStepIf_linux_not_stable_copy_config,
+        hideStepIf=skipped
+        ))
+    
+    ### Copy linux-next config if kernel version is linux-next
+    projects[project_name]['factory'].addStep(steps.FileDownload(
+        mastersrc="../../../compilers/kernel_configs/arm32_bbb_test_linux.config",
+        workerdest=".config",
+        name="Copy linux-next kernel config to build directory",
+        doStepIf=doStepIf_linux_next_copy_config,
         hideStepIf=skipped
         ))
 
@@ -194,17 +209,30 @@ def copy_kernel_binaries_to_tftpboot(project_name):
             ))
 
 def update_test_kernel_modules(project_name):
-    projects[project_name]['factory'].addStep(steps.Git(
-        repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git',
-        branch='dev-addac-test-kernel-modules',
-        alwaysUseLatest=True,
-        mode='full',
-#        mode='incremental',
-        workdir="build/_test-kernel-modules",
-        name="Update kernel module source files from git",
-        hideStepIf=skipped,
-        doStepIf=util.Property('preparation_step_failed') != 'True'
-        ))
+    if project_name == 'linux-next':
+        projects[project_name]['factory'].addStep(steps.Git(
+            repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git',
+            branch='test-kernel-modules_linux-next',
+            alwaysUseLatest=True,
+            mode='full',
+#            mode='incremental',
+            workdir="build/_test-kernel-modules",
+            name="Update kernel module source files from git",
+            hideStepIf=skipped,
+            doStepIf=util.Property('preparation_step_failed') != 'True'
+            ))
+    else:
+        projects[project_name]['factory'].addStep(steps.Git(
+            repourl='https://github.com/RohmSemiconductor/Linux-Driver-Testing.git',
+            branch='dev-addac-test-kernel-modules',
+            alwaysUseLatest=True,
+            mode='full',
+#            mode='incremental',
+            workdir="build/_test-kernel-modules",
+            name="Update kernel module source files from git",
+            hideStepIf=skipped,
+            doStepIf=util.Property('preparation_step_failed') != 'True'
+            ))
 
 def extract_make_overlay_merger(rc, stdout, stderr):
     if rc != 0:
