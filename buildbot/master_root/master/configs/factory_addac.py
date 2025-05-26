@@ -74,7 +74,7 @@ def run_addac_tests():
                 initialize_addac_report(product)
 #                generate_dts(project_name, product, 'default')
 #                copy_generated_dts(project_name, product, 'default')
-                build_dtbo_addac(product,'default')
+                build_dtbo_addac(product,'addac')
 #                build_test_module_accelerometer(product, test_type='accelerometer')
                 dts_report(factory_addac_test, product, 'default')
 
