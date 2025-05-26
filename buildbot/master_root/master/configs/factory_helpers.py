@@ -425,9 +425,9 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
         name=product+": power down beagle"
         ))
 
-def extract_init_driver_test(rc, stdout, stderr, product):
+def extract_init_driver_test(rc, stdout, stderr, product, test_type):
     if 'FAILURES' in stdout:
-        return {product+'_init_driver_tests_passed': 'False', product+'_do_steps' : 'False' }
+        return {product+'_init_driver_tests_passed': 'False', product+'_do_steps' : 'False', test_type+'_single_test_failed' : 'True' }
     elif rc != 0:
         return {product+'_init_driver_tests_passed': 'False', product+'_do_steps' : 'False' }
     else:
@@ -464,7 +464,7 @@ def extract_check_iio_generic_buffer(rc, stdout, stderr):
 
 def initialize_driver_test(_factory, power_port, test_board, product, test_dts,
                            test_type='PMIC', result_dir='PMIC', dev_setup='False', type=None):
-    extract_init_driver_test_partial= functools.partial(extract_init_driver_test, product=product)
+    extract_init_driver_test_partial= functools.partial(extract_init_driver_test, product=product, test_type=test_type)
     extract_init_driver_test_login_partial= functools.partial(extract_init_driver_test_login, product=product)
     doStepIf_login_partial = functools.partial(doStepIf_login, product=product)
 
