@@ -635,7 +635,7 @@ def doStepIf_git_bisect_trigger_next(step):
         return True
     elif step.getProperty('preparation_step_failed') == "True":
         return True
-    elif step.getProperty('pmic_single_test_failed') == "True" or step.getProperty('sensor_single_test_failed') == "True":
+    elif step.getProperty('pmic_single_test_failed') == "True" or step.getProperty('sensor_single_test_failed') == "True" or step.getProperty('addac_single_test_failed') == "True":
         return True
     elif step.getProperty('single_login_failed') == "True":
         if step.getProperty('single_login_passed') == "True":
