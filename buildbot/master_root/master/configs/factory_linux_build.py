@@ -89,8 +89,7 @@ def extract_make_kernel(rc, stdout, stderr):
 def build_kernel_arm32(project_name):
     projects[project_name]['factory'].addStep(steps.Git(
         repourl=projects[project_name]['repo_git'],
-#        mode='full',
-        mode='incremental',
+        mode='full',
         getDescription={'tags':True},
         name="Update linux source files from git",
         tags=True,
@@ -215,7 +214,6 @@ def update_test_kernel_modules(project_name):
             branch='test-kernel-modules_linux-next',
             alwaysUseLatest=True,
             mode='full',
-#            mode='incremental',
             workdir="build/_test-kernel-modules",
             name="Update kernel module source files from git",
             hideStepIf=skipped,
@@ -227,7 +225,6 @@ def update_test_kernel_modules(project_name):
             branch='dev-addac-test-kernel-modules',
             alwaysUseLatest=True,
             mode='full',
-#            mode='incremental',
             workdir="build/_test-kernel-modules",
             name="Update kernel module source files from git",
             hideStepIf=skipped,
