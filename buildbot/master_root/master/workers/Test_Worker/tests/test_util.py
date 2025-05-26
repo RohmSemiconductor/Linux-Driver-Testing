@@ -520,9 +520,13 @@ def _assert_addac_check_sysfs(result, report_file, summary):
             if result['sub_stage'] == 'dac':
                 print("Could not find sysfs file for DAC: "+result['test_config']['name']+"\n"
                       , end='', file=summary)
+                print("Could not find sysfs file for DAC: "+result['test_config']['name']+"\n"
+                      , end='', file=report_file)
             elif result['sub_stage'] == 'adc':
                 print("Could not find sysfs file for ADC: "+result['test_config']['iio_device']['adc']+"\n"
                       , end='', file=summary)
+                print("Could not find sysfs file for ADC: "+result['test_config']['iio_device']['adc']+"\n"
+                      , end='', file=report_file)
     except TypeError:
         print("TypeError in sysfs file check, result['return']: "+str(result['return']+"\n"), end='', file=summary)
         print("TypeError in sysfs file check, result['return']: "+str(result['return']+"\n"), end='', file=report_file)
