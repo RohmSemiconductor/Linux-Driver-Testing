@@ -100,8 +100,9 @@ def run_addac_tests():
                                       test_boards['addac']['power_ports'][power_port][test_board]['name'],
                                       product,
                                       test_type="addac",
-                                      dts="default")
-
+                                      dts="default",
+                                      result_dir='ADDAC'
+                                      )
                 finalize_product(factory_addac_test, product, "ADDAC")
 
 set_factory_type(factory_addac_test, "addac")

@@ -81,7 +81,9 @@ def run_accelerometer_tests():
                                       test_boards['accelerometer']['power_ports'][power_port][test_board]['name'],
                                       product,
                                       test_type="accelerometer",
-                                      dts="default")
+                                      dts="default",
+                                      result_dir='sensor'
+                                      )
 #
 #                dts_tests = check_dts_tests(product)
 #                for dts in dts_tests:
