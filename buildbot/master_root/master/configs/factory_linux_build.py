@@ -87,14 +87,25 @@ def extract_make_kernel(rc, stdout, stderr):
         return {'preparation_step_failed':'False'}
 
 def build_kernel_arm32(project_name):
-    projects[project_name]['factory'].addStep(steps.Git(
-        repourl=projects[project_name]['repo_git'],
-        mode='full',
-        getDescription={'tags':True},
-        name="Update linux source files from git",
-        tags=True,
-        doStepIf=util.Property('git_bisect_state') != 'running'
-        ))
+    if project_name != "linux-next":
+        projects[project_name]['factory'].addStep(steps.Git(
+            repourl=projects[project_name]['repo_git'],
+            mode='full',
+            getDescription={'tags':True},
+            name="Update linux source files from git",
+            tags=True,
+            doStepIf=util.Property('git_bisect_state') != 'running'
+            ))
+    else:
+        projects[project_name]['factory'].addStep(steps.Git(
+            repourl=projects[project_name]['repo_git'],
+            mode='full',
+            method='clobber',
+            getDescription={'tags':True},
+            name="Update linux source files from git",
+            tags=True,
+            doStepIf=util.Property('git_bisect_state') != 'running'
+            ))
 
     initialize_test_report(project_name)
 
