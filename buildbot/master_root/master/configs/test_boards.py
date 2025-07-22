@@ -92,7 +92,8 @@ test_boards['addac'] = {
             'beagle6':{
                 'name':'beagle6',
                 'power_port':'5',
-                'products':['bd79703','bd79701'],
+#                'products':['bd79703','bd79701'],
+                'products':['bd79703'],
                 'arch':'arm32',
             }
         }
