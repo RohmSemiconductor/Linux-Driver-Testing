@@ -85,8 +85,8 @@ def dts_error_report(product, dts, stdout):
     print(product+": dts build failed: dts: "+dts+"\n", end='', file=summary)
     report_file.close()
 
-def report_dmesg(product, stdout):
-    report_file = open('/tmp/rohm_linux_driver_tests/temp_results/'+product+'/dmesg.txt', 'w+', encoding='utf-8')
+def report_dmesg(result_dir, product, stdout):
+    report_file = open('/tmp/rohm_linux_driver_tests/temp_results_'+result_dir+'/'+product+'/dmesg.txt', 'w+', encoding='utf-8')
     print(type(stdout))
     print(len(stdout))
     x = 0
@@ -140,6 +140,7 @@ def _assert_generic_kunit_test(result, report_file, summary):
 
         print( "Kunit test result: "+result['substage']+" FAILED: Found 'not ok' in the Kunit dmesg prints.\n\n", end='', file=summary)
         print( "Kunit test result: "+result['substage']+" FAILED: Found 'not ok' in the Kunit dmesg prints.\n\n", end='', file=kunit_file)
+        print(test_info['generic']['kunit_test'], end='', file=summary)
 
         x = 0
         for line in result['kunit_dmesg']:
@@ -161,10 +162,13 @@ def _assert_generic_get_dmesg(result, report_file, summary):
     if result['expect'] != result['return']:
         print( "Getting dmesg failed! Returncode: Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
         print( "Getting dmesg failed! Returncode: Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=summary)
+
+        print(test_info['generic']['get_dmesg'], end='', file=report_file)
     _assert_test(result, report_file, summary)
 
 def _assert_generic_merge_dt_overlay_insmod_tests(result, report_file, summary):
     if result['expect'] != result['return']:
+
         print( result['stage']+" failed: lsmod did not contain", end='', file=report_file)
         print( result['stage']+" failed\n", end='', file=summary)
         x = 0

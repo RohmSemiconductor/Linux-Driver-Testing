@@ -209,30 +209,49 @@ def extract_dmesg_collected(rc, stdout, stderr, product):
 def extract_dts_collected(rc, stdout, stderr, product):
     return {product+'_dts_collected' : True}
 
-def collect_dmesg_and_dts(_factory, test_board, product, test_type='pmic', test_dts='default'):
+def collect_dmesg_and_dts(_factory, test_board, product, test_type='pmic', test_dts='default', result_dir='PMIC'):
     extract_dmesg_collected_partial = functools.partial(extract_dmesg_collected, product=product)
     extract_dts_collected_partial = functools.partial(extract_dts_collected, product=product)
 
     doStepIf_collect_dmesg_partial = functools.partial(doStepIf_collect_dmesg, product=product)
     doStepIf_collect_dts_partial = functools.partial(doStepIf_collect_dts, product=product)
 
+    if result_dir == 'PMIC':
+        _factory.addStep(steps.SetPropertyFromCommand(
+            command=util.Interpolate('cp ../../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'+product+'/generated_dts_'+test_dts+'.dts /tmp/rohm_linux_driver_tests/temp_results_PMIC/'+product),
+            doStepIf=doStepIf_collect_dts_partial,
+            hideStepIf=skipped,
+            extract_fn=extract_dts_collected_partial,
+            name=product+": Collect "+test_dts+".dts"
+            ))
+
+    elif result_dir == 'ADDAC':
+        _factory.addStep(steps.SetPropertyFromCommand(
+            command=util.Interpolate('cp ../../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'+product+'/'+product+'_test.dts /tmp/rohm_linux_driver_tests/temp_results_ADDAC/'+product),
+            doStepIf=doStepIf_collect_dts_partial,
+            hideStepIf=skipped,
+            extract_fn=extract_dts_collected_partial,
+            name=product+": Collect "+test_dts+".dts"
+            ))
+
+    elif result_dir == 'sensor':
+        _factory.addStep(steps.SetPropertyFromCommand(
+            command=util.Interpolate('cp ../../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'+product+'/'+product+'_test.dts /tmp/rohm_linux_driver_tests/temp_results_sensor/'+product),
+            doStepIf=doStepIf_collect_dts_partial,
+            hideStepIf=skipped,
+            extract_fn=extract_dts_collected_partial,
+            name=product+": Collect "+test_dts+".dts"
+            ))
+
     _factory.addStep(steps.SetPropertyFromCommand(
-        command=['pytest','--lg-log', '/tmp/rohm_linux_driver_tests/temp_results/', '--lg-env='+test_board+'.yaml', 'test_get_dmesg.py', '--product='+product],
-        workdir="../../tests/driver_tests/",
+        command=['pytest', '--lg-env='+test_board+'.yaml', 'test_get_dmesg.py', '--product='+product, '--result_dir='+result_dir],
+        workdir="../tests/driver_tests/",
         doStepIf=doStepIf_collect_dmesg_partial,
         extract_fn=extract_dmesg_collected_partial,
         hideStepIf=skipped,
         name=product+": Collect dmesg"
         ))
 
-    _factory.addStep(steps.SetPropertyFromCommand(
-#        command=['cp','../../'+projects[project_name]['builderNames'][0]+'/build/_test-kernel-modules/'+product+'/generated_dts_'+test_dts+'.dts', '../temp_results/'+product+'/'],
-        command=util.Interpolate('cp ../../../Linux_Worker/%(prop:linuxdir)s/build/_test-kernel-modules/'+product+'/generated_dts_'+test_dts+'.dts '+dir_nfs),
-        doStepIf=doStepIf_collect_dts_partial,
-        hideStepIf=skipped,
-        extract_fn=extract_dts_collected_partial,
-        name=product+": Collect "+test_dts+".dts"
-        ))
 
 def extract_sanitycheck_login(rc, stdout, stderr):
     if 'FAILURES' in stdout:
@@ -347,7 +366,7 @@ def doStepIf_generate_driver_tests(step, product, dts):
     else:
         return False
 
-def generate_driver_tests(_factory, power_port, test_board, product, test_type='pmic', dts=None):
+def generate_driver_tests(_factory, power_port, test_board, product, test_type='pmic', dts=None, result_dir='PMIC'):
     if test_type == 'pmic':
         extract_driver_tests_partial = functools.partial(extract_pmic_driver_tests, product=product)
     elif test_type == 'accelerometer':
@@ -382,7 +401,7 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
             doStepIf=doStepIf_generate_driver_tests_partial
             ))
 
-        collect_dmesg_and_dts(_factory, test_board, product, test_dts=dts)
+        collect_dmesg_and_dts(_factory, test_board, product, test_dts=dts, result_dir=result_dir)
 
     elif test_type =="accelerometer":
 
@@ -394,6 +413,8 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
             haltOnFailure=True,
             doStepIf=doStepIf_generate_driver_tests_partial
             ))
+
+        collect_dmesg_and_dts(_factory, test_board, product, test_dts=dts, result_dir=result_dir)
     elif test_type =="addac":
 
         _factory.addStep(GenerateStagesCommand(
@@ -405,6 +426,8 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
             doStepIf=doStepIf_generate_driver_tests_partial
             ))
 
+        collect_dmesg_and_dts(_factory, test_board, product, test_dts=dts, result_dir=result_dir)
+
     elif test_type == "dts":
         _factory.addStep(GenerateStagesCommand(
             test_board, product, test_type, dts, extract_driver_tests_partial,
@@ -415,7 +438,7 @@ def generate_driver_tests(_factory, power_port, test_board, product, test_type='
             doStepIf=doStepIf_generate_driver_tests_partial
             ))
 
-        collect_dmesg_and_dts(_factory, test_board, product, test_dts=dts)
+        collect_dmesg_and_dts(_factory, test_board, product, test_dts=dts, result_dir=result_dir)
 
     _factory.addStep(steps.ShellCommand(
         command=["pytest","-W","ignore::DeprecationWarning", "-ra", "test_005_powerdown_beagle.py","--power_port="+power_port,"--beagle="+test_board],
@@ -608,7 +631,7 @@ def copy_test_kernel_modules_to_nfs(_factory, product, test_dts, generic_module 
 def doStepIf_dts_report(step, product, test_dts):
     if step.getProperty('preparation_step_failed') == 'True':
         return False
-    elif step.getProperty('project') == "linux_rohm_devel" or step.getProperty('project') == "test_linux" or check_tag(step, product) == 'True':
+    elif step.getProperty('project') == "linux_rohm_devel" or step.getProperty('project') == "test_linux" or check_tag(step, product) == True:
         if step.getProperty(product+'_'+test_dts+'_dts_make_passed') == 'False':
             return True
     else:
