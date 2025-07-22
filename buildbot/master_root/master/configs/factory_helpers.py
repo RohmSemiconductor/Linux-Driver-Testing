@@ -165,16 +165,16 @@ def save_properties(_factory, factory_type):
 
 def doStepIf_collect_dmesg(step, product):
     if step.getProperty('project') == "linux_rohm_devel" or check_tag(step, product) == True:
-        if step.getProperty('preparation_step_failed') == True:
+        if step.getProperty('preparation_step_failed') == "True":
             return False
         elif step.getProperty('git_bisecting'):
             return False
-        elif step.getProperty(product+'_login_failed') == True:
+        elif step.getProperty(product+'_login_failed') == "True":
             return False
-        elif step.getProperty(product+'_dts_fail') == True:
+        elif step.getProperty(product+'_dts_fail') == "True":
             return False
-        elif step.getProperty(product+'_do_steps') == False:
-            if not step.getProperty(product+'_dmesg_collected'):
+        elif step.getProperty(product+'_do_steps') == "False":
+            if step.getProperty(product+'_dmesg_collected') == "False":
                 return True
             else:
                 return False
@@ -185,15 +185,15 @@ def doStepIf_collect_dmesg(step, product):
 
 def doStepIf_collect_dts(step,  product):
     if step.getProperty('project') == "linux_rohm_devel" or check_tag(step, product) == True:
-        if step.getProperty('preparation_step_failed') == True:
+        if step.getProperty('preparation_step_failed') == "True":
             return False
         elif step.getProperty('git_bisecting'):
             return False
-        elif step.getProperty(product+'_login_failed') == True:
+        elif step.getProperty(product+'_login_failed') == "True":
             return False
-        elif step.getProperty(product+'_dts_fail') == True:
+        elif step.getProperty(product+'_dts_fail') == "True":
             return False
-        elif step.getProperty(product+'_do_steps') == False:
+        elif step.getProperty(product+'_do_steps') == "False":
             if not step.getProperty(product+'_dts_collected'):
                 return True
             else:
