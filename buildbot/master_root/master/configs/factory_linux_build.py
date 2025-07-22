@@ -126,7 +126,7 @@ def build_kernel_arm32(project_name):
         doStepIf=doStepIf_linux_not_stable_copy_config,
         hideStepIf=skipped
         ))
-    
+
     ### Copy linux-next config if kernel version is linux-next
     projects[project_name]['factory'].addStep(steps.FileDownload(
         mastersrc="../../../compilers/kernel_configs/arm32_bbb_test_linux.config",
@@ -509,7 +509,7 @@ def doStepIf_good_commit_write(step):
     if step.getProperty('git_bisecting') != "True":
         if step.getProperty('preparation_step_failed') == "True":
             return False
-        elif ((not step.getProperty('pmic_single_test_failed') and not step.getProperty('sensor_single_test_failed')) and (step.getProperty('pmic_single_test_passed') and step.getProperty('sensor_single_test_passed'))):
+        elif ((not step.getProperty('pmic_single_test_failed') and not step.getProperty('sensor_single_test_failed')) and (step.getProperty('pmic_single_test_passed') and step.getProperty('sensor_single_test_passed'))) and step.getProperty('ADDAC_RESULT') == 'PASSED':
             return True
         else:
             return False
@@ -555,7 +555,7 @@ def doStepIf_git_bisect_good(step):
     if step.getProperty('git_bisecting') == "True":
         if step.getProperty('preparation_step_failed') == "True":
             return False
-        elif (not step.getProperty('pmic_single_test_failed') and (step.getProperty('pmic_single_test_passed') == "True")) or (not step.getProperty('sensor_single_test_failed') and step.getProperty('sensor_single_test_passed') == "True") or step.getProperty('LINUX_RESULT') == "FAILED":
+        elif (not step.getProperty('pmic_single_test_failed') and (step.getProperty('pmic_single_test_passed') == "True")) and (not step.getProperty('sensor_single_test_failed') and (step.getProperty('sensor_single_test_passed') == "True")) and (not step.getProperty('addac_single_test_failed') and (step.getProperty('addac_single_test_passed') == "True")) and step.getProperty('LINUX_RESULT') == "PASSED":
             if step.getProperty('single_login_failed') == "True":
                 return False
             else:
@@ -582,7 +582,7 @@ def doStepIf_git_bisect_good_next(step):
     if (step.getProperty('git_bisecting') == "True" and step.getProperty('linux_next_bisect_started') == "True"):
         if step.getProperty('preparation_step_failed') == "True":
             return False
-        elif (not step.getProperty('pmic_single_test_failed') and (step.getProperty('pmic_single_test_passed') == "True")) or (not step.getProperty('sensor_single_test_failed') and step.getProperty('sensor_single_test_passed') == "True") or step.getProperty('LINUX_RESULT') == "FAILED":
+        elif (not step.getProperty('pmic_single_test_failed') and (step.getProperty('pmic_single_test_passed') == "True")) and (not step.getProperty('sensor_single_test_failed') and (step.getProperty('sensor_single_test_passed') == "True")) and (not step.getProperty('addac_single_test_failed') and (step.getProperty('addac_single_test_passed') == "True")) and step.getProperty('LINUX_RESULT') == "PASSED":
             if step.getProperty('single_login_failed') == "True":
                 return False
             else:
@@ -771,6 +771,7 @@ def git_bisect(project_name):
                 'LINUX_RESULT':util.Property('LINUX_RESULT'),
                 'PMIC_RESULT':util.Property('PMIC_RESULT'),
                 'SENSOR_RESULT':util.Property('SENSOR_RESULT'),
+                'ADDAC_RESULT':util.Property('ADDAC_RESULT'),
                 },
             doStepIf=doStepIf_git_bisect_trigger_next,
             hideStepIf=skipped
@@ -784,7 +785,8 @@ def git_bisect(project_name):
                      util.Property("git_bisect_output"),
                      util.Property("git_bisect_state"),
                      "PMIC",
-                     "Sensor"
+                     "Sensor",
+                     "ADDAC"
                      ],
             name="Report git bisect results",
             workdir="../../Test_Worker/tests",
