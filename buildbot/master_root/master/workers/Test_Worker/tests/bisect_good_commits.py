@@ -1,6 +1,22 @@
 good_commits={
 	'test_linux':{
-		'test_linux':'a125c5298a2ecf92b4ecf466ee3bf8c66745281b',
+		'test_linux':'fbef67efabbfdd81f9e9eb3da3c3eed877b7dcc8',
+},
+	'linux-next':{
+		'master':'05adbee3ad528100ab0285c15c91100e19e10138',
+		'None':'b27cc623e01be9de1580eaa913508b237a7a9673',
+},
+	'linux_stable_linux-6_12_y':{
+		'linux-6.12.y':'cdf264c0a5906063a0e2b750d420d77cb992446d',
+},
+	'linux_stable_linux-6_6_y':{
+		'linux-6.6.y':'d96eb99e2f0e32b6d29e7f12a790b08c08825503',
+},
+	'linux_stable_linux-rolling-stable':{
+		'linux-rolling-stable':'c02c0232f4b5a7b775c4819ec2d707bd6a696eee',
+},
+	'linux_mainline':{
+		'master':'89be9a83ccf1f88522317ce02f854f30d6115c41',
 },
 #EOF
 }
