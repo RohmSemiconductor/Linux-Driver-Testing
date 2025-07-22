@@ -43,7 +43,8 @@ def run_pmic_tests():
                                       test_boards['pmic']['power_ports'][power_port][test_board]['name'],
                                       product,
                                       "pmic",
-                                      "default")
+                                      "default",
+                                      result_dir='PMIC')
 
                 dts_tests = check_dts_tests(product)
                 for dts in dts_tests:
