@@ -9,6 +9,5 @@ bd79104 = addac(bd79104)
 
 def test_read_stable_voltage(command):
     result = bd79104.check_stable_voltage(command, bd79104.board.data['info']['stable_voltage_channel'], 50)
-    print(result)
 
     check_result(result)
