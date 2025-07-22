@@ -1,6 +1,8 @@
 import operator
 import pytest
-
+import sys
+sys.path.append('.')
+from test_info import test_info
 result = {
     'type' :    None,
     'stage' :   None,
@@ -178,6 +180,12 @@ def _assert_generic_merge_dt_overlay_insmod_tests(result, report_file, summary):
             x = x+1
         print("\n", end='', file=report_file)
         _print_lsmod(result, report_file)
+
+        if result['stage'] == 'merge_dt_overlay':
+            print(test_info['generic']['merge_dt_overlay'], end='', file=report_file)
+        if result['stage'] == 'insmod_tests':
+            print(test_info['generic']['insmod_tests'], end='', file=report_file)
+
     _assert_test(result, report_file, summary)
 
 def _assert_generic_init_overlay(result, report_file, summary):
@@ -185,12 +193,15 @@ def _assert_generic_init_overlay(result, report_file, summary):
         print( "test_001_init_overlay failed: lsmod  did not contain 'mva_overlay'!\n", end='', file=report_file)
         print( "test_001_init_overlay failed: lsmod  did not contain 'mva_overlay'!\n", end='', file=summary)
         _print_lsmod(result, report_file)
+        print(test_info['generic']['init_overlay'], end='', file=report_file)
     _assert_test(result, report_file, summary)
 
 def _assert_generic_login(result, report_file, summary):
     if result['expect'] != result['return']:
         print( "Login failed: Power port "+result['expect'][0]+": "+result['expect'][1]+". Returncode: Received: "+str(result['return'][2])+", Expected: "+str(result['expect'][2])+"\n", end='', file=report_file)
         print( "Login failed: Power port "+result['expect'][0]+": "+result['expect'][1]+". Returncode: Received: "+str(result['return'][2])+", Expected: "+str(result['expect'][2])+"\n", end='', file=summary)
+
+        print(test_info['generic']['login'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
@@ -200,6 +211,8 @@ def _assert_generic_iio_generic_buffer(result, report_file, summary):
               "Reason: "+result['reason']+"\n"+
               "Build again from source found @ Linux-Driver-Testing/tools/\n",
               end='', file=summary)
+
+        print(test_info['generic']['check_iio_generic_buffer'], end='', file=summary)
 
     _assert_test(result, report_file, summary)
 
@@ -258,20 +271,28 @@ def generic_step_fail(tf, power_port=None, beagle=None, product=None,dt_overlay=
 ### _assert functions for Sensors
 
 def _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, summary):
+    sampling_frequency_match_timestamp_failed = 0
     for x in range(len(result['return'])):
         if ((result['return'][x] <= result['expect_low']) or (result['return'][x] >= result['expect_high'])):
+            sampling_frequency_match_timestamp_failed = 1
             print( "Sampling rate "+str(result['sampling_frequency'])+" Hz behaved unexpectedly: Time between timestamp and expected result:  Received: "+str(result['return'][x])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed range: "+str(result['expect_low'])+"ns - "+str(result['expect_high'])+"ns\n", end='', file=report_file)
 
             print( "Sampling rate "+str(result['sampling_frequency'])+" Hz behaved unexpectedly: Time between timestamp and expected result:  Received: "+str(result['return'][x])+"ns, Expected: "+str(result['expect_perfect'])+"ns, Allowed range: "+str(result['expect_low'])+"ns - "+str(result['expect_high'])+"ns\n", end='', file=summary)
 
+    if sampling_frequency_match_timestamp_failed == 1:
+        print(test_info['accelerometer']['sampling_frequency'], end='', file=report_file)
+
     _assert_test(result, report_file, summary)
 
 def _assert_sensor_test_gscale_ms2_match(result, report_file, summary):
+    gscale_ms2_failed = 0
     for x in range(len(result['return'])):
         if ((result['return'][x] <= result['expect_low'][x]) or (result['return'][x] >= result['expect_high'][x])):
-            print("menee yli laidan")
+            gscale_ms2_failed = 1
             print( "m/s^2 Does not match: G scale +/- "+str(result['gscale'][x])+" Axis: "+result['axis'][x]+" returned: "+str(result['return'][x])+", Expected: "+str(result['expect_perfect'][x])+", Allowed range: "+str(result['expect_low'][x])+" - "+str(result['expect_high'][x])+" ("+str(result['tolerance'][x])+"m/s^2 tolerance)\nDifference between received and expected: "+str(result['return_diff'][x])+"\n", end='', file=report_file)
 
+    if gscale_ms2_failed == 1:
+        print(test_info['accelerometer']['gscale_ms2'], end='', file=report_file)
     _assert_test(result, report_file, summary)
 
 def _assert_sensor_test_gscale_raw_scale(result, report_file, summary):
@@ -280,15 +301,19 @@ def _assert_sensor_test_gscale_raw_scale(result, report_file, summary):
             print("Scaling raw values failed: G scale +/- "+str(result['gscale'][x])+" Failed :in_accel_"+result['axis'][x]+"_raw returned: "+str(result['return'][x])+", Expected: "+str(result['expect_perfect'][x])+", Allowed range: "+str(result['expect_low'][x])+" - "+str(result['expect_high'][x])+" ("+str(result['tolerance'][x])+" raw tolerance)\nDifference between received and expected: "+str(result['return_diff'][x])+"\n", end='', file=report_file)
 #
 #            print( "G scale +/- "+str(result['gscale'][x])+" Failed :in_accel_"+result['axis'][x]+"_raw returned: "+str(result['return'][x])+", Expected: "+str(result['expect_perfect'][x])+", Allowed range: "+str(result['expect_low'][x])+" - "+str(result['expect_high'][x])+" ("+str(result['tolerance'][x])+"G tolerance)\n", end='', file=summary)
-
     _assert_test(result, report_file, summary)
 
 def _assert_sensor_test_gscale_raw_match(result, report_file, summary):
+    gscale_raw_match_failed = 0
     for x in range(len(result['return'])):
         if ((result['return'][x] <= result['expect_low'][x]) or (result['return'][x] >= result['expect_high'][x])):
+            gscale_raw_match_failed = 1
             print( "G scale +/- "+str(result['gscale'][x])+" Failed :in_accel_"+result['axis'][x]+"_raw returned: "+str(result['return'][x])+", Expected: "+str(result['expect_perfect'][x])+", Allowed range: "+str(result['expect_low'][x])+" - "+str(result['expect_high'][x])+" ("+str(result['tolerance'][x])+"G tolerance)\nDifference between received and expected: "+str(result['return_diff'][x])+"\n", end='', file=report_file)
 
             print( "G scale +/- "+str(result['gscale'][x])+" Failed :in_accel_"+result['axis'][x]+"_raw returned: "+str(result['return'][x])+", Expected: "+str(result['expect_perfect'][x])+", Allowed range: "+str(result['expect_low'][x])+" - "+str(result['expect_high'][x])+" ("+str(result['tolerance'][x])+"G tolerance)\n", end='', file=summary)
+
+    if gscale_raw_match_failed == 1:
+        print(test_info['accelerometer']['gscale_raw_match'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
@@ -296,6 +321,8 @@ def _assert_sensor_test_gsel(result, report_file, summary):
     if result['expect'] != result['return']:
         print( "Setting GSEL failed:  Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
         print( "Setting GSEL failed:  Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=summary)
+
+        print(test_info['accelerometer']['gsel'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
@@ -309,6 +336,8 @@ def _assert_pmic_set_rtc_from_bbb_sys_time(result, report_file, summary):
             print( "Setting RTC from BBB system time failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=report_file)
             print( "Setting RTC from BBB system time failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=summary)
 
+        print(test_info['rtc']['set_rtc_from_bbb_sys_time'], end='', file=report_file)
+
     _assert_test(result, report_file, summary)
 
 def _assert_pmic_set_bbb_from_rtc_time(result, report_file, summary):
@@ -319,6 +348,8 @@ def _assert_pmic_set_bbb_from_rtc_time(result, report_file, summary):
         else:
             print( "Setting BBB system time from RTC failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=report_file)
             print( "Setting BBB system time from RTC failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=summary)
+
+        print(test_info['rtc']['set_bbb_from_rtc_time'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
@@ -332,6 +363,8 @@ def _assert_pmic_set_rtc_from_srv_time(result, report_file, summary):
             print( "Setting RTC time from test server time failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=report_file)
             print( "Setting RTC time from test server time failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=summary)
 
+        print(test_info['rtc']['set_rtc_from_srv_time'], end='', file=report_file)
+
     _assert_test(result, report_file, summary)
 
 def _assert_pmic_rtc_date(result, report_file, summary):
@@ -343,6 +376,8 @@ def _assert_pmic_rtc_date(result, report_file, summary):
             print( "Setting RTC date failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=report_file)
             print( "Setting RTC date failed: "+result['rtc']+": Received: "+result['return']+ ", Expected: "+result['expect']+"\n", end='', file=summary)
 
+        print(test_info['rtc']['reset_and_check_date'], end='', file=report_file)
+
     _assert_test(result, report_file, summary)
 
 def _assert_pmic_read_dt_setting(result, report_file, summary):
@@ -353,11 +388,17 @@ def _assert_pmic_read_dt_setting(result, report_file, summary):
             print( "Device tree setting failed (dts: '"+result['expect'][0]+"', setting: '"+result['expect'][1]+"'): Regulator "+result['regulator']+": Received: "+str(result['return'][2])+" uV/uS, Expected: "+str(result['expect'][2])+" uV/uS\n", end='', file=report_file)
             print( "Device tree setting failed (dts: '"+result['expect'][0]+"', setting: '"+result['expect'][1]+"'): Regulator "+result['regulator']+": Received: "+str(result['return'][2])+" uV/uS, Expected: "+str(result['expect'][2])+" uV/uS\n", end='', file=summary)
 
+            print(test_info['pmic']['read_dt_setting'], end='', file=report_file)
+            print(test_info['pmic']['ramprate'], end='', file=report_file)
+
         if result['expect'][1] == 'ovd' or result['expect'][1] == 'uvd':
             if type(result['return'][2]) == float:
                 result['return'][2] = int(result['return'][2])
             print( "Device tree setting failed (dts: '"+result['expect'][0]+"', setting: '"+result['expect'][1]+"'): Regulator "+result['regulator']+": Received: "+str(result['return'][2])+" mV or mA, Expected: "+str(result['expect'][2])+" mV or mA\n", end='', file=report_file)
             print( "Device tree setting failed (dts: '"+result['expect'][0]+"', setting: '"+result['expect'][1]+"'): Regulator "+result['regulator']+": Received: "+str(result['return'][2])+" mV or mA, Expected: "+str(result['expect'][2])+" mV or mA\n", end='', file=summary)
+
+            print(test_info['pmic']['read_dt_setting'], end='', file=report_file)
+            print(test_info['pmic']['ovd_uvd_read'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
@@ -365,21 +406,27 @@ def _assert_pmic_out_of_range_voltages(result, report_file, summary):
     if result['expect'] != result['return']:
         print( "Out of range test fail ("+result['expect'][0]+"): Regulator "+result['regulator']+" voltage changed: Received: "+str(result['return'][1])+", Expected: "+str(result['expect'][1])+"\n", end='', file=report_file)
         print( "Out of range test fail ("+result['expect'][0]+"): Regulator "+result['regulator']+" voltage changed: Received: "+str(result['return'][1])+", Expected: "+str(result['expect'][1])+"\n", end='', file=summary)
+        print(test_info['pmic']['out_of_range_voltages'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
 def _assert_pmic_tune_register_run(result, report_file, summary):
     x = 0
+    tune_reg_run_failed = 0
     for i in result['expect']:
         if result['expect'][x][2] != result['return'][x][2]:
             if type(result['expect'][x][0]) == int:
                 range = str(result['expect'][x][0])
             else:
+                tune_reg_run_failed = 1
                 range = result['expect'][x][0]
 
                 print( "Tune range run failed: Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=report_file)
                 print( "Tune range run failed: Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=summary)
         x = x+1
+
+    if tune_reg_run_failed == 1:
+        print(test_info['pmic']['tune_register_run'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
@@ -389,19 +436,25 @@ def _assert_pmic_voltage_run(result, report_file, summary):
         if result['expect'] != result['return']:
             print( "Voltage run failed (voltage check): Regulator "+result['regulator']+": Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=report_file)
             print( "Voltage run failed (voltage check): Regulator "+result['regulator']+": Received: "+str(result['return'])+", Expected: "+str(result['expect'])+"\n", end='', file=summary)
+            print(test_info['pmic']['regulator_voltage_driver_get'], end='', file=report_file)
 
     else:
+        voltage_run_failed = 0
         x = 0
         for i in result['expect']:
             if result['expect'][x][2] != result['return'][x][2]:
-                    if type(result['expect'][x][0]) == int:
-                        range = str(result['expect'][x][0])
-                    else:
-                        range = result['expect'][x][0]
+                voltage_run_failed = 1
+                if type(result['expect'][x][0]) == int:
+                    range = str(result['expect'][x][0])
+                else:
+                    range = result['expect'][x][0]
 
-                    print( "Voltage run failed: Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=report_file)
-                    print( "Voltage run failed: Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=summary)
+                print( "Voltage run failed: Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=report_file)
+                print( "Voltage run failed: Regulator "+result['regulator']+", Range: "+range+", Volt register value: "+str(hex(result['expect'][x][1]))+": Received: "+str(result['return'][x][2])+", Expected: "+str(result['expect'][x][2])+"\n", end='', file=summary)
             x = x+1
+
+        if voltage_run_failed == 1:
+            print(test_info['pmic']['voltage_run'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
@@ -409,6 +462,7 @@ def _assert_pmic_regulator_is_on(result, report_file, summary):
     if result['expect'] != type(result['return']):
         print("Failed to check regulator enable state: Regulator '"+result['regulator']+"'. Return: "+str(result['return'])+", Should be "+str(result['expect'])+"\n", end='', file=report_file)
         print("Failed to check regulator enable state: Regulator '"+result['regulator']+"'. Return: "+str(result['return'])+", Should be "+str(result['expect'])+"\n", end='', file=summary)
+        print(test_info['pmic']['regulator_is_on'], end='', file=report_file)
 
     report_file.close()
     summary.close()
@@ -418,6 +472,7 @@ def _assert_pmic_regulator_is_on_driver(result, report_file, summary):
     if result['expect'] != result['return']:
         print("Regulator '"+result['regulator']+"' status mismatch! Return: "+str(result['return'])+", Should be "+str(result['expect'])+"\n", end='', file=report_file)
         print("Regulator '"+result['regulator']+"' status mismatch! Return: "+str(result['return'])+", Should be "+str(result['expect'])+"\n", end='', file=summary)
+        print(test_info['pmic']['regulator_is_on_driver'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
@@ -430,6 +485,7 @@ def _assert_pmic_regulator_en(result, report_file, summary):
     if result['expect'] != result['return']:
         print("Regulator '"+result['regulator']+"' "+en_dis+" failed!\n", end='', file=report_file)
         print("Regulator '"+result['regulator']+"' "+en_dis+" failed!\n", end='', file=summary)
+        print(test_info['pmic']['regulator_en'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
@@ -437,12 +493,14 @@ def _assert_pmic_disable_vr_fault(result, report_file, summary):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: Disable VR fault: "+result['stage']+": Expected: "+str(result['expect'])+". Received: "+str(result['return'])+".\n", end='', file=report_file)
         print( "Sanitycheck failed: Disable VR fault: "+result['stage']+": Expected: "+str(result['expect'])+". Received: "+str(result['return'])+".\n", end='', file=summary)
+        print(test_info['pmic']['sanitycheck'], end='', file=report_file)
     _assert_test(result, report_file, summary)
 
 def _assert_pmic_sanity_check_sysfs_set(result, report_file, summary):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: "+result['regulator']+": _set file missing in sysfs \n", end='', file=report_file)
         print( "Sanitycheck failed: "+result['regulator']+": _set file missing in sysfs \n", end='', file=summary)
+        print(test_info['pmic']['sanitycheck'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
@@ -450,12 +508,14 @@ def _assert_pmic_sanity_check_sysfs_en(result, report_file, summary):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: "+result['regulator']+": _en file missing in sysfs \n", end='', file=report_file)
         print( "Sanitycheck failed: "+result['regulator']+": _en file missing in sysfs \n", end='', file=summary)
+        print(test_info['pmic']['sanitycheck'], end='', file=report_file)
     _assert_test(result, report_file, summary)
 
 def _assert_pmic_sanity_check(result, report_file, summary):
     if result['expect'] != result['return']:
         print( "Sanitycheck failed: "+result['regulator']+": device tree node missing for "+result['regulator']+"\n", end='', file=report_file)
         print( "Sanitycheck failed: "+result['regulator']+": device tree node missing for "+result['regulator']+"\n", end='', file=summary)
+        print(test_info['pmic']['sanitycheck'], end='', file=report_file)
     _assert_test(result, report_file, summary)
 
 def _assert_pmic_validate_config(result, report_file, summary):
@@ -511,6 +571,9 @@ def _assert_pmic_validate_config(result, report_file, summary):
                     summary_written = 1
         x = x+1
 
+    if summary_written == 1:
+        print(test_info['pmic']['sanitycheck'], end='', file=report_file)
+
     report_file.close()
     summary.close()
     assert result['product_name'] == result['expect_product_name']
@@ -531,9 +594,12 @@ def _assert_addac_check_sysfs(result, report_file, summary):
                       , end='', file=summary)
                 print("Could not find sysfs file for ADC: "+result['test_config']['iio_device']['adc']+"\n"
                       , end='', file=report_file)
+
+            print(test_info['addac']['check_sysfs_information'], end='', file=report_file)
     except TypeError:
         print("TypeError in sysfs file check, result['return']: "+str(result['return']+"\n"), end='', file=summary)
         print("TypeError in sysfs file check, result['return']: "+str(result['return']+"\n"), end='', file=report_file)
+        print(test_info['addac']['check_sysfs_information'], end='', file=report_file)
 
     finally:
 
@@ -555,9 +621,12 @@ def _assert_addac_test_write_read(result, report_file, summary):
                   "Allowed difference is +/- "+str(result['tolerance'])+ "mV\n"
                   , end='', file=report_file)
 
+            print(test_info['addac']['write_read'])
+
     except TypeError:
         print("TypeError, result['return']: "+str(result['return']+"\n"), end='', file=summary)
         print("TypeError, result['return']: "+str(result['return']+"\n"), end='', file=report_file)
+        print(test_info['addac']['write_read'], end='', file=report_file)
 
     finally:
         _assert_test(result, report_file, summary)
@@ -572,6 +641,8 @@ def _assert_addac_test_stable_voltage(result, report_file, summary):
               "Expected: "+str(result['expect_perfect'])+ ", ADC reading: "+str(result['return'])+"\n"
               "Driver file: "+result['test_config']['driver']+"\n\n"
               , end='', file=report_file)
+
+        print(test_info['addac']['read_stable_voltage'], end='', file=report_file)
 
     _assert_test(result, report_file, summary)
 
@@ -594,77 +665,113 @@ def check_result(result):
     summary.seek(0,2)
 
     if result['type'] == 'generic':
-        if result['stage'] == 'ip_power':
+        if result['stage'] == 'ip_power': #NOT IN USE CURRENTLY
             _assert_generic_ip_power(result, report_file, summary)
         elif result['stage'] == 'login':
+            print(test_info['generic']['login'])
             _assert_generic_login(result, report_file, summary)
         elif result['stage'] == 'iio_generic_buffer':
+            print(test_info['generic']['check_iio_generic_buffer'])
             _assert_generic_iio_generic_buffer(result, report_file, summary)
         elif result['stage'] == 'init_overlay':
+            print(test_info['generic']['init_overlay'])
             _assert_generic_init_overlay(result, report_file, summary)
-        elif result['stage'] == 'merge_dt_overlay' or result['stage'] == 'insmod_tests':
+        elif result['stage'] == 'merge_dt_overlay':
+            print(test_info['generic']['merge_dt_overlay'])
+            _assert_generic_merge_dt_overlay_insmod_tests(result, report_file, summary)
+        elif result['stage'] == 'insmod_tests':
+            print(test_info['generic']['insmod_tests'])
             _assert_generic_merge_dt_overlay_insmod_tests(result, report_file, summary)
         elif result['stage'] == 'get_dmesg':
+            print(test_info['generic']['get_dmesg'])
             _assert_generic_get_dmesg(result, report_file, summary)
         elif result['stage'] == 'kunit_test':
+            print(test_info['generic']['kunit_test'])
             _assert_generic_kunit_test(result, report_file, summary)
 
     elif result['type'] == 'PMIC':
         #Sanity check:
         if result['stage'] == 'validate_config':
+            print(test_info['pmic']['sanitycheck'])
             _assert_pmic_validate_config(result, report_file, summary)
         elif result['stage'] == 'sanity_check':
+            print(test_info['pmic']['sanitycheck'])
             _assert_pmic_sanity_check(result, report_file, summary)
         elif result['stage'] == 'sanity_check_sysfs_set':
+            print(test_info['pmic']['sanitycheck'])
             _assert_pmic_sanity_check_sysfs_set(result, report_file, summary)
         elif result['stage'] == 'sanity_check_sysfs_en':
+            print(test_info['pmic']['sanitycheck'])
             _assert_pmic_sanity_check_sysfs_en(result, report_file, summary)
         elif result['stage'] == 'disable_vr_fault':
+            print(test_info['pmic']['sanitycheck'])
             _assert_pmic_disable_vr_fault(result, report_file, summary)
 
         #Regulator enable / disable:
         elif result['stage'] == 'regulator_enable' or result['stage'] == 'regulator_disable':
+            print(test_info['pmic']['regulator_en'])
             _assert_pmic_regulator_en(result, report_file, summary)
         elif result['stage'] == 'regulator_is_on_driver':
+            print(test_info['pmic']['regulator_is_on_driver'])
             _assert_pmic_regulator_is_on_driver(result, report_file, summary)
         elif result['stage'] == 'regulator_is_on':
+            print(test_info['pmic']['regulator_is_on'])
             _assert_pmic_regulator_is_on(result, report_file, summary)
 
         #Regulator voltages:
-        elif result['stage'] == 'voltage_run' or result['stage'] == 'regulator_voltage_driver_get':
+        elif result['stage'] == 'voltage_run':
+            print(test_info['pmic']['voltage_run'])
+            _assert_pmic_voltage_run(result, report_file, summary)
+        elif result['stage'] == 'regulator_voltage_driver_get':
+            print(test_info['pmic']['regulator_voltage_driver_get'])
             _assert_pmic_voltage_run(result, report_file, summary)
         elif result['stage'] == 'tune_register_run':
+            print(test_info['pmic']['tune_register_run'])
             _assert_pmic_tune_register_run(result, report_file, summary)
         elif result['stage'] == 'out_of_range_voltages':
+            print(test_info['pmic']['out_of_range_voltages'])
             _assert_pmic_out_of_range_voltages(result, report_file, summary)
         elif result['stage'] == 'read_dt_setting':
+            print(test_info['pmic']['read_dt_setting'])
             _assert_pmic_read_dt_setting(result, report_file, summary)
 
-        #PMIC RTC:
+        #PMIC RTC:  ##result description missing
         elif result['stage'] == 'reset_and_check_date':
+            print(test_info['rtc']['reset_and_check_date'])
             _assert_pmic_rtc_date(result, report_file, summary)
         elif result['stage'] == 'set_rtc_from_srv_time':
+            print(test_info['rtc']['set_rtc_from_srv_time'])
             _assert_pmic_set_rtc_from_srv_time(result, report_file, summary)
         elif result['stage'] == 'set_bbb_from_rtc_time':
+            print(test_info['rtc']['set_bbb_from_rtc_time'])
             _assert_pmic_set_bbb_from_rtc_time(result, report_file, summary)
         elif result['stage'] == 'set_rtc_from_bbb_sys_time':
+            print(test_info['rtc']['set_rtc_from_bbb_sys_time'])
             _assert_pmic_set_rtc_from_bbb_sys_time(result, report_file, summary)
 
     elif result['type'] == 'Sensor':
         if result['stage'] == 'test_gsel':
+            print(test_info['accelerometer']['gsel'])
             _assert_sensor_test_gsel(result, report_file, summary)
         elif result['stage'] == 'gscale_raw_match':
+            print(test_info['accelerometer']['gscale_raw_match'])
             _assert_sensor_test_gscale_raw_match(result, report_file, summary)
-        elif result['stage'] == 'gscale_raw_scale':
+        elif result['stage'] == 'gscale_raw_scale': #NOT IN USE
             _assert_sensor_test_gscale_raw_scale(result, report_file, summary)
         elif result['stage'] == 'gscale_ms2_match':
+            print(test_info['accelerometer']['gscale_ms2'])
             _assert_sensor_test_gscale_ms2_match(result, report_file, summary)
         elif result['stage'] == 'test_sampling_frequency_match_timestamp':
+            print(test_info['accelerometer']['sampling_frequency'])
             _assert_sensor_test_sampling_frequency_match_timestamp(result, report_file, summary)
+
     elif result['type'] == 'ADDAC':
         if result['stage'] == 'check_sysfs':
+            print(test_info['addac']['check_sysfs_information'])
             _assert_addac_check_sysfs(result, report_file, summary)
         elif result['stage'] == 'write_read':
+            print(test_info['addac']['write_read'])
             _assert_addac_test_write_read(result, report_file, summary)
         elif result['stage'] == 'stable_voltage':
+            print(test_info['addac']['read_stable_voltage'])
             _assert_addac_test_stable_voltage(result, report_file, summary)
