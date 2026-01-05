@@ -14,7 +14,7 @@ targets:
       ShellDriver:
         prompt: '.*(debian|root)@arm:.*'
         login_prompt: ' login: '
-        login_timeout: 75
+        login_timeout: 100
 #        post_login_settle_time: 1
         username: 'root'
         password: 'a'
