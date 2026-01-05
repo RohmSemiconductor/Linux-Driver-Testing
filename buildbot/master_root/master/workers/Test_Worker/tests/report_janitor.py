@@ -183,10 +183,11 @@ elif sys.argv[1] == 'publish_results_git':
     commands = (
         'cd '+branch+'/',
         'rm -f '+timestamp_git_dir+'_'+bb_project+'_'+result+'/temp_results.txt',
-        'git fetch origin',
-        'git checkout '+branch,
         'git add .',
         'git commit -m "Test results for: '+timestamp_git_dir+'_'+bb_project+'"',
+        'git fetch origin '+branch,
+        'git pull origin '+branch,
+        'git checkout '+branch,
         'git push origin '+branch
     )
 
