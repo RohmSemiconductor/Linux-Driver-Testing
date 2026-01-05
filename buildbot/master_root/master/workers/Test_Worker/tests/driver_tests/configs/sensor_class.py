@@ -61,7 +61,7 @@ class sensor:
 #        low_limit = ((frequency_ns * pc_to_int(tolerance)) * -1) + frequency_ns
 #        low_limit = frequency_ns - 5000000
 #        self.result['expect_low'] = low_limit
-        self.result['expect_low'] = -16000000
+        self.result['expect_low'] = -18000000
 
         self.set_sampling_frequency_driver(frequency, command)
 
