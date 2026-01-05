@@ -141,6 +141,12 @@ def build_kernel_arm32(project_name):
         name="Update kernel config if needed"
         ))
 
+    projects[project_name]['factory'].addStep(steps.FileUpload(
+        workersrc=".config",
+        masterdest="/tmp/rohm_linux_driver_tests/temp_results/kernel.config",
+        name="Copy kernel config to results"
+        ))
+
     projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
         command=["ccache", "make", "-j8", "ARCH=arm", "CROSS_COMPILE="+dir_compiler_arm32+"arm-none-eabi-", "LOADADDR=0x80008000"],
         name="Build kernel binaries",
@@ -217,6 +223,12 @@ def copy_kernel_binaries_to_tftpboot(project_name):
             doStepIf=doStepIf_dtc_boneblack_old_dir,
             hideStepIf=skipped
             ))
+
+    projects[project_name]['factory'].addStep(steps.ShellCommand(
+        command=["dtc", "-i", "dtb", "-O", "dts", "-f", "/var/lib/tftpboot/am335x-boneblack.dtb",
+                 "-o", "/tmp/rohm_linux_driver_tests/temp_results/converted_am335x-boneblack.dtb.dts"],
+        name="Convert BeagleBone .dtb to .dts"
+        ))
 
 def update_test_kernel_modules(project_name):
     if project_name == 'linux-next':
