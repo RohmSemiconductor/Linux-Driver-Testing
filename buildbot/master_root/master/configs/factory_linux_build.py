@@ -8,7 +8,9 @@ from paths import *
 from factory_helpers import *
 
 def check_boneblack_old_dir(step):
-    if re.search('^next.*', step.getProperty('commit-description')):    #check for linux next
+    if step.getProperty('project') == 'linux_fast_test':
+        return 'False'
+    elif re.search('^next.*', step.getProperty('commit-description')):    #check for linux next
         return 'False'
     else:
         git_ver = tagConvert(step.getProperty('commit-description'))
@@ -167,7 +169,7 @@ def build_kernel_arm32(project_name):
         doStepIf=util.Property('kernel_build_failed') != 'True'
         ))
 
-    if project_name == 'linux_rohm_devel':
+    if project_name == 'linux_rohm_devel' or project_name == 'linux_fast_test':
         projects[project_name]['factory'].addStep(steps.SetPropertyFromCommand(
             command=["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", "arch/arm/boot/dts/ti/omap/.am335x-boneblack.dtb.dts.tmp"],
             name="Build Beagle device tree source binaries",
@@ -192,7 +194,7 @@ def build_kernel_arm32(project_name):
             ))
 
 def copy_kernel_binaries_to_tftpboot(project_name):
-    if project_name == 'linux_rohm_devel':
+    if project_name == 'linux_rohm_devel' or project_name == 'linux_fast_test':
         projects[project_name]['factory'].addStep(steps.ShellSequence(
             commands=[
             util.ShellArg(command=['cp',"arch/arm/boot/dts/ti/omap/am335x-boneblack.dtb", dir_tftpboot], logname='Copy BeagleBone .dtb to tftpboot'),
@@ -814,7 +816,7 @@ def git_bisect(project_name):
             hideStepIf=skipped
             ))
 
-    elif project_name != 'linux-next' and project_name != 'linux_stable':
+    elif project_name != 'linux-next' and project_name != 'linux_stable' and project_name != 'linux_fast_test':
         projects[project_name]['factory'].addStep(steps.ShellCommand(
             command=['git','bisect','start'],
             workdir="build",
@@ -1022,3 +1024,4 @@ build_deploy_kernel('linux_mainline')
 build_deploy_kernel('test_linux')
 build_deploy_kernel('linux-next')
 build_deploy_kernel('linux_rohm_devel')
+build_deploy_kernel('linux_fast_test')
