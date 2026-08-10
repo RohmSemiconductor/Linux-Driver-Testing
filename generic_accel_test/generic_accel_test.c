@@ -820,3 +820,4 @@ module_platform_driver(generic_accel_test_struct);
 MODULE_AUTHOR("Kalle Niemi");
 MODULE_DESCRIPTION("platform device test");
 MODULE_LICENSE("GPL");
+MODULE_IMPORT_NS("IIO_CONSUMER");
