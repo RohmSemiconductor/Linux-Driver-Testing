@@ -3,24 +3,27 @@ good_commits={
 		'test_linux':'fbef67efabbfdd81f9e9eb3da3c3eed877b7dcc8',
 },
 	'linux-next':{
-		'master':'7d6661873f6b54c75195780a40d66bad3d482d8f',
+		'master':'5e6de6a2b522f659defacb1551d0465ba6ce13cf',
 		'None':'779cae956c8316aebc1946ef86ca001f99658270',
 },
 	'linux_stable_linux-6_12_y':{
-		'linux-6.12.y':'444b39ef6108313e8452010b22aaba588e8fb92b',
+		'linux-6.12.y':'6f232446a62980e51f537db1c655e686d869b9ed',
 		'None':'9b332cece987ee1790b2ed4c989e28162fa47860',
 },
 	'linux_stable_linux-6_6_y':{
-		'linux-6.6.y':'7a137e9bfa0e1919555d60f9dc0c05a7a5ba75d0',
+		'linux-6.6.y':'4fc00fe35d46b4fc8dac2eb543a0e3d44bb15f47',
 },
 	'linux_stable_linux-rolling-stable':{
-		'linux-rolling-stable':'0c87214ec2d8da6478321a9e5b4c1e1f81fbf861',
+		'linux-rolling-stable':'e2466b32e02a49318b99520c40b397062c65c84c',
 },
 	'linux_mainline':{
-		'master':'11439c4635edd669ae435eec308f4ab8a0804808',
+		'master':'db2ddb87143519e20a95aa36c60b36107b736a58',
 },
 	'linux_fast_test':{
-		'main':'e9f456c761dbe3022e0cf0390a1d777bcbf1a8b5',
+		'main':'00708ccdcb6e4bd4ee66c579baf9120f2b7e41cf',
+},
+	'linux_rohm_devel':{
+		'rohm-pmic-test-temporary':'f673ec31a1a295162e61cdb737253ada329e0a2b',
 },
 #EOF
 }
